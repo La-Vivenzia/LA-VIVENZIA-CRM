@@ -1,0 +1,37 @@
+{
+  "compileOnSave": false,
+  "compilerOptions": {
+    "sourceMap": true,
+    "declaration": false,
+    "noEmit": true,
+    "jsx": "react-jsx",
+    "moduleResolution": "bundler",
+    "allowSyntheticDefaultImports": true,
+    "esModuleInterop": true,
+    "importHelpers": true,
+    "allowUnreachableCode": false,
+    "strict": true,
+    "alwaysStrict": true,
+    "noImplicitAny": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "exactOptionalPropertyTypes": false,
+    "target": "es2022",
+    "module": "esnext",
+    "lib": ["es2023", "dom"],
+    "types": ["node"],
+    "skipLibCheck": true,
+    "skipDefaultLibCheck": true,
+    "resolveJsonModule": true,
+    "baseUrl": ".",
+    "paths": {
+      "src/*": ["./src/*"],
+      "~/*": ["./*"],
+      "twenty-sdk/define": ["../../../twenty-sdk/dist/define/index.d.ts"],
+      "twenty-client-sdk/core": ["../../../twenty-client-sdk/dist/core/index.d.ts"],
+      "@/*": ["../../../twenty-sdk/src/*"]
+    }
+  },
+  "include": ["src/**/*.ts", "src/**/*.tsx", "scripts/**/*.mjs"],
+  "exclude": ["node_modules", "dist", ".twenty"]
+}

@@ -1,0 +1,11 @@
+# Local-only port remap. The committed compose file binds host 3000, which is
+# already taken on this machine (lavivenziademo). An override file is used
+# rather than editing docker-compose.yml, so the upstream file stays untouched
+# and this is trivial to delete.
+#
+# `!override` is required. Compose merges a `ports` list by *appending*, so a
+# plain override would ask for 3000 and 3002 and still collide on 3000.
+services:
+  server:
+    ports: !override
+      - "3002:3000"

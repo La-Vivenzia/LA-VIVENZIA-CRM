@@ -1,0 +1,2 @@
+La Vivenzia CRM documentation package.
+Basis: Product Requirements & Functional Blueprint V1, Twenty CRM repository audit, and approved La Vivenzia UI/UX direction.

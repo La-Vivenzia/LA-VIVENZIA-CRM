@@ -1,0 +1,24 @@
+# Document Index
+
+- README.md — package entry point
+- PRODUCT-REQUIREMENTS.md — product requirements
+- ARCHITECTURE.md — system architecture
+- TWENTY-GAP-ANALYSIS.md — Twenty audit
+- DATA-MODEL.md — domain model
+- SECURITY-RBAC.md — security and roles
+- UI-UX-SPEC.md — approved UI/UX
+- ONBOARDING.md — partner onboarding
+- ASSIGNMENT-SLA-NOTIFICATIONS.md — assignment, SLA, notifications
+- AI-INTELLIGENCE.md — AI capabilities and guardrails
+- CAPTURE-OCR.md — capture/OCR/voice
+- COMMUNICATIONS.md — communication layer
+- ANALYTICS.md — analytics
+- INTEGRATIONS.md — integrations
+- WORKFLOWS.md — workflow rules
+- CLAUDE.md — Claude Code rules
+- CORE-MODIFICATIONS.md — core change register
+- ROADMAP.md — phases
+- TESTING-QA.md — testing and QA
+- LICENSING-DEPLOYMENT.md — licensing/deployment
+- ENVIRONMENT.md — environments
+- IMPLEMENTATION-ORDER.md — build order

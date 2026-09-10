@@ -1,0 +1,25 @@
+export const MARKETPLACE_VETTED_APPLICATIONS: {
+  universalIdentifier: string;
+  position?: number;
+}[] = [
+  {
+    universalIdentifier: '8da4b8b5-5edf-4880-b51f-ab6e679ec617',
+    position: 1,
+  },
+  {
+    universalIdentifier: '4a1178c1-3535-4a47-b592-231d3216b36f',
+    position: 2,
+  },
+  {
+    universalIdentifier: '66a504cc-0a75-410e-a43f-cdeae1db1522',
+    position: 3,
+  },
+  {
+    universalIdentifier: '2b7f4a2e-9c4b-4a11-b63c-2e5e7d3f5a9a',
+    position: 4,
+  },
+  {
+    universalIdentifier: 'a8c47f21-3b9e-4d2a-8f61-9c0e7d4a2b51',
+    position: 5,
+  },
+];

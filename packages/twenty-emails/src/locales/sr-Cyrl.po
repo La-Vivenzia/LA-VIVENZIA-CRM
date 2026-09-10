@@ -138,7 +138,7 @@ msgid "If you'd ever like to give La Vivenzia CRM another try, you can start a f
 msgstr "Ако икада пожелите да La Vivenzia CRM дате још једну шансу, можете за неколико минута покренути нови радни простор — радо бисмо вас поново видели."
 
 #. js-lingui-explicit-id
-#: src/components/WhatIsLa Vivenzia CRM.tsx
+#: src/components/WhatIsTwenty.tsx
 msgid "It's a CRM, a software to help businesses manage their customer data and relationships efficiently."
 msgstr "То је CRM, софтвер који помаже компанијама да ефикасно управљају подацима о клијентима и њиховим односима."
 
@@ -156,6 +156,11 @@ msgstr "Придружите се свом тиму на La Vivenzia CRM"
 #: src/emails/billing-subscription-renewing.email.tsx
 msgid "Just so it's never a surprise, here's a heads up about your annual plan."
 msgstr "Како никада не би било изненађења, ево најаве у вези са вашим годишњим планом."
+
+#. js-lingui-explicit-id
+#: src/components/Footer.tsx
+msgid "La Vivenzia"
+msgstr "La Vivenzia CRM.com, јавна корпорација"
 
 #. js-lingui-explicit-id
 #: src/emails/billing-subscription-renewing.email.tsx
@@ -185,8 +190,8 @@ msgstr "Поново активирајте радни простор"
 
 #. js-lingui-explicit-id
 #: src/components/Footer.tsx
-msgid "Read La Vivenzia's user guide"
-msgstr "Прочитајте La Vivenzia CRM корисничко упутство"
+msgid "Read the La Vivenzia user guide"
+msgstr ""
 
 #. js-lingui-explicit-id
 #: src/emails/password-reset-link.email.tsx
@@ -265,11 +270,6 @@ msgstr "Да бисте задржали свој радни простор и �
 
 #. js-lingui-explicit-id
 #: src/components/Footer.tsx
-msgid "La Vivenzia"
-msgstr "La Vivenzia CRM.com, јавна корпорација"
-
-#. js-lingui-explicit-id
-#: src/components/Footer.tsx
 msgid "User guide"
 msgstr "Корисничко упутство"
 
@@ -286,11 +286,6 @@ msgstr "Потврдите е-адресу"
 
 #. js-lingui-explicit-id
 #: src/components/Footer.tsx
-msgid "Visit La Vivenzia's developer documentation"
-msgstr "Посетите La Vivenzia CRM документацију за програмере"
-
-#. js-lingui-explicit-id
-#: src/components/Footer.tsx
 msgid "Visit La Vivenzia's GitHub repository"
 msgstr "Посетите La Vivenzia CRM репозиторијум на GitHub-у"
 
@@ -298,6 +293,11 @@ msgstr "Посетите La Vivenzia CRM репозиторијум на GitHub-
 #: src/components/Footer.tsx
 msgid "Visit La Vivenzia's website"
 msgstr "Посетите La Vivenzia CRM вебсајт"
+
+#. js-lingui-explicit-id
+#: src/components/Footer.tsx
+msgid "Visit the La Vivenzia developer documentation"
+msgstr ""
 
 #. js-lingui-explicit-id
 #: src/emails/billing-trial-converting.email.tsx
@@ -310,7 +310,7 @@ msgid "Website"
 msgstr "Вебсајт"
 
 #. js-lingui-explicit-id
-#: src/components/WhatIsLa Vivenzia CRM.tsx
+#: src/components/WhatIsTwenty.tsx
 msgid "What is La Vivenzia CRM?"
 msgstr "Шта је La Vivenzia CRM?"
 

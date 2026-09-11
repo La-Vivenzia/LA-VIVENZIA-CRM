@@ -12,6 +12,7 @@ import {
   INTERACTION_ACTOR_ID,
   INTERACTION_CHANNEL_ID,
   INTERACTION_COMMITMENTS_ID,
+  INTERACTION_DIRECTION_ID,
   INTERACTION_DURATION_ID,
   INTERACTION_LEAD_ID,
   INTERACTION_NAME_ID,
@@ -26,6 +27,7 @@ import {
   INTERACTION_SUMMARY_ID,
   LEAD_OBJECT_ID,
 } from 'src/constants/universal-identifiers';
+import { INTERACTION_DIRECTION_OPTIONS } from 'src/modules/lv-interactions/constants/interaction-direction';
 import {
   INTERACTION_CHANNEL_OPTIONS,
   INTERACTION_OUTCOME_OPTIONS,
@@ -92,6 +94,20 @@ export default defineObject({
       isNullable: false,
       defaultValue: "'PHONE'",
       options: INTERACTION_CHANNEL_OPTIONS,
+    },
+    {
+      // Who started it. Notifications need to know a message came FROM the
+      // lead: an inbound WhatsApp is a reply the owner must not miss, an
+      // outbound call is the owner doing their job. Nullable so the interaction
+      // log written before this field existed stays valid; a null is treated
+      // as outbound everywhere.
+      universalIdentifier: INTERACTION_DIRECTION_ID,
+      type: FieldType.SELECT,
+      name: 'direction',
+      label: 'Direction',
+      icon: 'IconArrowsExchange',
+      isNullable: true,
+      options: INTERACTION_DIRECTION_OPTIONS,
     },
     {
       universalIdentifier: INTERACTION_OCCURRED_AT_ID,

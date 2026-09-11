@@ -8,7 +8,6 @@ import { type AssignmentPort } from 'src/modules/lv-assignment/services/assignme
 import { isUniqueViolation } from 'src/modules/lv-core/services/lead-id-allocator';
 import { type AssignmentHistoryEntry } from 'src/modules/lv-assignment/utils/build-assignment-history';
 import { isOpenWorkloadStatus, isLeadStatus } from 'src/modules/lv-core/constants/lead-lifecycle';
-import { type NotificationDraft } from 'src/modules/lv-notifications/utils/build-notification';
 
 // The CoreApiClient-backed AssignmentPort. All workspace I/O for assignment
 // lives here and nowhere else, so the decision logic stays pure and testable.
@@ -251,34 +250,5 @@ export const createCoreApiAssignmentPort = (
 
       throw error;
     }
-  },
-
-  upsertNotifications: async (drafts: readonly NotificationDraft[]) => {
-    if (drafts.length === 0) {
-      return;
-    }
-
-    // Upsert on dedupeKey so a retried invocation or a replayed database event
-    // cannot notify the same person twice for the same assignment.
-    await client.mutation({
-      createLvNotifications: {
-        __args: {
-          data: drafts.map((draft) => ({
-            name: draft.title,
-            recipientId: draft.recipientWorkspaceMemberId,
-            // The column is notificationType, not type: "type" is reserved by
-            // Twenty and the manifest sync rejects it. Writing "type" here was
-            // silently producing no notification at all.
-            notificationType: draft.type,
-            body: draft.body,
-            deepLink: draft.deepLink,
-            isRead: draft.isRead,
-            dedupeKey: draft.dedupeKey,
-          })),
-          upsert: true,
-        },
-        id: true,
-      },
-    });
   },
 });

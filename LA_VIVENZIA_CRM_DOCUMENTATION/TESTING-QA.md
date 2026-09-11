@@ -163,3 +163,67 @@ Sidebar shows CRM › Leads, People, Organisations, Experiences, Properties,
 Partners; Work (collapsed); Opportunities; Dashboards. No demo objects. Company
 relabelled Organisation. Dark mode renders. 390px viewport: no horizontal
 overflow. Automation/Workflows correctly hidden for a role without tool access.
+
+
+## Day 4A — notifications: verified by real execution
+
+Unit (vitest, 33 files / 788 tests): catalogue builders and dedupe keys,
+service idempotency and actor suppression, mention parsing, email config /
+composition / delivery outcomes (including a real nodemailer transport with no
+network), follow-up reminder selection, read-state authorization, event
+parsing, centre presentation rules.
+
+Live, in the repository — `src/__tests__/lv-notifications.integration-test.ts`
+(6 tests, real sessions for a Main Admin, an Experience Hunter and an
+Onboarding Expert; skipped without `TWENTY_API_KEY` and the dev users):
+assignment via the real `lvLead.updated` flow with server-derived audit;
+reassignment recipient correctness; CM-004 on notifications; deep-link
+authorization; event replay idempotency; actor suppression; follow-up sweep
+run twice; mark read / mark all read / API-key refusal.
+
+Live, scratchpad (`notifications.mjs`, 60 checks, all passing): the above plus
+onboarding started / approval required / completed, document rejected through
+the reviewer route, mentions on create and edit, lead reply, email queued →
+`SKIPPED_NO_PROVIDER` with reason, audit fields.
+
+Browser (`centre.mjs`, Playwright, real login as Tim): sidebar entry, centre
+renders a real notification unread with the priority indicator and lead chip,
+Mark all read → server confirms 0 unread and `readAt` set, clicking navigates to
+`/object/lvLead/<id>`, 390px dark mode with no horizontal overflow.
+
+Finding while doing this: `packages/twenty-front-component-renderer` had never
+been built on this machine, so **no LV front component had ever rendered in the
+running browser before Day 4A** (earlier E2E ran through routes and GraphQL).
+Built with `sandbox:prebuild` + `vite build`; the dev server must be restarted
+after. Documented in ENVIRONMENT.md.
+
+
+## Day 4B — SLA engine: verified by real execution
+
+Unit (vitest, 37 files / 847 tests total): clock schedules for all four rules
+with time travel (0 / 10 / 17.99 / 18 / 24 / 24.99 / 25 / 240 h and the 48h
+equivalents), timezone normalisation, trigger predicates, state machine,
+resolution rules per rule, ownership per target, full lifecycle with a fake
+clock, ten repeated runs after escalation, resolution before and after
+breach, deleted target, reassignment (old owner silenced, new owner told,
+deadline unchanged, no duplicate row), three concurrent evaluators on one SLA
+(one breach / notification / escalation / task), failed notification and
+failed task creation retried without duplicates, missing escalation owner,
+restart between breach and escalation.
+
+Live, in the repository — `src/__tests__/lv-sla.integration-test.ts` (6
+tests, real sessions): clock from `createdAt` + reassignment; time-travelled
+lifecycle with notifications and task; five concurrent executions; resolution
+before and after breach; CM-004 isolation and forged mutations refused.
+
+Live, scratchpad (`sla.mjs`, 55 checks, all passing): the above plus rule 2
+(48h) end to end, rule 3 (reviewer, resolved by a document review through the
+route), rule 4 (owner = lead owner, link → lead, resolved by resubmission),
+ownerless SLA, deleted target → `TARGET_GONE`, escalation owner unset →
+blocked → set → escalates once, `/sla/summary` scoping, evaluator execution
+refused for a governed user.
+
+Background execution: the cron-trigger scheduler had never been registered
+in this environment (see ENVIRONMENT.md); after registering it, a probe SLA's
+`lastEvaluatedAt` was updated by the scheduled `*/15` run with no client
+involved.

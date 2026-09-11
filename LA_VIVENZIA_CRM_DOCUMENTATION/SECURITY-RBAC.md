@@ -243,3 +243,41 @@ Settings → Members → member → Role, or `updateWorkspaceMemberRole(workspac
 on `/metadata` with an administrator's **session** (an API key is refused, and
 nobody can change their own role). Both invalidate the role cache correctly;
 a direct database update does not.
+
+
+## Notifications (Day 4A)
+
+- `lvNotification` is row-scoped by CM-004 on `recipientId`, with NULL never
+  visible. Verified live: a Hunter cannot list, fetch by id, or mark read a
+  reviewer's notification; an unscoped Main Admin can read all.
+- Recipients are resolved server-side from the record (owner, reviewer,
+  assignee, mention). `recipientId` / `actorId` / `ownerId` in a request body
+  are never identity. The actor is the event's `workspaceMemberId` or the
+  route session; the actor is never notified about their own action.
+- Each recipient is linked to a record they can open under CM-004. The
+  previous owner of a reassigned lead is deliberately **not** notified: they
+  can no longer open the lead, so any link would reveal a record they cannot
+  access.
+- Read-state changes go through routes that take the actor from the session
+  and write with the application role, confined to the actor's own rows. API
+  keys are refused (`NOT_AUTHENTICATED`).
+- Audit: `triggeredBy`, `sourceEvent`, `createdBy`, `readAt`, `emailStatus`
+  live on the row. No separate audit row per read — that would be the noisy
+  duplicate the brief warns against.
+
+
+## SLAs (Day 4B)
+
+- `lvSla` is row-scoped by CM-004 on `ownerId` (NULL visible, like an
+  unassigned lead). Verified live: Hunter A cannot read reviewer C's SLA by id
+  or list; C cannot read A's; an unscoped Main Admin sees all.
+- No LV team role can create or update `lvSla`. Verified live: a Hunter's
+  `updateLvSla(status: RESOLVED)` on their own SLA and `ownerId` takeover of
+  another's are both refused; `createLvSla` with a client-supplied owner is
+  refused. State changes happen only through the application role from
+  server events and the evaluator.
+- Owner, escalation owner and recipients are resolved server-side (record
+  owner / reviewer; `LV_ESCALATION_OWNER_EMAIL` → workspace member). Nothing
+  in a request body names them.
+- Running the evaluator on demand requires the WORKFLOWS settings permission
+  (Twenty's `executeOneLogicFunction` guard); a governed user is refused.

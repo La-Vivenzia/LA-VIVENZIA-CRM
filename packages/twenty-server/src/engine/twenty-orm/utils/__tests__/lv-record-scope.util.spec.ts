@@ -67,7 +67,36 @@ describe('lv-record-scope (CM-004)', () => {
     });
 
     it('holding an unscoped role alongside a scoped one lifts the scope', () => {
-      expect(build('lvLead', [ROLE.EXPERIENCE_HUNTER, ROLE.OPERATIONS])).toBeNull();
+      expect(
+        build('lvLead', [ROLE.EXPERIENCE_HUNTER, ROLE.OPERATIONS]),
+      ).toBeNull();
+    });
+  });
+
+  describe('notification scoping', () => {
+    it('narrows a governed role to notifications addressed to them, and never to NULL', () => {
+      const condition = build('lvNotification', [ROLE.EXPERIENCE_HUNTER]);
+
+      expect(condition?.sql).toBe('("t"."recipientId" = :t_lvActor)');
+      expect(condition?.sql).not.toContain('IS NULL');
+      expect(condition?.parameters).toEqual({ t_lvActor: MEMBER });
+    });
+
+    it('leaves an unscoped role alone', () => {
+      expect(build('lvNotification', [ROLE.MAIN_ADMIN])).toBeNull();
+    });
+  });
+
+  describe('SLA scoping', () => {
+    it('narrows a governed role to SLAs it owns or that are unowned', () => {
+      const condition = build('lvSla', [ROLE.ONBOARDING_EXPERT]);
+
+      expect(condition?.sql).toContain('"t"."ownerId" = :t_lvActor');
+      expect(condition?.sql).toContain('"t"."ownerId" IS NULL');
+    });
+
+    it('leaves an unscoped role (the escalation owners) alone', () => {
+      expect(build('lvSla', [ROLE.OPERATIONS])).toBeNull();
     });
   });
 
@@ -92,7 +121,9 @@ describe('lv-record-scope (CM-004)', () => {
     it('scopes a document through a subquery on its onboarding’s reviewer', () => {
       const condition = build('lvOnboardingDocument', [ROLE.ONBOARDING_EXPERT]);
 
-      expect(condition?.sql).toContain('EXISTS (SELECT 1 FROM "workspace_x"."_lvOnboarding"');
+      expect(condition?.sql).toContain(
+        'EXISTS (SELECT 1 FROM "workspace_x"."_lvOnboarding"',
+      );
       expect(condition?.sql).toContain('lv_parent."id" = "t"."onboardingId"');
       expect(condition?.sql).toContain('lv_parent."reviewerId" = :t_lvActor');
     });
@@ -107,9 +138,13 @@ describe('lv-record-scope (CM-004)', () => {
 
   describe('SQL safety', () => {
     it('uses a bound parameter for the member id, never string interpolation', () => {
-      const condition = build('lvLead', [ROLE.EXPERIENCE_HUNTER], "x' OR 1=1 --");
+      const condition = build(
+        'lvLead',
+        [ROLE.EXPERIENCE_HUNTER],
+        "x' OR 1=1 --",
+      );
 
-      expect(condition?.sql).not.toContain("1=1");
+      expect(condition?.sql).not.toContain('1=1');
       expect(condition?.parameters.t_lvActor).toBe("x' OR 1=1 --");
     });
 

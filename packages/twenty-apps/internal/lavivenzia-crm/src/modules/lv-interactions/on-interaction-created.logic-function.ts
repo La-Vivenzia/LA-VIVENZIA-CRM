@@ -7,15 +7,26 @@ import {
 
 import { FN_ON_INTERACTION_CREATED_ID } from 'src/constants/universal-identifiers';
 import {
+  INTERACTION_CHANNEL_LABELS,
   isInteractionChannel,
   isInteractionOutcome,
 } from 'src/modules/lv-interactions/constants/interaction-vocabulary';
 import { applyInteraction } from 'src/modules/lv-interactions/services/interaction-orchestrator';
 import { createCoreApiInteractionPort } from 'src/modules/lv-interactions/services/core-api-interaction-port';
-import { type LeadPriority } from 'src/modules/lv-core/constants/lead-lifecycle';
+import {
+  priorityOrDefault,
+  type LeadPriority,
+} from 'src/modules/lv-core/constants/lead-lifecycle';
+import { isInboundInteraction } from 'src/modules/lv-interactions/constants/interaction-direction';
+import { createCoreApiNotificationPort } from 'src/modules/lv-notifications/services/core-api-notification-port';
+import { dispatchNotifications } from 'src/modules/lv-notifications/services/notification-service';
+import { buildLeadRepliedNotification } from 'src/modules/lv-notifications/utils/build-notification';
+import { createCoreApiSlaPort } from 'src/modules/lv-sla/services/core-api-sla-port';
+import { evaluateTarget } from 'src/modules/lv-sla/services/sla-lifecycle';
 
-// Fires on lvInteraction.created. Refreshes the lead's relationship summary and
-// creates the follow-up task.
+// Fires on lvInteraction.created. Refreshes the lead's relationship summary,
+// creates the follow-up task, and — for an INBOUND interaction — tells the
+// lead's owner that the lead replied.
 //
 // The timeline entry is NOT written here — the lvInteractionLogged timeline
 // activity type emits it declaratively through the lead relation, so Twenty
@@ -29,6 +40,7 @@ type InteractionRow = {
   outcome?: string | null;
   nextAction?: string | null;
   nextFollowUpAt?: string | null;
+  direction?: string | null;
   actorId?: string | null;
   createdAt?: string | null;
 };
@@ -61,15 +73,21 @@ export const handler = async (
   const occurredAt =
     record.occurredAt ?? record.createdAt ?? new Date().toISOString();
 
-  const leadNameResult = await client.query({
+  const leadResult = await client.query({
     lvLead: {
       __args: { filter: { id: { eq: record.leadId } } },
       name: true,
+      ownerId: true,
+      priority: true,
     },
   });
 
-  const leadName =
-    (leadNameResult as { lvLead?: { name?: string } }).lvLead?.name ?? 'this lead';
+  const leadRow = (
+    leadResult as {
+      lvLead?: { name?: string; ownerId?: string | null; priority?: string | null };
+    }
+  ).lvLead;
+  const leadName = leadRow?.name ?? 'this lead';
 
   const outcomeResult = await applyInteraction({
     interaction: {
@@ -87,9 +105,45 @@ export const handler = async (
     port,
   });
 
+  // Lead reply: the owner is read from the lead, the actor from the event.
+  // Someone logging an inbound message on their own lead is not told about
+  // it — the service drops the actor as recipient.
+  let replyNotified = 0;
+
+  if (isInboundInteraction(record.direction) && leadRow?.ownerId) {
+    const outcome = await dispatchNotifications({
+      port: createCoreApiNotificationPort(client),
+      intents: [
+        buildLeadRepliedNotification({
+          leadId: record.leadId,
+          leadName,
+          interactionId: record.id,
+          channelLabel: INTERACTION_CHANNEL_LABELS[channel],
+          ownerWorkspaceMemberId: leadRow.ownerId,
+          priority: priorityOrDefault(leadRow.priority),
+        }),
+      ],
+      sourceEvent: payload.name,
+      actorWorkspaceMemberId: payload.workspaceMemberId ?? record.actorId ?? null,
+    });
+
+    replyNotified = outcome.created.length;
+  }
+
+  // A logged contact is what resolves the "first contact" and "follow-up"
+  // SLAs. Re-evaluate now rather than waiting for the sweep; the engine reads
+  // the interaction back from the workspace, so nothing here is trusted.
+  const slaEvaluations = await evaluateTarget({
+    port: createCoreApiSlaPort(client),
+    leadId: record.leadId,
+    now: new Date().toISOString(),
+  });
+
   return {
     applied: outcomeResult.skippedReason === null,
     skippedReason: outcomeResult.skippedReason,
+    replyNotified,
+    slaResolved: slaEvaluations.filter((result) => result.after === 'RESOLVED' && result.transitionClaimed).length,
     followUpTaskId: outcomeResult.followUpTaskId,
     followUpDueAt: outcomeResult.followUp?.dueAt ?? null,
     followUpPriority: outcomeResult.followUp?.priority ?? null,

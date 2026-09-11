@@ -15,10 +15,6 @@ import {
   type LeadPriority,
   type LeadStatus,
 } from 'src/modules/lv-core/constants/lead-lifecycle';
-import {
-  notificationsForAssignment,
-  type NotificationDraft,
-} from 'src/modules/lv-notifications/utils/build-notification';
 
 // Everything the orchestrator needs from the outside world, behind one
 // interface. The logic function supplies a CoreApiClient-backed implementation;
@@ -43,8 +39,6 @@ export type AssignmentPort = {
   // not a failure. Implementations must not treat that as an error, and must
   // not swallow anything else.
   recordHistory(entry: AssignmentHistoryEntry): Promise<boolean>;
-  // Must upsert on dedupeKey so a retried invocation cannot notify twice.
-  upsertNotifications(drafts: readonly NotificationDraft[]): Promise<void>;
 };
 
 export type AssignmentTarget = {
@@ -63,8 +57,14 @@ export type AssignLeadOutcome = {
   // True only when a row was actually appended. A replayed event reports
   // false, which is how the caller can tell a fresh run from a retry.
   historyRecorded: boolean;
-  notificationsSent: number;
 };
+
+// Notifying the new owner is NOT done here. Ownership can change three ways —
+// this engine, a manual edit in the UI, an API call — and only one of them
+// passes through this function. The lvLead.updated database event sees all
+// three, so lv-on-lead-updated is the single producer of LEAD_ASSIGNED and
+// LEAD_REASSIGNED, through the central notification service. Doing it here as
+// well would double-notify every automatic assignment.
 
 // Statuses at or beyond which re-running assignment would be interference
 // rather than help: the lead is already being worked, closed, or live.
@@ -77,7 +77,6 @@ export const assignLead = async ({
   now,
   manualAssigneeId = null,
   actorWorkspaceMemberId = null,
-  actorDisplayName = null,
   isExplicitAction = false,
   eventKey = null,
 }: {
@@ -86,7 +85,6 @@ export const assignLead = async ({
   now: string;
   manualAssigneeId?: string | null;
   actorWorkspaceMemberId?: string | null;
-  actorDisplayName?: string | null;
   isExplicitAction?: boolean;
   // Supplied by automatic callers so a replayed event cannot append twice.
   eventKey?: string | null;
@@ -144,24 +142,9 @@ export const assignLead = async ({
       )
     : false;
 
-  const notifications = notificationsForAssignment({
-    leadId: lead.id,
-    leadName: lead.name,
-    previousOwnerId,
-    newOwnerId: decision.assigneeWorkspaceMemberId,
-    assignedByName: actorDisplayName,
-    priority: lead.priority,
-    now,
-  });
-
-  if (notifications.length > 0) {
-    await port.upsertNotifications(notifications);
-  }
-
   return {
     decision,
     ownerChanged,
     historyRecorded,
-    notificationsSent: notifications.length,
   };
 };

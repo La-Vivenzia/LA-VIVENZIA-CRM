@@ -1567,7 +1567,9 @@ export class WorkspaceRepository<TEntity extends ObjectLiteral = ObjectRecord> {
             roleId
           ],
       )
-      .filter((identifier): identifier is string => typeof identifier === 'string');
+      .filter(
+        (identifier): identifier is string => typeof identifier === 'string',
+      );
 
     const condition = buildLvScopeCondition({
       objectNameSingular: flatObjectMetadata.nameSingular,
@@ -1612,7 +1614,11 @@ export class WorkspaceRepository<TEntity extends ObjectLiteral = ObjectRecord> {
     // La Vivenzia record scoping, applied at the same point so it covers the
     // main alias and every join, on select/update/delete alike. Independent of
     // the Enterprise predicate resolution below, which stays unused.
-    this.applyLvRecordScopeForAlias({ queryBuilder, alias, flatObjectMetadata });
+    this.applyLvRecordScopeForAlias({
+      queryBuilder,
+      alias,
+      flatObjectMetadata,
+    });
 
     const recordFilter = resolveRowLevelPermissionRecordFilter({
       internalContext: this.options.internalContext,

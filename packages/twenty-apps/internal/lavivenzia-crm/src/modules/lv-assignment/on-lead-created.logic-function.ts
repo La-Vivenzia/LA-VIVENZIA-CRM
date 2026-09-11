@@ -15,6 +15,9 @@ import { isLeadStatus, type LeadPriority } from 'src/modules/lv-core/constants/l
 import { allocateLeadId } from 'src/modules/lv-core/services/lead-id-allocator';
 import { createCoreApiLeadIdPort } from 'src/modules/lv-core/services/core-api-lead-id-port';
 import { assignmentEventKey } from 'src/modules/lv-assignment/utils/build-assignment-history';
+import { createCoreApiSlaPort } from 'src/modules/lv-sla/services/core-api-sla-port';
+import { startSla } from 'src/modules/lv-sla/services/sla-lifecycle';
+import { isActionableNewLeadStatus } from 'src/modules/lv-sla/utils/sla-triggers';
 
 // Routes every newly created lead. Fires once per lead on lvLead.created.
 //
@@ -37,6 +40,7 @@ type LeadRecord = {
   priority?: string | null;
   ownerId?: string | null;
   duplicateKeys?: readonly string[] | null;
+  createdAt?: string | null;
 };
 
 const toAssignmentTarget = (record: LeadRecord): AssignmentTarget => ({
@@ -125,9 +129,33 @@ export const handler = async (
     }),
   });
 
+  // SLA rule 1 — new lead contact. The clock starts at the lead's own
+  // createdAt (not "now"), so a replayed event derives the same deadline and
+  // the same dedupe key. A DISCOVERED lead is a preliminary capture nobody has
+  // confirmed yet; its clock starts when it becomes NEW (lv-on-lead-updated).
+  let sla: Awaited<ReturnType<typeof startSla>> | null = null;
+
+  if (isActionableNewLeadStatus(record.status)) {
+    sla = await startSla({
+      port: createCoreApiSlaPort(client),
+      rule: 'NEW_LEAD_CONTACT',
+      subjectName: record.name ?? 'Unnamed lead',
+      priority: (record.priority as LeadPriority | null) ?? 'MEDIUM',
+      ownerWorkspaceMemberId: outcome.decision.assigneeWorkspaceMemberId ?? record.ownerId ?? null,
+      target: { object: 'lvLead', recordId: record.id },
+      leadId: record.id,
+      onboardingId: null,
+      documentId: null,
+      startedAt: record.createdAt ?? new Date().toISOString(),
+      sourceEvent: payload.name,
+      actorWorkspaceMemberId: payload.workspaceMemberId ?? null,
+    });
+  }
+
   return {
     lvLeadId: identifier.ok ? identifier.leadId : null,
     lvLeadIdAllocated: identifier.ok ? identifier.allocated : false,
+    sla: sla ? { outcome: sla.outcome, dueAt: sla.dueAt } : null,
     lvLeadIdFailure: identifier.ok ? null : identifier.reason,
     assigned: outcome.decision.assigneeWorkspaceMemberId !== null,
     ownerId: outcome.decision.assigneeWorkspaceMemberId,
@@ -135,7 +163,6 @@ export const handler = async (
     score: outcome.decision.score,
     reasons: outcome.decision.reasons,
     unassignedReason: outcome.decision.unassignedReason,
-    notificationsSent: outcome.notificationsSent,
   };
 };
 

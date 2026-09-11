@@ -328,3 +328,91 @@ export const NAV_TASKS_ID = 'bde6c2ce-2338-46e5-b589-3504041d0f8c';
 export const NAV_ACTIVITIES_ID = '4f7503ed-da17-4e8d-a334-b9de5e27c8d2';
 export const NAV_NOTES_ID = '24158c5f-2d9c-4017-ae8d-f9d2cc827038';
 export const NAV_WORKFLOWS_ID = '1fa67b02-8edf-4cf4-bb62-7303fc353216';
+
+// Day 4A — notification system.
+export const NOTIFICATION_PRIORITY_FIELD_ID =
+  '91985025-9d2d-4b45-864c-a8b33d1fe5f9';
+export const NOTIFICATION_READ_AT_FIELD_ID =
+  '6bf2f298-a982-4982-bb5b-94f7783b4372';
+export const NOTIFICATION_TARGET_OBJECT_FIELD_ID =
+  'e626a924-ce64-4386-9521-d3b7a87dd067';
+export const NOTIFICATION_TARGET_RECORD_FIELD_ID =
+  '4d839b15-85bc-4e97-9341-e3e6a66105b5';
+export const NOTIFICATION_LEAD_FIELD_ID =
+  '50df1e89-4867-4249-bb3e-67fcf534c5cf';
+export const NOTIFICATIONS_ON_LEAD_FIELD_ID =
+  '17ba43a0-d953-40b1-9b3b-df65608aa92c';
+export const NOTIFICATION_TRIGGERED_BY_FIELD_ID =
+  '38fa6f46-1074-4612-b18b-0a85462ef929';
+export const TRIGGERED_NOTIFICATIONS_ON_MEMBER_FIELD_ID =
+  'f2df7be3-2394-4369-a994-9713cd8f49d5';
+export const NOTIFICATION_SOURCE_EVENT_FIELD_ID =
+  '0ad3a219-1b43-4a55-bb35-979ad5e7a2d4';
+export const NOTIFICATION_EMAIL_STATUS_FIELD_ID =
+  'b15b5b2a-0df2-4267-afac-f868b99ea1db';
+export const NOTIFICATION_EMAIL_SENT_AT_FIELD_ID =
+  '69495e73-3adb-4161-abde-83b5a47c37da';
+export const NOTIFICATION_EMAIL_ERROR_FIELD_ID =
+  '159a090f-c998-4998-b0dc-c2f305f51ad1';
+export const NOTIFICATION_METADATA_FIELD_ID =
+  '6b03e22e-d9cd-46e6-86d1-d58bdf901114';
+export const INTERACTION_DIRECTION_ID = '3444206e-3306-487a-97a5-2a109caf00a6';
+export const FN_ON_LEAD_UPDATED_ID = 'a70834d7-5360-49b7-b661-c7f35812bdda';
+export const FN_ON_DOCUMENT_UPDATED_ID = 'c4b3e634-0bfd-4ebb-9f7f-b272d98f8be8';
+export const FN_ON_NOTE_CREATED_ID = 'e6931698-884e-4c36-ac09-03d6c97ea4c3';
+export const FN_ON_NOTE_UPDATED_ID = '042467ae-87ba-47aa-985c-cd56b30c415e';
+export const FN_FOLLOW_UP_REMINDERS_ID = '65ee08f9-7c75-4bb9-9574-2ea60c9595a7';
+export const FN_ON_NOTIFICATION_CREATED_ID =
+  '64c6cbb9-f8b2-4164-a620-015c80759e76';
+export const FN_MARK_NOTIFICATION_READ_ID =
+  '7eeaec83-49fd-498b-81ba-6bea07c3ee02';
+export const FN_MARK_ALL_NOTIFICATIONS_READ_ID =
+  '5b016ae4-891d-406f-a51d-d1f9181dc31e';
+export const FC_NOTIFICATION_CENTRE_ID = '509a4e1d-6156-4a05-8471-52ad9e0049b8';
+export const PL_NOTIFICATION_CENTRE_ID = 'f67ad42b-fa0b-4ee3-82ac-951dbb681fd5';
+export const PL_NOTIFICATION_CENTRE_TAB_ID =
+  '4551d0ef-875d-4e4c-9b79-0d14847bcfc4';
+export const PL_NOTIFICATION_CENTRE_WIDGET_ID =
+  'b7be242d-e20b-4d2f-a605-f2b4a475faf5';
+export const NAV_NOTIFICATIONS_ID = 'b10cd363-4461-4a71-a3dd-90399aca7bd6';
+
+// Day 4B — SLA engine.
+export const SLA_OBJECT_ID = 'c6435167-58e0-4fe5-bba8-deefd7b81269';
+export const SLA_NAME_ID = 'b1194424-996f-4c3c-82c5-9d9d4a794e80';
+export const SLA_RULE_ID = '0dc6a1ce-990e-4514-98d9-9975e41fd201';
+export const SLA_STATUS_ID = 'f8648b2d-0f03-4343-9bb8-a6a9fec00fcf';
+export const SLA_PREVIOUS_STATUS_ID = '4842f7a5-a4a9-4450-9c69-c9cd9b66884d';
+export const SLA_TARGET_OBJECT_ID = '038e8195-16fc-4328-945a-7f94a6e0f208';
+export const SLA_TARGET_RECORD_ID = 'c24e4616-a2ce-42fe-8815-e6046204a324';
+export const SLA_LEAD_ID = 'a7fa192d-b861-4c82-a7a8-6dc7657a3182';
+export const SLAS_ON_LEAD_ID = '9afd356e-8323-4cfc-b667-639d3a88ed74';
+export const SLA_ONBOARDING_ID = '64438c3f-a955-4191-9c26-eb96f91f0fd1';
+export const SLAS_ON_ONBOARDING_ID = '8d2f8ccf-3bf5-4740-8c8f-d41c7ff06e5e';
+export const SLA_DOCUMENT_ID = '1bcce716-3127-4fe9-b26f-a982f1ed4add';
+export const SLAS_ON_DOCUMENT_ID = '4f6091cd-fe47-4e7e-9d3c-376f8db3f289';
+export const SLA_OWNER_ID = 'b57d1cf7-daf6-4be7-ab69-19159bb723b2';
+export const SLAS_ON_MEMBER_ID = '80f96ee0-f369-46f4-ac91-4bf5dd712040';
+export const SLA_ESCALATION_OWNER_ID = 'b2e7c13a-6644-4680-a3f0-fa95611a2e0f';
+export const ESCALATED_SLAS_ON_MEMBER_ID = '9bd38b48-a4e1-4ed8-8763-e1cea44372ed';
+export const SLA_ESCALATION_TASK_ID = '330980d5-c5b9-4034-9858-28b6a0ff5992';
+export const SLA_ON_TASK_ID = '003bbe6d-c309-4d9a-ac66-e480385985eb';
+export const SLA_STARTED_AT_ID = '681bf4fb-6845-42ec-ab99-e27f9278957b';
+export const SLA_DUE_SOON_AT_ID = '1f8fb13d-b76b-459b-bef1-e848ea78cbd6';
+export const SLA_DUE_AT_ID = 'ab79dcf4-f143-4d30-b3dd-fc74611771e5';
+export const SLA_BREACHED_AT_ID = '0901edb7-6ba1-447b-9f23-69d83ce929db';
+export const SLA_ESCALATED_AT_ID = '449ac8f5-368e-4295-a1d4-3d898b899a4b';
+export const SLA_RESOLVED_AT_ID = '8bfb4cfc-a1e0-4e6a-b130-0c85f44a9385';
+export const SLA_LAST_EVALUATED_AT_ID = 'cb9cb6d0-0d76-4040-a081-09b3a9ffb43b';
+export const SLA_LAST_NOTIFIED_AT_ID = 'b1a7e2f5-c0cb-47f1-966c-28ed7ef5e1bd';
+export const SLA_PRIORITY_ID = 'c17e6968-ff0e-4c68-93dc-fa6eae9442bf';
+export const SLA_DEDUPE_KEY_ID = '868a3440-ef9b-4ba4-866c-69eb14aaa67f';
+export const SLA_SOURCE_EVENT_ID = 'c3449387-51f0-4ed4-9256-c9f9b4836b9c';
+export const SLA_RESOLUTION_REASON_ID = 'fad127e4-44a8-47a3-86a2-5b3477075280';
+export const SLA_AUDIT_ID = '281348fb-4205-4def-8030-400b4c3d9716';
+export const SLA_METADATA_ID = 'c419f440-5214-4d13-b8a8-b286241e2ab4';
+export const FN_SLA_EVALUATOR_ID = '304388e8-0b9c-4b88-b094-e7cfe953ddb3';
+export const FN_SLA_SUMMARY_ID = 'd18ced48-20e9-4b3a-b1e6-78a63393c4ae';
+export const VIEW_SLA_ATTENTION_ID = '5f5c3ad2-d3e2-4bcd-b2ab-9782fbcd7b2a';
+export const NAV_SLAS_ID = '89fcaedb-aaf9-4357-8730-769c06deda33';
+export const APPVAR_ESCALATION_OWNER_ID = '26d5f082-8deb-4498-9d9d-86186de55050';
+export const SLA_ESCALATION_BLOCKED_ID = 'ffdbcb64-15e3-4c23-a790-8b7d9528f5ea';

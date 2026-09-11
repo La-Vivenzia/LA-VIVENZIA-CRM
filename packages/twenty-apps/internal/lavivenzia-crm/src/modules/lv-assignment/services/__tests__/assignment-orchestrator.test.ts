@@ -30,12 +30,11 @@ const aPort = (overrides: Partial<AssignmentPort> = {}): AssignmentPort => ({
   findExistingRelationshipOwnerId: vi.fn(async () => null),
   applyOwner: vi.fn(async () => undefined),
   recordHistory: vi.fn(async () => true),
-  upsertNotifications: vi.fn(async () => undefined),
   ...overrides,
 });
 
 describe('assignLead', () => {
-  it('assigns, records history and notifies in one pass', async () => {
+  it('assigns and records history in one pass', async () => {
     const port = aPort();
 
     const outcome = await assignLead({ lead: aLead(), port, now: NOW });
@@ -43,10 +42,8 @@ describe('assignLead', () => {
     expect(outcome.decision.assigneeWorkspaceMemberId).toBe('a');
     expect(outcome.ownerChanged).toBe(true);
     expect(outcome.historyRecorded).toBe(true);
-    expect(outcome.notificationsSent).toBe(1);
     expect(port.applyOwner).toHaveBeenCalledOnce();
     expect(port.recordHistory).toHaveBeenCalledOnce();
-    expect(port.upsertNotifications).toHaveBeenCalledOnce();
   });
 
   it('advances a new lead to ASSIGNED', async () => {
@@ -89,7 +86,6 @@ describe('assignLead', () => {
     expect(outcome.ownerChanged).toBe(false);
     expect(port.applyOwner).not.toHaveBeenCalled();
     expect(port.recordHistory).not.toHaveBeenCalled();
-    expect(port.upsertNotifications).not.toHaveBeenCalled();
   });
 
   it('records history for an explicit human re-run even when nothing changed', async () => {
@@ -120,7 +116,6 @@ describe('assignLead', () => {
       now: NOW,
       manualAssigneeId: 'b',
       actorWorkspaceMemberId: 'admin',
-      actorDisplayName: 'Tim Apple',
     });
 
     expect(outcome.decision.strategy).toBe('MANUAL');
@@ -167,7 +162,6 @@ describe('assignLead', () => {
       expect(outcome.decision.assigneeWorkspaceMemberId).toBeNull();
       expect(port.applyOwner).not.toHaveBeenCalled();
       expect(port.recordHistory).toHaveBeenCalledOnce();
-      expect(outcome.notificationsSent).toBe(0);
     });
 
     it('explains the reason in history', async () => {
@@ -194,14 +188,13 @@ describe('assignLead', () => {
     );
   });
 
-  it('attributes an automatic assignment to no one', async () => {
+  it('does not notify from here — the owner-change event is the single producer', () => {
+    // See the comment on AssignLeadOutcome. A port with no notification
+    // method is the contract: the engine cannot double-notify what
+    // lv-on-lead-updated already covers.
     const port = aPort();
 
-    await assignLead({ lead: aLead(), port, now: NOW });
-
-    expect(port.upsertNotifications).toHaveBeenCalledWith([
-      expect.objectContaining({ body: expect.stringContaining('automatically') }),
-    ]);
+    expect('upsertNotifications' in port).toBe(false);
   });
 });
 

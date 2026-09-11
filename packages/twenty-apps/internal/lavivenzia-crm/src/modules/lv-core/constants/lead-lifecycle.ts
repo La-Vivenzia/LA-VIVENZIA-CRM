@@ -105,6 +105,14 @@ export const LEAD_PRIORITIES = ['CRITICAL', 'HIGH', 'MEDIUM', 'LOW'] as const;
 
 export type LeadPriority = (typeof LEAD_PRIORITIES)[number];
 
+export const isLeadPriority = (value: unknown): value is LeadPriority =>
+  typeof value === 'string' && (LEAD_PRIORITIES as readonly string[]).includes(value);
+
+// What to assume when a record carries no priority — the middle of the scale,
+// never the top, so an unset field cannot page anyone.
+export const priorityOrDefault = (value: unknown): LeadPriority =>
+  isLeadPriority(value) ? value : 'MEDIUM';
+
 export const LEAD_PRIORITY_LABELS: Record<LeadPriority, string> = {
   CRITICAL: 'Critical',
   HIGH: 'High',

@@ -12,7 +12,7 @@ export default defineNavigationMenuItem({
   universalIdentifier: NAV_NOTES_ID,
   name: 'Notes',
   icon: 'IconNotes',
-  position: 3,
+  position: 4,
   type: NavigationMenuItemType.OBJECT,
   folderUniversalIdentifier: NAV_FOLDER_WORK_ID,
   targetObjectUniversalIdentifier: STANDARD_OBJECT_UNIVERSAL_IDENTIFIERS.note.universalIdentifier,

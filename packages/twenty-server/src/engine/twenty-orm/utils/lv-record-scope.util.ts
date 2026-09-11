@@ -63,6 +63,13 @@ export type LvScopeRule = {
    * an owner and a reviewer.
    */
   secondaryColumn?: string;
+  /*
+   * Whether a NULL in the owner column means "visible to everyone". True for
+   * work that can be picked up (an unassigned lead); false for records that
+   * are meaningless without an owner (a notification with no recipient).
+   * Defaults to true.
+   */
+  includeNull?: boolean;
 };
 
 /*
@@ -76,6 +83,16 @@ export const LV_SCOPED_OBJECTS: Readonly<Record<string, LvScopeRule>> = {
   lvLead: { ownerColumn: 'ownerId' },
   lvOnboarding: { ownerColumn: 'reviewerId' },
   lvInteraction: { ownerColumn: 'actorId' },
+  /*
+   * A notification is addressed to one person. Nobody else has a reason to
+   * read it, and a row with no recipient is not "public" — it is an error.
+   */
+  lvNotification: { ownerColumn: 'recipientId', includeNull: false },
+  /*
+   * An SLA is the owner's commitment. Unowned ones (an unassigned lead's
+   * clock) stay visible so whoever picks the lead up sees the deadline.
+   */
+  lvSla: { ownerColumn: 'ownerId' },
 };
 
 /*
@@ -83,7 +100,10 @@ export const LV_SCOPED_OBJECTS: Readonly<Record<string, LvScopeRule>> = {
  * child inherits exactly the parent's visibility.
  */
 export const LV_PARENT_SCOPED_OBJECTS: Readonly<
-  Record<string, { foreignKey: string; parentTable: string; parentColumn: string }>
+  Record<
+    string,
+    { foreignKey: string; parentTable: string; parentColumn: string }
+  >
 > = {
   lvOnboardingDocument: {
     foreignKey: 'onboardingId',
@@ -92,7 +112,9 @@ export const LV_PARENT_SCOPED_OBJECTS: Readonly<
   },
 };
 
-export const isUnscopedForRoles = (roleUniversalIdentifiers: string[]): boolean =>
+export const isUnscopedForRoles = (
+  roleUniversalIdentifiers: string[],
+): boolean =>
   roleUniversalIdentifiers.some((identifier) =>
     UNSCOPED_ROLE_UNIVERSAL_IDENTIFIERS.has(identifier),
   );
@@ -170,10 +192,13 @@ export const buildLvScopeCondition = ({
       (column): column is string => column !== undefined,
     );
 
+    const includeNull = direct.includeNull ?? true;
+
     const clauses = columns
-      .map(
-        (column) =>
-          `"${tableAlias}"."${column}" = :${parameterName} OR "${tableAlias}"."${column}" IS NULL`,
+      .map((column) =>
+        includeNull
+          ? `"${tableAlias}"."${column}" = :${parameterName} OR "${tableAlias}"."${column}" IS NULL`
+          : `"${tableAlias}"."${column}" = :${parameterName}`,
       )
       .join(' OR ');
 

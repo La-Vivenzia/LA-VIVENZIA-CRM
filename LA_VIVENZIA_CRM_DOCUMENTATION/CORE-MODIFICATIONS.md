@@ -328,6 +328,7 @@ API and internal services alike. **It shares no code with the Enterprise path.**
 | `lvLead` | `ownerId` = caller, or NULL (unassigned must stay pickable) |
 | `lvOnboarding` | `reviewerId` = caller, or NULL |
 | `lvInteraction` | `actorId` = caller, or NULL |
+| `lvNotification` | `recipientId` = caller — **never** NULL (a notification with no recipient is an error, not a broadcast). Added Day 4A. |
 | `lvOnboardingDocument` | its onboarding is visible — via `EXISTS` subquery, so a guessed file id reaches nothing |
 
 Governed roles: Experience Hunter, Lead Coordinator, Onboarding Expert,
@@ -366,7 +367,7 @@ LV routes use it as the only actor and ignore identity fields in the body.
 | `.../route/route-trigger.service.ts` | extract from auth context |
 | `.../logic-function-trigger.service.ts`, `.../build-logic-function-event.util.ts` | thread it through |
 | `.../__tests__/build-logic-function-event.util.spec.ts` | expectation updated + new case |
-| `twenty-orm/utils/__tests__/lv-record-scope.util.spec.ts` | **new** — 11 policy tests incl. fail-closed and SQL-injection |
+| `twenty-orm/utils/__tests__/lv-record-scope.util.spec.ts` | **new** — 13 policy tests incl. fail-closed, SQL-injection and notification scoping |
 
 ### Risk
 
@@ -392,6 +393,28 @@ LV routes use it as the only actor and ignore identity fields in the body.
 
 Revert the eleven files. Row visibility returns to object-level only; routes
 return to trusting the body's actor. Both are the pre-Remediation-3 state.
+
+### Amendment — Day 4A (notifications)
+
+`LvScopeRule` gained an optional `includeNull` flag (default `true`, preserving
+every existing rule) and `LV_SCOPED_OBJECTS` gained
+`lvNotification: { ownerColumn: 'recipientId', includeNull: false }`. Without it
+a governed role could read every team member's notifications — and the
+notification centre would have been "hiding" rows in the front end, which is
+exactly what SECURITY-RBAC.md forbids. Two specs cover the new rule. No other
+core file changed for Day 4A; the notification system itself is entirely in the
+application (`packages/twenty-apps/internal/lavivenzia-crm/src/modules/lv-notifications`).
+
+Verified live: a Hunter cannot list, fetch by id, or mark read another member's
+notification; an unscoped Main Admin can read all (see TESTING-QA.md).
+
+### Amendment — Day 4B (SLA)
+
+`LV_SCOPED_OBJECTS` gained `lvSla: { ownerColumn: 'ownerId' }` (NULL visible,
+matching the lead rule it mirrors). Two specs added (15 total). Nothing else
+in core changed for Day 4B; the SLA engine is entirely in the application
+(`modules/lv-sla`). Verified live: Hunter/reviewer isolation on SLAs, unscoped
+admin sees all.
 
 ### A limitation worth stating plainly
 

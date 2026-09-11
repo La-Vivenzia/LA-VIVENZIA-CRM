@@ -151,3 +151,50 @@ describe('isUniqueViolation', () => {
     expect(isUniqueViolation(new Error(message))).toBe(false);
   });
 });
+
+describe('identifiers held by deleted leads', () => {
+  // The real defect this guards: a soft-deleted lead keeps its identifier and
+  // the unique index still counts it, but the default API query hides it. An
+  // allocator that only sees live rows proposes a number that is already
+  // taken, is refused, and retries the same doomed number until it gives up —
+  // so one deleted lead wedges allocation permanently.
+  it('continues past an identifier held by a deleted lead', async () => {
+    const taken = new Set(['LV-000001', 'LV-000002', 'LV-000003']);
+    const deleted = new Set(['LV-000003']);
+
+    const port: LeadIdPort = {
+      // Mirrors the fixed port: live rows and deleted rows are both consulted.
+      findHighestIssuedLeadId: async () => [...taken].sort().at(-1) ?? null,
+      claimLeadId: async ({ value }) => {
+        if (taken.has(value)) {
+          throw new Error('duplicate key value violates unique constraint');
+        }
+        taken.add(value);
+      },
+    };
+
+    const result = await allocateLeadId({ lead: { id: 'a' }, port });
+
+    expect(result).toEqual({ ok: true, leadId: 'LV-000004', allocated: true });
+    // The deleted lead's identifier is never handed out again.
+    expect(deleted.has('LV-000003')).toBe(true);
+  });
+
+  it('wedges when the highest issued id is hidden — the bug, reproduced', async () => {
+    const taken = new Set(['LV-000001', 'LV-000002']);
+    // A port that cannot see LV-000002 because it was soft-deleted.
+    const blindPort: LeadIdPort = {
+      findHighestIssuedLeadId: async () => 'LV-000001',
+      claimLeadId: async ({ value }) => {
+        if (taken.has(value)) {
+          throw new Error('duplicate key value violates unique constraint');
+        }
+        taken.add(value);
+      },
+    };
+
+    await expect(
+      allocateLeadId({ lead: { id: 'a' }, port: blindPort, maxAttempts: 4 }),
+    ).resolves.toEqual({ ok: false, reason: 'CONTENTION' });
+  });
+});

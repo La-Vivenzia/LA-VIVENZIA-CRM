@@ -14,17 +14,25 @@ export const createCoreApiOnboardingPort = (
   client: CoreApiClient,
 ): OnboardingPort => ({
   getOnboarding: async (id: string): Promise<OnboardingRecord | null> => {
-    const result = await client.query({
-      lvOnboarding: {
-        __args: { filter: { id: { eq: id } } },
-        id: true,
-        leadId: true,
-        status: true,
-        answers: true,
-        auditTrail: true,
-        reviewerId: true,
-      },
-    });
+    let result: unknown;
+
+    // A record the caller cannot see throws "Record not found" under record
+    // scoping; treat it exactly like a missing record.
+    try {
+      result = await client.query({
+        lvOnboarding: {
+          __args: { filter: { id: { eq: id } } },
+          id: true,
+          leadId: true,
+          status: true,
+          answers: true,
+          auditTrail: true,
+          reviewerId: true,
+        },
+      });
+    } catch {
+      return null;
+    }
 
     const row = (
       result as {

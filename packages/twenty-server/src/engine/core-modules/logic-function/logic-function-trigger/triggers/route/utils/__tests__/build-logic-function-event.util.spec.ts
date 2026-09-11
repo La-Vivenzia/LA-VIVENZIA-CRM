@@ -374,7 +374,29 @@ describe('buildLogicFunctionEvent', () => {
         },
       },
       userWorkspaceId: 'uws-1',
+      // CM-004: null unless the route passes the session's member.
+      workspaceMemberId: null,
     });
+  });
+
+  it('carries the server-resolved workspace member into the event (CM-004)', () => {
+    const request = createMockRequest({
+      method: 'POST',
+      path: '/s/x',
+      body: {},
+      headers: {},
+      query: {},
+    });
+
+    const result = buildLogicFunctionEvent({
+      request,
+      pathParameters: {},
+      forwardedRequestHeaders: [],
+      userWorkspaceId: 'uws-1',
+      workspaceMemberId: 'wm-1',
+    });
+
+    expect(result.workspaceMemberId).toBe('wm-1');
   });
 
   it('should preserve the request path as-is', () => {

@@ -238,3 +238,93 @@ export const ROLE_OPERATIONS_ID =
   '13919940-3648-4780-a6c2-8ded8b9bb76f';
 export const ROLE_MANAGEMENT_ID =
   'e5a958bd-a4a5-431f-91e5-0c221f8d1edd';
+
+// Onboarding document workflow (Remediation 2).
+export const FN_REGISTER_DOCUMENT_ID =
+  '122b22fa-d815-4258-aebf-064c5202ba4b';
+export const FN_REVIEW_DOCUMENT_ID =
+  '2b6cc02e-b4a5-4968-bb82-2c60f520e4af';
+export const FN_EXPIRE_DOCUMENTS_ID =
+  '0382880f-5c18-4fcf-92f0-6d426ef017f5';
+export const FN_ASSIGN_REVIEWER_ID =
+  'c70ff2ce-a618-4d7f-84b7-c4c7f9cbef90';
+export const FC_DOCUMENT_REVIEW_ID = '36986e7d-e338-489f-a81c-ef7e95c5ca5f';
+
+// Partner / Experience / Property (Day 1 foundation objects).
+export const PARTNER_OBJECT_ID =
+  '9bd9bc0b-50f4-47cf-9cca-f630653c71e5';
+export const PARTNER_NAME_FIELD_ID =
+  '43890c24-7a9a-4448-abdc-333b7ced82c1';
+export const PARTNER_CODE_FIELD_ID =
+  '4a373544-807d-4cb9-9e95-1ccc0f58b56e';
+export const PARTNER_STATUS_FIELD_ID =
+  '9e0aa6ad-d773-4cf3-878f-d2f22c5609f6';
+export const PARTNER_TYPE_FIELD_ID =
+  '2610b9b9-16dd-40b4-b965-ed82e44b085c';
+export const PARTNER_LOCATION_FIELD_ID =
+  '02935a0c-3aab-4167-ac48-abc163e21a4e';
+export const PARTNER_LEAD_FIELD_ID =
+  'bedf747f-8a2b-48ba-b67b-bc71ce450744';
+export const PARTNER_ON_LEAD_FIELD_ID =
+  'f190dd0f-86bd-4495-b982-89e2f65984b6';
+export const PARTNER_ONBOARDING_FIELD_ID =
+  '072fb0ee-9c98-40a8-bb9a-c6d55aa91599';
+export const PARTNER_ON_ONBOARDING_FIELD_ID =
+  'e6897e6b-5dd1-4158-b60d-b16db516f878';
+export const EXPERIENCE_OBJECT_ID =
+  '6c9613ca-a68a-4879-b289-dd1a22b67d5b';
+export const EXPERIENCE_NAME_FIELD_ID =
+  '9a0aa170-f284-4d43-95e6-9fa5efecd224';
+export const EXPERIENCE_CODE_FIELD_ID =
+  '9f676646-50ee-45b1-a58d-b017ac9fab06';
+export const EXPERIENCE_STATUS_FIELD_ID =
+  'd0788358-9994-47f4-93b7-a1409a32745d';
+export const EXPERIENCE_CATEGORY_FIELD_ID =
+  'a79fb4b4-2fd2-4865-9bae-51e03f7583b3';
+export const EXPERIENCE_DESCRIPTION_FIELD_ID =
+  '610f8ec3-c5ce-43e8-858d-acf82c7251f7';
+export const EXPERIENCE_LOCATION_FIELD_ID =
+  'a7c7b44d-96cc-40d5-b74d-a1caba432983';
+export const EXPERIENCE_CAPACITY_FIELD_ID =
+  '890f60f7-e82f-425c-ac66-1d7fa1045086';
+export const EXPERIENCE_LANGUAGES_FIELD_ID =
+  '9abb4b52-37a3-4301-a927-3b957a7c20df';
+export const EXPERIENCE_PARTNER_FIELD_ID =
+  '1e07c634-5f1e-420c-8613-81d583246d6e';
+export const EXPERIENCE_ON_PARTNER_FIELD_ID =
+  'fe8cd5e4-e770-41d8-9054-a212a33fb143';
+export const PROPERTY_OBJECT_ID =
+  'e4a7b2dd-0a2a-4b60-8833-33d0813762b1';
+export const PROPERTY_NAME_FIELD_ID =
+  'fdae6792-129c-4f82-be56-683bb689137c';
+export const PROPERTY_CODE_FIELD_ID =
+  '2bb0a7eb-c79a-4bbf-b270-a4407668da88';
+export const PROPERTY_STATUS_FIELD_ID =
+  '33f6c86d-42dc-469c-9ceb-532a63f05f0b';
+export const PROPERTY_TYPE_FIELD_ID =
+  '9ee687e1-d657-4d47-b597-d6cc32557907';
+export const PROPERTY_LOCATION_FIELD_ID =
+  '7cf5ae9a-3152-4576-90d5-c528fe004ddf';
+export const PROPERTY_CAPACITY_FIELD_ID =
+  '67176611-7aea-47d6-b50e-5049ac065b38';
+export const PROPERTY_PARTNER_FIELD_ID =
+  '6898df7a-da45-43f7-8b86-c4f6dedd7317';
+export const PROPERTY_ON_PARTNER_FIELD_ID =
+  '75eb4a98-b055-4051-a6fc-5b399c47e326';
+export const FN_ON_ONBOARDING_UPDATED_ID =
+  '1ce9cf78-2aaf-4b18-bfe0-db82e51ea022';
+
+// La Vivenzia navigation (Remediation 3).
+export const NAV_FOLDER_CRM_ID = 'ee6c9d4b-59c8-4f86-b1a4-705f85944089';
+export const NAV_FOLDER_WORK_ID = '03a31c28-c6bc-4d28-8157-31852cb58609';
+export const NAV_FOLDER_AUTOMATION_ID = '2a1cf0ce-78ed-463d-840c-e63603a08561';
+export const NAV_PEOPLE_ID = '8a27a12f-167b-49da-8bde-ec9c784d845f';
+export const NAV_ORGANISATIONS_ID = 'f7f5b678-dc74-4aa7-9cb4-57a078fa422a';
+export const NAV_EXPERIENCES_ID = 'c4a8ca9f-4e82-4a51-bcff-3f6cdddd4092';
+export const NAV_PROPERTIES_ID = '09da17bc-5787-4093-a3c9-7268711bdc62';
+export const NAV_PARTNERS_ID = '4e871f40-ae88-469a-8917-b64aafb3a247';
+export const NAV_ONBOARDING_ID = '95057e5a-9092-4c81-8f29-b4b512fafa97';
+export const NAV_TASKS_ID = 'bde6c2ce-2338-46e5-b589-3504041d0f8c';
+export const NAV_ACTIVITIES_ID = '4f7503ed-da17-4e8d-a334-b9de5e27c8d2';
+export const NAV_NOTES_ID = '24158c5f-2d9c-4017-ae8d-f9d2cc827038';
+export const NAV_WORKFLOWS_ID = '1fa67b02-8edf-4cf4-bb62-7303fc353216';

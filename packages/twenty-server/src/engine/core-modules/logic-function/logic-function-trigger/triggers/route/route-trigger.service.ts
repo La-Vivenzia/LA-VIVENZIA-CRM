@@ -287,6 +287,7 @@ export class RouteTriggerService {
 
     let userWorkspaceId: string | null = null;
     let userId: string | null = null;
+    let workspaceMemberId: string | null = null;
 
     if (httpRouteSettings?.isAuthRequired) {
       const routeAuthenticationContext =
@@ -309,6 +310,9 @@ export class RouteTriggerService {
 
       userWorkspaceId = routeAuthenticationContext.userWorkspaceId ?? null;
       userId = routeAuthenticationContext.user?.id ?? null;
+      // Resolved by the platform from the session — the one identity in the
+      // event a caller cannot forge. Functions use it as the actor.
+      workspaceMemberId = routeAuthenticationContext.workspaceMemberId ?? null;
     }
 
     let outcome;
@@ -323,6 +327,7 @@ export class RouteTriggerService {
         forwardAllHeaders: isIsolatedOrigin,
         userId,
         userWorkspaceId,
+        workspaceMemberId,
       });
     } catch (error) {
       if (error instanceof RouteTriggerException) {

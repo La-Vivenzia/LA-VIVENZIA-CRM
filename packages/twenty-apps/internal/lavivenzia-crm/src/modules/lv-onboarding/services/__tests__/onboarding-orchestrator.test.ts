@@ -215,4 +215,93 @@ describe('applyOnboardingTransition', () => {
     expect(result.ok).toBe(true);
     expect(port.syncLeadOnboardingStatus).not.toHaveBeenCalled();
   });
+
+  describe('reviewer entitlement — the client cannot pick the approver', () => {
+    const IMPOSTOR = 'wm-someone-else';
+
+    it('refuses approval by a human who is not the assigned reviewer', async () => {
+      const port = aPort();
+
+      const result = await apply(port, { actorWorkspaceMemberId: IMPOSTOR });
+
+      expect(result.ok).toBe(false);
+      if (!result.ok) {
+        expect(result.refusal).toBe('NOT_THE_REVIEWER');
+      }
+      expect(port.applyPatch).not.toHaveBeenCalled();
+    });
+
+    it('refuses rejection by a human who is not the assigned reviewer', async () => {
+      const result = await apply(aPort(), {
+        to: 'REJECTED',
+        reason: 'not suitable',
+        actorWorkspaceMemberId: IMPOSTOR,
+      });
+
+      expect(result.ok).toBe(false);
+      if (!result.ok) {
+        expect(result.refusal).toBe('NOT_THE_REVIEWER');
+      }
+    });
+
+    it('ignores a body-supplied reviewer once one is recorded (no impersonation)', async () => {
+      // The caller claims to be acting for the reviewer by naming them, while
+      // actually being someone else. The recorded reviewer wins, and the actor
+      // is not that person, so it is refused.
+      const port = aPort();
+
+      const result = await apply(port, {
+        actorWorkspaceMemberId: IMPOSTOR,
+        reviewerWorkspaceMemberId: HUMAN,
+      });
+
+      expect(result.ok).toBe(false);
+      if (!result.ok) {
+        expect(result.refusal).toBe('NOT_THE_REVIEWER');
+      }
+    });
+
+    it('cannot overwrite an existing reviewer through the request', async () => {
+      const port = aPort();
+
+      await apply(port, {
+        actorWorkspaceMemberId: HUMAN,
+        reviewerWorkspaceMemberId: IMPOSTOR,
+      });
+
+      const patch = (port.applyPatch as ReturnType<typeof vi.fn>).mock.calls[0]?.[0]
+        ?.patch as { reviewerId?: string } | undefined;
+
+      // Recorded reviewer preserved, not replaced by the impostor id.
+      expect(patch?.reviewerId).toBe(HUMAN);
+    });
+
+    it('still lets the assigned reviewer approve', async () => {
+      const port = aPort();
+
+      const result = await apply(port, { actorWorkspaceMemberId: HUMAN });
+
+      expect(result.ok).toBe(true);
+    });
+
+    it('lets a request propose a reviewer only when none is recorded', async () => {
+      const port = aPort(aRecord({ reviewerWorkspaceMemberId: null }));
+
+      const result = await apply(port, {
+        actorWorkspaceMemberId: HUMAN,
+        reviewerWorkspaceMemberId: HUMAN,
+      });
+
+      expect(result.ok).toBe(true);
+    });
+
+    it('a missing actor is reported as ACTOR_REQUIRED, not as the wrong reviewer', async () => {
+      const result = await apply(aPort(), { actorWorkspaceMemberId: null });
+
+      expect(result.ok).toBe(false);
+      if (!result.ok) {
+        expect(result.refusal).toBe('ACTOR_REQUIRED');
+      }
+    });
+  });
 });

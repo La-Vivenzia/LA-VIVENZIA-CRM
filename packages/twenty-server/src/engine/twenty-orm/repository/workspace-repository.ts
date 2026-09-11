@@ -29,6 +29,10 @@ import {
 } from 'src/engine/twenty-orm/utils/merge-records-with-update-values.util';
 import { renderRowLevelPermissionFilterToSql } from 'src/engine/twenty-orm/utils/render-row-level-permission-filter-to-sql.util';
 import { resolveRowLevelPermissionRecordFilter } from 'src/engine/twenty-orm/utils/resolve-row-level-permission-record-filter.util';
+// CM-004 — La Vivenzia record scoping. Free replacement for the Enterprise
+// predicate path above; see lv-record-scope.util.ts.
+import { buildLvScopeCondition } from 'src/engine/twenty-orm/utils/lv-record-scope.util';
+import { resolveRoleIdsFromAuthContext } from 'src/engine/twenty-orm/utils/resolve-role-ids-from-auth-context.util';
 import { validateRLSPredicatesForRecords } from 'src/engine/twenty-orm/utils/validate-rls-predicates-for-records.util';
 import {
   TwentyOrmException,
@@ -1531,6 +1535,67 @@ export class WorkspaceRepository<TEntity extends ObjectLiteral = ObjectRecord> {
     }
   }
 
+  /*
+   * Narrows a query to the rows the caller is entitled to under the La
+   * Vivenzia access model. See lv-record-scope.util.ts for why this lives in
+   * core rather than in the application package, and why it shares no code
+   * with the Enterprise predicate path below.
+   */
+  private applyLvRecordScopeForAlias({
+    queryBuilder,
+    alias,
+    flatObjectMetadata,
+  }: {
+    queryBuilder: WorkspaceSelectQueryBuilder;
+    alias: string;
+    flatObjectMetadata: FlatObjectMetadata;
+  }): void {
+    const authContext = this.options.authContext;
+
+    const roleIds = resolveRoleIdsFromAuthContext({
+      authContext,
+      userWorkspaceRoleMap: this.options.internalContext.userWorkspaceRoleMap,
+      apiKeyRoleMap: this.options.internalContext.apiKeyRoleMap,
+    });
+
+    // The policy is written against role *universal* identifiers; a
+    // per-workspace role id means nothing outside its own workspace.
+    const roleUniversalIdentifiers = roleIds
+      .map(
+        (roleId) =>
+          this.options.internalContext.lvRoleUniversalIdentifierByRoleId?.[
+            roleId
+          ],
+      )
+      .filter((identifier): identifier is string => typeof identifier === 'string');
+
+    const condition = buildLvScopeCondition({
+      objectNameSingular: flatObjectMetadata.nameSingular,
+      tableAlias: alias,
+      schemaName: this.options.tableShape.schemaName,
+      workspaceMemberId:
+        'workspaceMemberId' in authContext &&
+        typeof authContext.workspaceMemberId === 'string'
+          ? authContext.workspaceMemberId
+          : undefined,
+      roleUniversalIdentifiers,
+      parameterPrefix: alias,
+    });
+
+    if (condition === null) {
+      return;
+    }
+
+    if (alias === queryBuilder.alias) {
+      queryBuilder.andWhere(condition.sql, condition.parameters);
+
+      return;
+    }
+
+    queryBuilder.addJoinCondition(alias, condition.sql);
+    queryBuilder.setParameters(condition.parameters);
+  }
+
   private applyRowLevelPermissionPredicateForAlias({
     queryBuilder,
     alias,
@@ -1543,6 +1608,11 @@ export class WorkspaceRepository<TEntity extends ObjectLiteral = ObjectRecord> {
     if (!queryBuilder.markRowLevelPermissionApplied(alias)) {
       return;
     }
+
+    // La Vivenzia record scoping, applied at the same point so it covers the
+    // main alias and every join, on select/update/delete alike. Independent of
+    // the Enterprise predicate resolution below, which stays unused.
+    this.applyLvRecordScopeForAlias({ queryBuilder, alias, flatObjectMetadata });
 
     const recordFilter = resolveRowLevelPermissionRecordFilter({
       internalContext: this.options.internalContext,

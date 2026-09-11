@@ -1,5 +1,13 @@
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { CoreApiClient } from 'twenty-client-sdk/core';
+import { useColorScheme } from 'twenty-sdk/front-component';
+
+import {
+  DocumentUploadField,
+  resolveFilesFieldMetadataId,
+  type UploadedDocument,
+} from 'src/modules/lv-onboarding/front-components/onboarding-wizard/document-upload-field';
+import { themeFor } from 'src/modules/lv-core/ui/theme';
 import { defineFrontComponent } from 'twenty-sdk/define';
 
 import { FC_ONBOARDING_WIZARD_ID } from 'src/constants/universal-identifiers';
@@ -159,6 +167,31 @@ export const OnboardingWizard = ({
   initialData?: OnboardingData;
 }) => {
   const client = useMemo(() => new CoreApiClient(), []);
+
+  const scheme = useColorScheme();
+  const theme = useMemo(() => themeFor(scheme), [scheme]);
+
+  // The FILES field's metadata id is workspace-specific, so it is resolved
+  // once at mount rather than hard-coded into the manifest.
+  const [filesFieldMetadataId, setFilesFieldMetadataId] = useState<string | null>(
+    null,
+  );
+
+  useEffect(() => {
+    let isActive = true;
+
+    void resolveFilesFieldMetadataId('lvOnboardingDocument', 'file').then(
+      (resolved) => {
+        if (isActive) {
+          setFilesFieldMetadataId(resolved);
+        }
+      },
+    );
+
+    return () => {
+      isActive = false;
+    };
+  }, []);
   const [state, setState] = useState<WizardState>(
     initialWizardState({ status: initialStatus, data: initialData }),
   );
@@ -297,7 +330,16 @@ export const OnboardingWizard = ({
             value={asString(value)}
             onChange={(event) => update(field.key, event.target.value)}
           />
-        ) : field.kind === 'LIST' || field.kind === 'FILES' ? (
+        ) : field.kind === 'FILES' ? (
+          <DocumentUploadField
+            theme={theme}
+            fieldMetadataId={filesFieldMetadataId}
+            disabled={readOnly}
+            maxFiles={field.minItems !== undefined ? undefined : 1}
+            value={Array.isArray(value) ? (value as UploadedDocument[]) : []}
+            onChange={(next) => update(field.key, next)}
+          />
+        ) : field.kind === 'LIST' ? (
           <input
             id={fieldId}
             disabled={readOnly}
@@ -305,7 +347,7 @@ export const OnboardingWizard = ({
             aria-describedby={errorId}
             style={s.input(invalid)}
             value={asListText(value)}
-            placeholder={field.kind === 'FILES' ? 'Uploaded file paths, comma separated' : 'Comma separated'}
+            placeholder="Comma separated"
             onChange={(event) =>
               update(
                 field.key,

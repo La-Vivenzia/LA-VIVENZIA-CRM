@@ -64,7 +64,12 @@ export const handler = async (
     return { assigned: false, reason: 'Event carried no lead id.' };
   }
 
-  const client = new CoreApiClient();
+  // System side-effect: runs as the application, not as whoever triggered the
+  // event. The default (delegated) token acts as the triggering person, whose
+  // role usually cannot write history, notifications or other people's leads —
+  // exactly the writes this function exists to make. The human-facing routes
+  // stay delegated, so authorization still binds where a person is acting.
+  const client = new CoreApiClient({ runAs: 'application' });
 
   // The event says *which* lead changed; it does not say what that lead looks
   // like now. A redelivered message still carries the record as it was at

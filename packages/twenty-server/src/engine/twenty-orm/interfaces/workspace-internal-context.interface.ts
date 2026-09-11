@@ -23,4 +23,9 @@ export interface WorkspaceInternalContext {
   apiKeyRoleMap: Record<string, string>;
   eventEmitterService: Pick<WorkspaceEventEmitter, 'emitDatabaseBatchEvent'>;
   coreDataSource: DataSource;
+  /*
+   * La Vivenzia record scoping (CM-004): per-workspace role id -> stable role
+   * universal identifier. See lv-record-scope.util.ts.
+   */
+  lvRoleUniversalIdentifierByRoleId: Record<string, string>;
 }

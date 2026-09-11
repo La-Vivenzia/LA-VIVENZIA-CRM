@@ -48,7 +48,12 @@ export const handler = async (
   const outcome =
     record.outcome && isInteractionOutcome(record.outcome) ? record.outcome : null;
 
-  const client = new CoreApiClient();
+  // System side-effect: runs as the application, not as whoever triggered the
+  // event. The default (delegated) token acts as the triggering person, whose
+  // role usually cannot write history, notifications or other people's leads —
+  // exactly the writes this function exists to make. The human-facing routes
+  // stay delegated, so authorization still binds where a person is acting.
+  const client = new CoreApiClient({ runAs: 'application' });
   const port = createCoreApiInteractionPort(client);
 
   // A back-dated entry keeps its stated time; a live one falls back to when the

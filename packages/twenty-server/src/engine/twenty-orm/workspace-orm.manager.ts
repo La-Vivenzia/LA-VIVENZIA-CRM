@@ -16,6 +16,7 @@ import {
 import type { RolePermissionConfig } from 'src/engine/twenty-orm/types/role-permission-config';
 import { WorkspaceDataSourceService } from 'src/engine/twenty-orm/datasource/workspace-data-source.service';
 import { type WorkspaceRepository } from 'src/engine/twenty-orm/repository/workspace-repository';
+import { type FlatRoleMaps } from 'src/engine/metadata-modules/flat-role/types/flat-role-maps.type';
 import { WorkspaceCacheService } from 'src/engine/workspace-cache/services/workspace-cache.service';
 import { convertClassNameToObjectMetadataName } from 'src/engine/workspace-manager/utils/convert-class-to-object-metadata-name.util';
 
@@ -112,6 +113,7 @@ export class WorkspaceOrmManager {
       apiKeyRoleMap,
       flatRowLevelPermissionPredicateMaps,
       flatRowLevelPermissionPredicateGroupMaps,
+      flatRoleMaps,
     } = await this.workspaceCacheService.getOrRecompute(workspaceId, [
       'flatObjectMetadataMaps',
       'flatFieldMetadataMapsOrm',
@@ -122,6 +124,9 @@ export class WorkspaceOrmManager {
       'apiKeyRoleMap',
       'flatRowLevelPermissionPredicateMaps',
       'flatRowLevelPermissionPredicateGroupMaps',
+      // CM-004: needed to translate per-workspace role ids into the stable
+      // universal identifiers the La Vivenzia access policy is written against.
+      'flatRoleMaps',
     ]);
 
     const { idByNameSingular: objectIdByNameSingular } =
@@ -139,6 +144,8 @@ export class WorkspaceOrmManager {
       permissionsPerRoleId,
       userWorkspaceRoleMap,
       apiKeyRoleMap,
+      lvRoleUniversalIdentifierByRoleId:
+        buildLvRoleUniversalIdentifierByRoleId(flatRoleMaps),
     };
   }
 
@@ -180,6 +187,33 @@ export class WorkspaceOrmManager {
       permissionsPerRoleId: {},
       userWorkspaceRoleMap: {},
       apiKeyRoleMap: {},
+      // The lite context resolves no roles and no object permissions at all,
+      // so it is an internal/system path rather than a user-facing one. Left
+      // empty to match the maps above.
+      lvRoleUniversalIdentifierByRoleId: {},
     };
   }
 }
+
+/*
+ * CM-004: per-workspace role id -> stable role universal identifier.
+ *
+ * The La Vivenzia access policy is written against universal identifiers
+ * because a role's id differs between workspaces, while the universal
+ * identifier declared by the application manifest does not.
+ */
+const buildLvRoleUniversalIdentifierByRoleId = (
+  flatRoleMaps: FlatRoleMaps,
+): Record<string, string> => {
+  const byRoleId: Record<string, string> = {};
+
+  for (const [universalIdentifier, flatRole] of Object.entries(
+    flatRoleMaps.byUniversalIdentifier,
+  )) {
+    if (flatRole !== undefined) {
+      byRoleId[flatRole.id] = universalIdentifier;
+    }
+  }
+
+  return byRoleId;
+};

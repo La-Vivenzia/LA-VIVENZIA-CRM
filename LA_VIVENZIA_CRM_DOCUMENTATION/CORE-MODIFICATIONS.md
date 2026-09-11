@@ -287,3 +287,115 @@ fail on Windows exactly as before.
 **Report upstream**, together with CM-002. This is a genuine cross-platform
 defect in Twenty, and it is more severe than CM-002: CM-002 blocked
 installation, this one silently disabled every application's automation.
+
+---
+
+## CM-004 — Application-level record scoping and server-resolved actor identity
+
+| | |
+|---|---|
+| **Date** | 2026-09-11 |
+| **Requested by** | Remediation 3: "Authorization MUST happen server-side… Do NOT use Twenty's paid RLS" |
+| **Reviewer** | *pending* |
+| **Issue / PR** | *pending* |
+
+### Requirement
+
+Any authenticated member could read every lead, every onboarding and every
+partner identity document. Twenty's row-level predicates would fix this but
+are licensed Enterprise (`resolve-row-level-permission-record-filter.util.ts`
+carries the `@license Enterprise` banner) and La Vivenzia has decided not to
+depend on any paid feature.
+
+### Why an app extension is insufficient — verified, not assumed
+
+A Twenty application can hook exactly three things: cron, database events
+(after the fact) and HTTP routes (`packages/twenty-sdk/src/sdk/define/logic-functions/triggers/`).
+**It cannot intercept a record read.** Anything that must filter rows *before*
+they are returned has to run inside the ORM. There is no app-only path.
+
+### What changed
+
+**A. Record scoping — `lv-record-scope.util.ts` (new) + `workspace-repository.ts`**
+
+A La Vivenzia scoping rule evaluated at the same choke point as the Enterprise
+predicate (`applyRowLevelPermissionPredicateForAlias`), so it covers the main
+alias and every join, on select/update/delete, for GraphQL, REST, the metadata
+API and internal services alike. **It shares no code with the Enterprise path.**
+
+| Object | Visible when |
+|---|---|
+| `lvLead` | `ownerId` = caller, or NULL (unassigned must stay pickable) |
+| `lvOnboarding` | `reviewerId` = caller, or NULL |
+| `lvInteraction` | `actorId` = caller, or NULL |
+| `lvOnboardingDocument` | its onboarding is visible — via `EXISTS` subquery, so a guessed file id reaches nothing |
+
+Governed roles: Experience Hunter, Lead Coordinator, Onboarding Expert,
+Experience Team, Marketing. Unscoped: Main Admin, Operations, Management (read
+oversight of the whole pipeline; its role denies every write). Callers with no
+LV role — Twenty Admin, API keys, the app role — are untouched and remain
+constrained by object permissions.
+
+**Fail closed:** a governed caller with no resolved member gets `WHERE FALSE`,
+never everything.
+
+Policy is keyed on role **universal identifiers** (stable, declared by the
+manifest), translated from per-workspace role ids via a map added to
+`ORMWorkspaceContext` / `WorkspaceInternalContext`, populated from the
+already-cached `flatRoleMaps` in `workspace-orm.manager.ts`.
+
+**B. Actor identity — `LogicFunctionEvent.workspaceMemberId`**
+
+Route handlers previously had to trust a body-supplied `actorWorkspaceMemberId`.
+The platform already resolves the session's member; it is now carried into the
+event (`twenty-shared/.../LogicFunctionEvent.ts`, `route-trigger.service.ts`,
+`logic-function-trigger.service.ts`, `build-logic-function-event.util.ts`).
+LV routes use it as the only actor and ignore identity fields in the body.
+
+### Files changed
+
+| File | Change |
+|---|---|
+| `twenty-orm/utils/lv-record-scope.util.ts` | **new** — the policy, 100% LV-owned |
+| `twenty-orm/repository/workspace-repository.ts` | `applyLvRecordScopeForAlias`, called from the existing per-alias hook |
+| `twenty-orm/storage/orm-workspace-context.storage.ts` | `lvRoleUniversalIdentifierByRoleId` |
+| `twenty-orm/interfaces/workspace-internal-context.interface.ts` | same |
+| `twenty-orm/datasource/workspace-data-source.service.ts` | pass-through |
+| `twenty-orm/workspace-orm.manager.ts` | fetch `flatRoleMaps`, build the map (both loaders) |
+| `twenty-shared/src/types/LogicFunctionEvent.ts` | `workspaceMemberId: string \| null` |
+| `.../route/route-trigger.service.ts` | extract from auth context |
+| `.../logic-function-trigger.service.ts`, `.../build-logic-function-event.util.ts` | thread it through |
+| `.../__tests__/build-logic-function-event.util.spec.ts` | expectation updated + new case |
+| `twenty-orm/utils/__tests__/lv-record-scope.util.spec.ts` | **new** — 11 policy tests incl. fail-closed and SQL-injection |
+
+### Risk
+
+**Medium.** This is authorization code in the query path.
+
+- Applies only to objects listed in `LV_SCOPED_OBJECTS` / `LV_PARENT_SCOPED_OBJECTS`
+  and only to callers holding an LV team role. Everything else is byte-identical.
+- A parameter is bound (`:alias_lvActor`), never interpolated — covered by a test.
+- `flatRoleMaps` is one more cached map on the hot path; it is already cached
+  per workspace and used elsewhere.
+- Upgrade conflicts are guaranteed in `workspace-repository.ts` and the two
+  context types.
+
+### Tests
+
+- Core: 78 specs pass across the touched files, including 11 new for the policy.
+- App: 722 unit tests pass.
+- **Live, against the running server with a real user session** (see TESTING-QA.md):
+  13/13 scope checks, 8/8 impersonation checks, 5/5 scoped-creator assignment
+  checks, 29/29 regression checks.
+
+### Rollback plan
+
+Revert the eleven files. Row visibility returns to object-level only; routes
+return to trusting the body's actor. Both are the pre-Remediation-3 state.
+
+### A limitation worth stating plainly
+
+Role changes made **outside** `updateWorkspaceMemberRole` (for example, a
+direct SQL update) do not invalidate Twenty's in-process role cache; the old
+role stays in effect until restart. This is Twenty's caching, not CM-004, but
+CM-004 makes the consequence visible. Assign roles through Settings or the API.

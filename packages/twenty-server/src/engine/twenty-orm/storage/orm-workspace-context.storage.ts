@@ -26,6 +26,13 @@ export type ORMWorkspaceContext = {
   apiKeyRoleMap: Record<string, string>;
   flatRowLevelPermissionPredicateMaps: FlatRowLevelPermissionPredicateMaps;
   flatRowLevelPermissionPredicateGroupMaps: FlatRowLevelPermissionPredicateGroupMaps;
+  /*
+   * La Vivenzia record scoping (CM-004). Role *ids* are per-workspace, so the
+   * access policy is written against universal identifiers and this map
+   * translates. Always present — an empty map means "no role resolved", which
+   * the scope rule treats as no access rather than full access.
+   */
+  lvRoleUniversalIdentifierByRoleId: Record<string, string>;
 };
 
 export const workspaceContextStorage =

@@ -111,3 +111,62 @@ created.
 The fixed-width format keeps string ordering equal to numeric ordering, which is
 what makes "find the highest issued id" a cheap indexed lookup. That holds to
 `LV-999999`; the allocator refuses past that rather than issue a duplicate.
+
+---
+
+# Route handlers receive an event, not their body (2026-09-10)
+
+An HTTP-route logic function does **not** receive its JSON body as the handler
+argument. Twenty hands it a Lambda-style proxy event:
+
+```
+{ headers, queryStringParameters, pathParameters, body, rawBody,
+  isBase64Encoded, requestContext: { http: { method, path } }, userWorkspaceId }
+```
+
+Every route in this application read `input.onboardingId` directly, so every
+field was `undefined`. The pre-existing `/onboarding/transition` route had the
+same defect from the day it was written — invisible because nothing had ever
+called it. `lv-core/utils/route-event.ts` now reads the envelope, and its tests
+exist specifically to stop this returning.
+
+`userWorkspaceId` is set by the platform from the authenticated session and
+cannot be forged by the caller, so it is recorded in the audit alongside the
+claimed actor.
+
+**Known gap:** `userWorkspaceId` cannot be mapped to a `workspaceMember` id
+from inside a logic function — the core API exposes no `userWorkspace` query
+and `workspaceMember` is filterable only by `id`/`userId`/`userEmail`. So the
+reviewer id on a decision is client-asserted, cross-checked against a
+platform-authenticated session but not yet derived from it. Closing this needs
+either a `currentWorkspaceMember` query or the mapping exposed to functions.
+
+# Identifier allocation and soft deletes
+
+A soft-deleted lead keeps its `lvLeadId`, and the unique index still counts it —
+but the default API query hides it. The allocator therefore proposed a number
+that was already taken, the insert was refused, it retried the same doomed
+number, and gave up with CONTENTION. **One deleted lead wedged allocation
+permanently.**
+
+Found by running the pipeline against a database where a test lead had been
+cleaned up, not by any unit test. The port now reads live and soft-deleted rows
+and takes the larger. Identifiers are never reused, which is also what a
+business key should do: `LV-000006` must not come back attached to a different
+partner.
+
+# Document layer
+
+```
+browser picks a file
+  → uploadFile()                       Twenty FILES upload (magic-byte sniff)
+  → POST /onboarding/documents/register
+      validateUpload + isSafeStoredPath   ← the enforcement
+      → lvOnboardingDocument PENDING, audit entry
+  → POST /onboarding/documents/review     ← reviewer decisions
+      transitionDocument()                 state machine, human-only guards
+  → cron 15 2 * * * lv-expire-documents   ← the only system-applied transition
+```
+
+A FILES field stores `[{ fileId, label }]` — a reference, never a path string
+and never bytes. Preview uses the signed URL Twenty issues per file.

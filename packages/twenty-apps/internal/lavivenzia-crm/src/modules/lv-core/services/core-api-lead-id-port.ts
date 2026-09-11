@@ -15,23 +15,40 @@ const HIGHEST_ID_WINDOW = 5;
 
 export const createCoreApiLeadIdPort = (client: CoreApiClient): LeadIdPort => ({
   findHighestIssuedLeadId: async () => {
-    const result = await client.query({
-      lvLeads: {
-        __args: {
-          first: HIGHEST_ID_WINDOW,
-          filter: { lvLeadId: { ilike: 'LV-%' } },
-          orderBy: [{ lvLeadId: 'DescNullsLast' }],
+    // Soft-deleted leads keep their identifier, and the unique index still
+    // counts it — but the default query hides them. Looking only at live rows
+    // therefore proposes a number that is already taken, the insert is
+    // refused, and the allocator retries the same doomed number until it gives
+    // up. One deleted lead would wedge allocation permanently.
+    //
+    // So both sets are read and the larger wins. Identifiers are never reused,
+    // which is also what a business key should do: LV-000006 must not come
+    // back attached to a different partner.
+    const page = async (onlyDeleted: boolean) => {
+      const result = await client.query({
+        lvLeads: {
+          __args: {
+            first: HIGHEST_ID_WINDOW,
+            filter: {
+              lvLeadId: { ilike: 'LV-%' },
+              ...(onlyDeleted ? { deletedAt: { is: 'NOT_NULL' } } : {}),
+            },
+            orderBy: [{ lvLeadId: 'DescNullsLast' }],
+          },
+          edges: { node: { lvLeadId: true } },
         },
-        edges: { node: { lvLeadId: true } },
-      },
-    });
+      });
 
-    const edges =
-      (result as { lvLeads?: { edges?: { node?: { lvLeadId?: string | null } }[] } })
-        .lvLeads?.edges ?? [];
+      return (
+        (result as { lvLeads?: { edges?: { node?: { lvLeadId?: string | null } }[] } })
+          .lvLeads?.edges ?? []
+      ).map((edge) => edge?.node?.lvLeadId ?? null);
+    };
 
-    const sequences = edges
-      .map((edge) => parseLeadId(edge?.node?.lvLeadId))
+    const candidates = [...(await page(false)), ...(await page(true))];
+
+    const sequences = candidates
+      .map((value) => parseLeadId(value))
       .filter((sequence): sequence is number => sequence !== null);
 
     if (sequences.length === 0) {
@@ -40,11 +57,7 @@ export const createCoreApiLeadIdPort = (client: CoreApiClient): LeadIdPort => ({
 
     const highest = Math.max(...sequences);
 
-    return (
-      edges
-        .map((edge) => edge?.node?.lvLeadId)
-        .find((value) => parseLeadId(value) === highest) ?? null
-    );
+    return candidates.find((value) => parseLeadId(value) === highest) ?? null;
   },
 
   claimLeadId: async ({ recordId, value }) => {

@@ -1,5 +1,6 @@
 import {
   type OnboardingStatus,
+  requiresHumanActor,
 } from 'src/modules/lv-onboarding/constants/onboarding-status';
 import {
   onboardingHealth,
@@ -61,8 +62,12 @@ export type OnboardingPort = {
 };
 
 export type ApplyTransitionResult =
-  | { ok: true; status: OnboardingStatus; audit: AuditEntry }
-  | { ok: false; refusal: TransitionRefusal | 'NOT_FOUND'; message: string };
+  | { ok: true; status: OnboardingStatus; audit: AuditEntry; leadSynced: boolean }
+  | {
+      ok: false;
+      refusal: TransitionRefusal | 'NOT_FOUND' | 'NOT_THE_REVIEWER';
+      message: string;
+    };
 
 // Timestamps that a given target status stamps onto the record.
 const timestampFor = (
@@ -115,10 +120,29 @@ export const applyOnboardingTransition = async ({
 
   const documents = await port.getDocumentStates(onboardingId);
 
-  // The reviewer is whoever is named on the request, falling back to whoever is
-  // already recorded on the onboarding.
+  // The recorded reviewer is authoritative. A request may *propose* one only
+  // when none is recorded yet — it may never replace an existing assignment,
+  // because that is how a caller would make themselves the approver.
   const reviewer =
-    reviewerWorkspaceMemberId ?? record.reviewerWorkspaceMemberId ?? null;
+    record.reviewerWorkspaceMemberId ?? reviewerWorkspaceMemberId ?? null;
+
+  // Reviewer entitlement: a human-only decision on an onboarding that has an
+  // assigned reviewer may only be made by that reviewer. Anyone else — even
+  // with the object permission to update the record — is refused here.
+  // A missing actor is left to the state machine, which names the real
+  // problem (ACTOR_REQUIRED); this guard is about the *wrong* human.
+  if (
+    requiresHumanActor(to) &&
+    actorWorkspaceMemberId !== null &&
+    record.reviewerWorkspaceMemberId !== null &&
+    actorWorkspaceMemberId !== record.reviewerWorkspaceMemberId
+  ) {
+    return {
+      ok: false,
+      refusal: 'NOT_THE_REVIEWER',
+      message: 'Only the assigned reviewer can make this decision.',
+    };
+  }
 
   const decision = transitionOnboarding({
     from: record.status,
@@ -156,12 +180,23 @@ export const applyOnboardingTransition = async ({
 
   await port.applyPatch({ id: onboardingId, patch });
 
+  // Mirror the status onto the lead. Since routes run with the caller's own
+  // permissions (a reviewer usually cannot write leads), this is best-effort:
+  // the reliable path is lv-on-onboarding-updated, a database-event function
+  // that runs as the application role and performs the same idempotent write.
+  let leadSynced = false;
+
   if (record.leadId !== null) {
-    await port.syncLeadOnboardingStatus({
-      leadId: record.leadId,
-      status: decision.status,
-    });
+    try {
+      await port.syncLeadOnboardingStatus({
+        leadId: record.leadId,
+        status: decision.status,
+      });
+      leadSynced = true;
+    } catch {
+      leadSynced = false;
+    }
   }
 
-  return { ok: true, status: decision.status, audit: decision.audit };
+  return { ok: true, status: decision.status, audit: decision.audit, leadSynced };
 };

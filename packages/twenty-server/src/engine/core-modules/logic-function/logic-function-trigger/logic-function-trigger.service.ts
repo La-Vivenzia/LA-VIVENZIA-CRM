@@ -29,6 +29,7 @@ export class LogicFunctionTriggerService {
     forwardAllHeaders = false,
     userId,
     userWorkspaceId,
+    workspaceMemberId,
   }: {
     logicFunction: LogicFunctionEntity;
     request: Request;
@@ -37,6 +38,7 @@ export class LogicFunctionTriggerService {
     forwardAllHeaders?: boolean;
     userId?: string | null;
     userWorkspaceId?: string | null;
+    workspaceMemberId?: string | null;
   }): Promise<LogicFunctionTriggerOutcome> {
     const event = buildLogicFunctionEvent({
       request,
@@ -44,6 +46,7 @@ export class LogicFunctionTriggerService {
       forwardedRequestHeaders,
       forwardAllHeaders,
       userWorkspaceId: userWorkspaceId ?? null,
+      workspaceMemberId: workspaceMemberId ?? null,
     });
 
     const result = await this.logicFunctionExecutorService.execute({

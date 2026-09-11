@@ -106,3 +106,140 @@ duplicated effort and easy to miss.
 - Export controls are not configured.
 - No role is yet assigned to any human user; `roleTarget` bindings remain to be
   made by an administrator.
+
+---
+
+# Document security (2026-09-10, Remediation 2)
+
+Verified against the live routes, not read from source.
+
+| Attempt | Result |
+|---|---|
+| No token | refused — "Missing authentication token" |
+| Invalid token | refused — "Token invalid." |
+| Executable declared as PDF | refused — `UNSUPPORTED_TYPE` |
+| 20 MB file (limit 15 MB) | refused — `TOO_LARGE` |
+| `filePath: ../../../etc/passwd` | refused — `UNSAFE_PATH` |
+| Unknown document type | refused |
+| Onboarding id that does not exist | refused — `ONBOARDING_NOT_FOUND` |
+| Verify with no named human | refused — `ACTOR_REQUIRED` |
+| Skip review (PENDING → VERIFIED) | refused — `NOT_ALLOWED` |
+| Approve with no named human | refused — `ACTOR_REQUIRED` |
+
+Authentication is enforced by the platform (`isAuthRequired: true`) before any
+handler runs. A null `userWorkspaceId` means an authenticated *non-human*
+caller — an API key or integration — which is recorded, not refused; the
+human-only rule is enforced by the state machine's actor requirement.
+
+**Type checking is by content, not extension.** Twenty sniffs magic bytes, so a
+renamed executable is identified as what it is. The allowlist (PDF/JPEG/PNG/
+WEBP, 15 MB) is La Vivenzia's, applied server-side in the register route.
+
+**Private storage stays private.** Preview uses short-lived signed URLs fetched
+only when a reviewer opens a document. No object is made public, and no R2
+credential reaches the browser.
+
+## Still not enforced
+
+- **Row-level ownership** — unchanged from Remediation 1 and still the largest
+  gap. Any authenticated member can read every onboarding and every document.
+  A reviewer is *recorded*, but nothing stops a different member acting.
+- **Cross-onboarding document access** — a document is bound to its onboarding
+  at registration, but reads are not scoped per onboarding. This is the same
+  row-level gap, and it matters most here because these are identity papers.
+- **Reviewer entitlement** — the routes accept any authenticated caller with a
+  `workspaceMember` id. Restricting the *reviewer* role specifically needs
+  either row-level predicates or an explicit check against `roleTarget`.
+- **Antivirus scanning** — partners upload arbitrary files within the allowed
+  types. Nothing scans them.
+
+---
+
+# Remediation 3 (2026-09-11): row-level access without a paid feature
+
+**Row-level ownership is now enforced server-side, in the ORM, using no
+Enterprise code.** See CORE-MODIFICATIONS.md CM-004 for the mechanism and why it
+had to live in core. This section records what is enforced and how it was proven.
+
+## The access model as enforced
+
+| Role | Row visibility | May write |
+|---|---|---|
+| Main Admin | all rows | everything, incl. destroy |
+| Admin *(Twenty built-in)* | all rows (not governed) | everything |
+| Operations | all rows | lvLead, lvInteraction, lvOnboarding, task, note |
+| Management | all rows | **nothing** |
+| Experience Hunter | own leads (+ unassigned) | lvLead, task, note |
+| Lead Coordinator | own leads (+ unassigned) | lvLead, lvInteraction, task, note |
+| Onboarding Expert | onboardings they review (+ unassigned) and **those onboardings' documents** | lvOnboarding, lvOnboardingDocument, task, note |
+| Experience Team | own rows | task, note |
+| Marketing | own rows | note |
+
+Two layers, each enforced by the server:
+- **Object permissions** (Twenty, free) decide *what operations* a role may perform.
+- **CM-004 scoping** decides *which rows* a governed role can see at all.
+
+A document is scoped **through its onboarding**. A reviewer who cannot open the
+onboarding cannot reach its papers by guessing a file id, through a list, or by
+direct mutation — all three proven live.
+
+## Actor identity — the client is no longer trusted
+
+Every route now takes the acting member from `event.workspaceMemberId`, which
+the platform resolves from the session. Body fields named `actorWorkspaceMemberId`,
+`reviewerWorkspaceMemberId` or `uploadedByWorkspaceMemberId` are ignored for
+identity. Proven live: a body claiming to be Jony, sent from Tim's session,
+recorded **Tim** in the response, the database row and the audit trail.
+
+## Reviewer entitlement
+
+A human-only decision (verify, reject, approve, request changes) on a record that
+has an assigned reviewer may be made **only by that reviewer** —
+`NOT_THE_REVIEWER` otherwise. The recorded reviewer is authoritative; a request
+may propose one only when none is recorded, and only the authenticated actor.
+
+## System side-effects vs human actions
+
+Functions triggered by a person run with **that person's** permissions by default
+(Twenty's delegated token). That is right for the routes — authorization binds
+where a human acts — and wrong for system side-effects, which the person's role
+usually cannot perform. So:
+
+| Function | Runs as | Why |
+|---|---|---|
+| `/onboarding/documents/register`, `/review`, `/onboarding/transition` | the caller | a person is acting; their permissions must apply |
+| `lv-on-lead-created`, `lv-on-interaction-created`, `lv-on-onboarding-updated`, `lv-expire-documents` | the application | routing, history, notifications and mirrors are system writes |
+
+`lv-on-onboarding-updated` is new: it mirrors onboarding status onto the lead,
+because a reviewer approving an onboarding cannot write the lead themselves.
+
+## What was proven live (real sessions, real API, non-destructive fixtures)
+
+| Suite | Result |
+|---|---|
+| Scope matrix — Experience Hunter vs another member's lead/onboarding/document | **13/13** |
+| Impersonation — body claims another member on review, transition, upload | **8/8** |
+| Scoped creator — Hunter creates a lead; assignment, history, notification complete | **5/5** |
+| Regression — full R1+R2 end-to-end with a human approver | **29/29** |
+
+## Still outstanding
+
+- **Two-actor mutual test.** Only one dev user carries a known password. A
+  second session would let Jony be a live actor rather than a passive owner.
+- **Reviewer role vs record reviewer.** Entitlement is by *assigned reviewer*;
+  an Onboarding Expert not assigned to a record cannot act on it, which is the
+  intended behaviour. Admins who wish to review must assign themselves first
+  (which leaves an audit trail).
+- **Onboarding Expert cannot upload.** By design — partners upload via the
+  wizard's application token. If a reviewer must upload a replacement on a
+  partner's behalf, that needs a decision.
+- **Management is read-only by object permission**, so wide visibility cannot
+  be turned into a write.
+- MFA for privileged roles and export controls remain unconfigured.
+
+## How an administrator assigns roles
+
+Settings → Members → member → Role, or `updateWorkspaceMemberRole(workspaceMemberId, roleId)`
+on `/metadata` with an administrator's **session** (an API key is refused, and
+nobody can change their own role). Both invalidate the role cache correctly;
+a direct database update does not.

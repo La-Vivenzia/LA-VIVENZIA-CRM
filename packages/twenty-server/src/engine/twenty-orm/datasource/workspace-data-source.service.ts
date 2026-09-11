@@ -123,6 +123,8 @@ export class WorkspaceDataSourceService
       apiKeyRoleMap: workspaceContext.apiKeyRoleMap,
       eventEmitterService: this.workspaceEventEmitter,
       coreDataSource: this.coreDataSource,
+      lvRoleUniversalIdentifierByRoleId:
+        workspaceContext.lvRoleUniversalIdentifierByRoleId,
     };
   }
 

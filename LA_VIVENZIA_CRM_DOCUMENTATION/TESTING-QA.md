@@ -81,3 +81,85 @@ The three real leads were kept and are now correctly processed.
   which is a real role boundary but not a second person.
 - Onboarding approval, document upload and document verification still have no
   real-execution evidence.
+
+---
+
+# Remediation 2 test status (2026-09-10)
+
+| Gate | Result |
+|---|---|
+| Unit tests | **715 pass**, 27 files, 0 fail (was 654) |
+| Typecheck | clean |
+| Lint | 0 warnings, 0 errors |
+| Integration | 8 defined, still not run (mutate the live workspace) |
+| E2E scenario | **22 of 23 checks passed**; the 23rd found a real bug, now fixed |
+
+## The bug the end-to-end run found
+
+The one failing check was `LV Lead ID allocated`. It was not a flaky test: a
+soft-deleted lead was holding `LV-000006` in the unique index while being
+invisible to the allocator's query, so allocation had wedged. Two unit tests
+now cover it — one proving the fix, one reproducing the original blindness.
+
+This is the second time in two sessions that real execution found something no
+unit test could. The pattern is worth stating plainly: **these tests verify
+logic; only running the system verifies the system.**
+
+## Verified by real execution
+
+Lead creation → LV Lead ID → assignment → history → notification;
+onboarding creation linked to a lead; real PDF uploaded through Twenty's FILES
+upload; document registered with full metadata; reviewer assigned; illegal
+transition refused; under review; verified; five-step transition to
+INTERNAL_REVIEW; approval refused without a human; approval by a named
+reviewer; onboarding APPROVED; six-entry onboarding audit; three-entry
+append-only document audit; document expiry sweep moving a back-dated document
+to EXPIRED.
+
+## Verification data hygiene
+
+Records were prefixed `[E2E-R2]` and removed afterwards: 2 leads, 1 onboarding,
+2 documents, plus their history and notifications. `LV-000003`, `LV-000004` and
+`LV-000005` were never touched.
+
+## Not covered
+
+- No automated test asserts the CM-003 Windows branch.
+- No test exercises an unauthorised **human** user (needs a second session
+  credential that is not available to the automation).
+- The reviewer UI and the wizard uploader are typechecked and linted but have
+  no rendering tests; both were exercised only through the routes they call.
+- Mobile layout is enforced by tokens (44px targets, fluid containers, wrapping
+  rows) and unit-tested at that level, not visually verified in a browser.
+
+---
+
+# Remediation 3 test status (2026-09-11)
+
+| Gate | Result |
+|---|---|
+| App unit tests | **722 pass**, 27 files |
+| Core specs (touched files) | **78 pass**, incl. 11 new for the scoping policy |
+| Typecheck — app and core | clean |
+| Lint | 0 / 0 |
+| Live scope matrix | 13/13 |
+| Live impersonation | 8/8 |
+| Live scoped-creator assignment | 5/5 |
+| Live regression E2E | 29/29 |
+
+## A note on what a failing security test can do
+
+An early version of the scope matrix tested DELETE against a **real** lead. When
+scoping had not yet engaged (stale role cache), it deleted `LV-000004`, then on a
+re-run `LV-000003`. Both were restored immediately via `restoreLvLead`. The suite
+was rewritten to operate only on throwaway fixtures it creates itself, and check
+5b now asserts the row is untouched in the database. Recorded here because it is
+exactly the mistake the next person writing a security test will be tempted to
+make.
+
+## Visual verification (Chromium, real login)
+
+Sidebar shows CRM › Leads, People, Organisations, Experiences, Properties,
+Partners; Work (collapsed); Opportunities; Dashboards. No demo objects. Company
+relabelled Organisation. Dark mode renders. 390px viewport: no horizontal
+overflow. Automation/Workflows correctly hidden for a role without tool access.

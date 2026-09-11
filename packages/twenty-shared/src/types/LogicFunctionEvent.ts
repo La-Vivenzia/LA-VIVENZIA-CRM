@@ -15,4 +15,9 @@ export type LogicFunctionEvent<TBody = object> = {
   // when the trigger fires without a user (cron, database events) or when
   // auth is disabled.
   userWorkspaceId: string | null;
+  // The workspace member the platform authenticated for this request, resolved
+  // server-side from the session. null for API-key, application and
+  // unauthenticated callers. Functions that record who performed an action
+  // should use this rather than anything in the body, which the caller wrote.
+  workspaceMemberId: string | null;
 };

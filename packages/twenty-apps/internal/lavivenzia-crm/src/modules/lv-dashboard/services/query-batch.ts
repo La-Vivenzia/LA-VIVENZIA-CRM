@@ -26,6 +26,8 @@ export const OBJECTS = {
   assignmentHistory: { plural: 'lvAssignmentHistories', type: 'LvAssignmentHistory' },
   taskTarget: { plural: 'taskTargets', type: 'TaskTarget' },
   auditEvent: { plural: 'lvAuditEvents', type: 'LvAuditEvent' },
+  problem: { plural: 'lvProblems', type: 'LvProblem' },
+  aiRun: { plural: 'lvAiRuns', type: 'LvAiRun' },
 } as const;
 
 export type GroupRow = { groupByDimensionValues: (string | null)[]; totalCount: number };

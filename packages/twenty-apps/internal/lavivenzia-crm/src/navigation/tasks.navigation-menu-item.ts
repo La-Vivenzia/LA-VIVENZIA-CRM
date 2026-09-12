@@ -12,7 +12,7 @@ export default defineNavigationMenuItem({
   universalIdentifier: NAV_TASKS_ID,
   name: 'Tasks',
   icon: 'IconCheckbox',
-  position: 3,
+  position: 4,
   type: NavigationMenuItemType.OBJECT,
   folderUniversalIdentifier: NAV_FOLDER_WORK_ID,
   targetObjectUniversalIdentifier: STANDARD_OBJECT_UNIVERSAL_IDENTIFIERS.task.universalIdentifier,

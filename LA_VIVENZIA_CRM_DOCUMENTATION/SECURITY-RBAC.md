@@ -324,3 +324,44 @@ a direct database update does not.
   rows naming the admin.
 - Server-side errors are logged with the caller id; the client receives a
   generic message.
+
+
+## AI intelligence and Copilot (Day 6)
+
+- Identity is the session. Every AI route (`/ai/lead/insights`,
+  `/ai/lead/generate`, `/ai/insight/decide`, `/ai/briefing`, `/copilot/ask`,
+  `/copilot/confirm`) refuses API keys (`NOT_AUTHENTICATED`) and takes the
+  actor from the delegated token; a body may name a lead, a question, a
+  decision — never a member, a role or an `isAdmin` flag. "Act as admin" in a
+  Copilot question is refused with an explanation, not honoured.
+- The lead is loaded with the caller's own token before anything else, so a
+  lead CM-004 hides is `NOT_FOUND` for insights, generation, decisions and
+  Copilot record questions alike (verified live: Onboarding Expert vs a
+  Hunter's lead).
+- The AI bookkeeping objects (`lvAiInsight`, `lvAiRun`, `lvProblem`) carry no
+  row scoping, so every team role is **denied** direct read / write on them
+  by object permission (`roles/ai-private-objects.ts`); the Main Admin keeps
+  access for audit. Routes read and write them with the application role
+  only after proving lead access. Verified live: a Hunter's direct
+  `lvAiInsights` query and an Onboarding Expert's `lvAiRuns` query are
+  refused by the platform.
+- AI never writes CRM records. A suggestion becomes a change only through
+  `/ai/insight/decide`, which performs the write with the **reviewer's own
+  token** (category, task, interaction fields, DUPLICATE marking, onboarding
+  answers), so the role's permission and CM-004 decide, and records
+  reviewer / time / decision on the insight. Permanent delete, merge
+  (field-level), approve / reject, reassignment, pricing and sending are
+  not available to the AI layer at all; the Copilot answers such requests
+  with the human path.
+- Copilot queries are allowlisted plans (objects, fields, operators, enum
+  vocabularies, limit ≤ 25) validated server-side; member filters accept
+  only "me" / "none", resolved to the caller inside the server. A plan that
+  names an id, a name, a join or an unknown field is refused before any
+  query runs. The query executes with the caller's token — never as an
+  admin filtered afterwards.
+- Copilot writes are proposals stored with the proposing actor; only that
+  actor can confirm, once, within 15 minutes, and the task / note is created
+  with their token.
+- Model context is minimised: no email / phone values, no member ids, no
+  raw capture text, no provenance JSON, no documents, no secrets. The API
+  key is a secret application variable read only inside logic functions.

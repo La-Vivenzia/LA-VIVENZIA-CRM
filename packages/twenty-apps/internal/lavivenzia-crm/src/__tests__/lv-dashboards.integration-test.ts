@@ -243,7 +243,11 @@ describeIfLive('La Vivenzia dashboards, Control Tower and governance — live', 
     expect(summary.capabilities?.controlTower).toBe(false);
     expect(kpi(summary.kpis, 'overdueTasks')).toBe(before.hunterOverdue + 1);
     expect(kpi(summary.kpis, 'slaBreaches')).toBe(before.hunterBreaches + 1);
-    expect(kpi(summary.kpis, 'highOpportunity')).toBeNull();
+    // Day 6: Opportunity Score v1 exists. The KPI is a real count once any
+    // lead has been scored, and honestly unavailable (null) before that.
+    const highOpportunity = kpi(summary.kpis, 'highOpportunity');
+
+    expect(highOpportunity === null || (typeof highOpportunity === 'number' && highOpportunity >= 0)).toBe(true);
     expect((summary.pipeline ?? []).find((row) => row.key === 'ASSIGNED')?.count).toBeGreaterThanOrEqual(3);
 
     const overdue = section(summary.actions, 'overdueFollowUps');

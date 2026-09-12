@@ -12,7 +12,7 @@ export default defineNavigationMenuItem({
   universalIdentifier: NAV_ACTIVITIES_ID,
   name: 'Activities',
   icon: 'IconMessageCircle',
-  position: 4,
+  position: 5,
   type: NavigationMenuItemType.OBJECT,
   folderUniversalIdentifier: NAV_FOLDER_WORK_ID,
   targetObjectUniversalIdentifier: INTERACTION_OBJECT_ID,

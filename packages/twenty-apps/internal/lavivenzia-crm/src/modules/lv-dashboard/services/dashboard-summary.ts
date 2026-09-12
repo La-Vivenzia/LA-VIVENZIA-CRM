@@ -259,6 +259,7 @@ export const buildDashboardSummary = async ({
   // ---- counts shared by every lens
   const pipeline = batch.groupBy(OBJECTS.lead, 'status', myLead);
   const scored = batch.count(OBJECTS.lead, and(myLead, leadFilters.scored()));
+  const highOpportunity = batch.count(OBJECTS.lead, and(myLead, leadFilters.highOpportunity()));
   const priorityGroups = batch.groupBy(OBJECTS.lead, 'priority', and(myLead, leadFilters.open()));
   const noContact = batch.count(OBJECTS.lead, and(myLead, leadFilters.noContactChannel()));
   const markedDuplicate = batch.count(OBJECTS.lead, and(myLead, leadFilters.markedDuplicate()));
@@ -543,15 +544,19 @@ export const buildDashboardSummary = async ({
       { key: 'overdueTasks', label: `${scope === 'My' ? 'My ' : ''}overdue follow-ups`, value: countOf('overdueTasks'), emptyText: 'No overdue follow-ups', tone: 'danger', link: { object: 'task' } },
       { key: 'slaBreaches', label: `${scope === 'My' ? 'My ' : ''}SLA breaches`, value: countOf('slaBreaches'), emptyText: 'No SLA breaches', tone: 'danger', link: { object: 'lvSla' } },
       { key: 'highPriority', label: 'High-priority leads', value: countOf('highPriority'), emptyText: 'No high-priority leads open', tone: 'warning', link: { object: 'lvLead' } },
-      {
-        key: 'highOpportunity',
-        label: 'High-opportunity leads',
-        value: null,
-        emptyText: 'Opportunity score is not computed yet',
-        unavailableReason:
-          'The opportunity score engine is not implemented (scoring.ts reports missing inputs), so no lead carries a score. Shown as unavailable rather than invented.',
-        tone: 'neutral',
-      },
+      // Day 6: Opportunity Score v1 (rules, opportunity-score-v1) is mirrored
+      // onto lvLead.opportunityScore; "high" is ≥ 70. Unavailable only while
+      // no lead has been scored yet.
+      scored(data) > 0
+        ? { key: 'highOpportunity', label: 'High-opportunity leads (score ≥ 70)', value: highOpportunity(data), emptyText: 'No open lead scores 70 or more', tone: 'success', link: { object: 'lvLead' } }
+        : {
+            key: 'highOpportunity',
+            label: 'High-opportunity leads',
+            value: null,
+            emptyText: 'No lead has been scored yet',
+            unavailableReason: 'Opportunity Score v1 is computed when a lead’s Intelligence tab is opened, when an interaction is logged, or by the hourly refresh; none has run yet.',
+            tone: 'neutral',
+          },
     );
 
     const firstContact = listOf<SlaRow>('firstContactList');
@@ -728,20 +733,22 @@ export const buildDashboardSummary = async ({
     { key: 'priorityHigh', label: 'High priority (open)', value: priorityCounts.HIGH ?? 0, emptyText: 'No high-priority lead open', tone: 'warning', link: { object: 'lvLead' } },
     { key: 'incompleteContact', label: 'Open leads with no email and no phone', value: noContact(data), emptyText: 'Every open lead has a contact channel', tone: 'warning', link: { object: 'lvLead' } },
     { key: 'duplicates', label: 'Duplicate candidates', value: markedDuplicate(data) + flaggedDuplicate(data), emptyText: 'No lead is marked or flagged as a duplicate', tone: 'neutral', link: { object: 'lvLead' } },
-    {
-      key: 'opportunity',
-      label: 'Opportunity score',
-      value: null,
-      emptyText: `Unavailable — 0 of ${total} leads are scored`,
-      unavailableReason: `The scoring engine is not implemented; ${scored(data)} of ${total} leads carry a score.`,
-      tone: 'neutral',
-    },
+    scored(data) > 0
+      ? { key: 'opportunity', label: 'Leads scored (Opportunity v1)', value: scored(data), emptyText: 'No lead scored yet', tone: 'info', link: { object: 'lvLead' } }
+      : {
+          key: 'opportunity',
+          label: 'Opportunity score',
+          value: null,
+          emptyText: `Unavailable — 0 of ${total} leads are scored`,
+          unavailableReason: 'Opportunity Score v1 runs on the lead Intelligence tab, on new interactions and hourly; no lead has been scored yet.',
+          tone: 'neutral',
+        },
     {
       key: 'relationshipHealth',
       label: 'Relationship health',
       value: null,
-      emptyText: 'Unavailable — not computed yet',
-      unavailableReason: 'Relationship health is not computed by any current process.',
+      emptyText: 'Per-lead state — open a lead’s Intelligence tab',
+      unavailableReason: 'Relationship health is a per-lead state (HEALTHY / ATTENTION / AT_RISK / DORMANT / UNKNOWN) computed by relationship-health-v1 on each lead; it is not aggregated into one number here.',
       tone: 'neutral',
     },
   );

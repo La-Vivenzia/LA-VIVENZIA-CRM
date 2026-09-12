@@ -12,7 +12,7 @@ export default defineNavigationMenuItem({
   universalIdentifier: NAV_ONBOARDING_ID,
   name: 'Onboarding',
   icon: 'IconRoute',
-  position: 2,
+  position: 3,
   type: NavigationMenuItemType.OBJECT,
   folderUniversalIdentifier: NAV_FOLDER_WORK_ID,
   targetObjectUniversalIdentifier: ONBOARDING_OBJECT_ID,

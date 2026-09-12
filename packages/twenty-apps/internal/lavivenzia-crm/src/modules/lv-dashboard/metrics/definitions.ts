@@ -138,6 +138,8 @@ export const leadFilters = {
   markedDuplicate: (): Filter => ({ status: { eq: 'DUPLICATE' } }),
   flaggedDuplicateKeys: (): Filter => ({ duplicateKeys: { is: 'NOT_NULL' } }),
   scored: (): Filter => ({ opportunityScore: { is: 'NOT_NULL' } }),
+  // Day 6: the rules-based Opportunity Score v1 marks ≥ 70 as high.
+  highOpportunity: (): Filter => ({ and: [{ opportunityScore: { gte: 70 } }, { status: { in: [...OPEN_WORKLOAD_STATUSES] } }] }),
   noResponse: (): Filter => ({ status: { eq: 'NO_RESPONSE' } }),
   recentlyUpdated: (now: string): Filter => ({ updatedAt: { gte: daysAgo(now, THRESHOLDS.RECENT_DAYS) } }),
 };

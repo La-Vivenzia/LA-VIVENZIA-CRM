@@ -9,6 +9,7 @@ import {
   type ControlTowerFilters,
 } from 'src/modules/lv-dashboard/metrics/control-tower-filters';
 import {
+  daysAgo,
   documentFilters,
   leadFilters,
   notificationFilters,
@@ -217,6 +218,10 @@ export const buildControlTowerSummary = async ({
   });
   const openSlaCount = batch.count(OBJECTS.sla, and(sla, slaFilters.open()));
   const leadsByStatus = batch.groupBy(OBJECTS.lead, 'status', scope);
+  // Day 6: unresolved problems and AI activity are part of system health.
+  const openProblems = batch.count(OBJECTS.problem, { status: { in: ['OPEN', 'IN_PROGRESS'] } });
+  const aiRunsWeek = batch.count(OBJECTS.aiRun, { createdAt: { gte: daysAgo(now, 7) } });
+  const aiFailuresWeek = batch.count(OBJECTS.aiRun, { and: [{ createdAt: { gte: daysAgo(now, 7) } }, { status: { in: ['FAILED', 'UNAVAILABLE'] } }] });
   const auditEvents = batch.count(OBJECTS.auditEvent, {
     at: { gte: new Date(Date.parse(now) - 7 * 86_400_000).toISOString() },
   });
@@ -374,6 +379,8 @@ export const buildControlTowerSummary = async ({
     { key: 'escalated', label: 'Escalated SLAs', value: escalatedCount(data), detail: 'Escalation task created and manager notified' },
     { key: 'blocked', label: 'Escalations blocked', value: blockedCount(data), detail: 'Breached with no escalation owner configured (LV_ESCALATION_OWNER_EMAIL)' },
     { key: 'auditEvents', label: 'Governance audit events (7 days)', value: auditEvents(data), detail: 'Archive / close / duplicate / restore / permanent delete' },
+    { key: 'openProblems', label: 'Unresolved problems', value: openProblems(data), detail: 'Confirmed problems with status OPEN or IN_PROGRESS' },
+    { key: 'aiRuns', label: 'AI operations (7 days)', value: aiRunsWeek(data), detail: `${aiFailuresWeek(data)} failed or unavailable` },
   ];
 
   const notes = [

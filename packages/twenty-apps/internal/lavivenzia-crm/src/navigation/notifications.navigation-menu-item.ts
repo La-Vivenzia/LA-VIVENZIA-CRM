@@ -13,7 +13,7 @@ export default defineNavigationMenuItem({
   universalIdentifier: NAV_NOTIFICATIONS_ID,
   name: 'Notifications',
   icon: 'IconBell',
-  position: 1,
+  position: 2,
   type: NavigationMenuItemType.PAGE_LAYOUT,
   folderUniversalIdentifier: NAV_FOLDER_WORK_ID,
   pageLayoutUniversalIdentifier: PL_NOTIFICATION_CENTRE_ID,

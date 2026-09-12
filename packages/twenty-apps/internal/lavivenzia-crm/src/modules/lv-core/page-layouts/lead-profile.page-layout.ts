@@ -5,7 +5,10 @@ import {
   INTERACTIONS_ON_LEAD_ID,
   INTERACTION_OBJECT_ID,
   LEAD_OBJECT_ID,
+  FC_LEAD_INTELLIGENCE_ID,
   LEAD_PROFILE_GOVERNANCE_TAB_ID,
+  LEAD_PROFILE_INTELLIGENCE_TAB_ID,
+  LEAD_PROFILE_INTELLIGENCE_WIDGET_ID,
   LEAD_PROFILE_GOVERNANCE_WIDGET_ID,
 } from 'src/constants/universal-identifiers';
 
@@ -114,11 +117,33 @@ export default definePageLayout({
       ],
     },
     {
+      // Day 6 — intelligence: score, health, next best action, AI summary,
+      // classification, data quality, duplicates, conversation summaries,
+      // drafts and onboarding assistance. Loads on its own; the core tabs
+      // never wait for it.
+      universalIdentifier: LEAD_PROFILE_INTELLIGENCE_TAB_ID,
+      title: 'Intelligence',
+      position: 3,
+      icon: 'IconSparkles',
+      layoutMode: PageLayoutTabLayoutMode.VERTICAL_LIST,
+      widgets: [
+        {
+          universalIdentifier: LEAD_PROFILE_INTELLIGENCE_WIDGET_ID,
+          title: 'Intelligence',
+          type: 'FRONT_COMPONENT',
+          configuration: {
+            configurationType: 'FRONT_COMPONENT',
+            frontComponentUniversalIdentifier: FC_LEAD_INTELLIGENCE_ID,
+          },
+        },
+      ],
+    },
+    {
       // Day 5 — lifecycle & governance. Archive / close / mark duplicate /
       // reopen for the team; audited permanent delete for the Main Admin.
       universalIdentifier: LEAD_PROFILE_GOVERNANCE_TAB_ID,
       title: 'Actions',
-      position: 3,
+      position: 4,
       icon: 'IconShieldLock',
       // A vertical list gives the single widget the whole tab; the default
       // grid would confine it to a small cell.

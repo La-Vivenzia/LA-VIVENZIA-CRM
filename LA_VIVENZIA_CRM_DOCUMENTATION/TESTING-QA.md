@@ -286,3 +286,61 @@ Fixture hygiene: every suite destroys what it creates (leads, tasks, task
 targets, interactions, onboardings, documents, SLAs, escalation tasks,
 notifications, assignment history, audit rows). The three real leads
 LV-000003/4/5 are never touched.
+
+
+## Day 6 — AI intelligence & Copilot: verified by real execution
+
+Unit (vitest `--project unit`, 43 files / 935 tests total; 60 new):
+provider abstraction with a deterministic transport — success, fenced JSON,
+malformed JSON, schema failure, empty response, rate limit → retry →
+success, retry exhaustion, timeout, bad credentials (no retry), network
+failure, Anthropic dialect, classify label allowlist; configuration
+defaults / clamps / key never exposed; prompt registry versions and
+validators; opportunity score arithmetic (exact points, SCORE_UNAVAILABLE
+cases, clamping); relationship health states; next-best-action ladder;
+data quality issues; duplicate scan ranking; persistence cost control (no
+rewrite when unchanged, confirmed insight → STALE + new suggestion);
+provenance (citations outside the context dropped; failed calls stored as
+UNAVAILABLE with code); model context privacy; Copilot allowlist
+(unsupported object / field / operator, excessive limit, owner spoofing by
+id or name, wildcard stripping, date resolution, sort allowlist), intent
+rules (ten everyday questions; delete / merge / approve / reassign / price /
+send never executable; impersonation refused), anti-hallucination answers
+(pricing / availability / certification "not available"), model-intent
+fallback validated like any plan.
+
+Live, in the repository — `src/__tests__/lv-ai.integration-test.ts` (7
+tests, real sessions for a Main Admin, an Experience Hunter and an
+Onboarding Expert; skipped without `TWENTY_API_KEY` and the dev users):
+deterministic intelligence with provenance and the mirrored score;
+`AI_UNAVAILABLE` from every model operation with an audited run; AI objects
+denied to team roles, auditable by the Main Admin, API key refused,
+non-owner `NOT_FOUND`; NBA accept → task with the reviewer's token, decision
+single-shot, non-owner refused; duplicate twin surfaced with evidence and
+MERGE → DUPLICATE + `MARK_DUPLICATE` audit, both records intact; Copilot
+scoping (Hunter's "all leads" = CM-004 count), impersonation / delete /
+owner-change refused, SQL-like text harmless, reviewer cannot see a Hunter
+lead, pricing / availability / certification answers; proposal → confirm
+(other member refused, single-use, task assigned to the confirmer);
+briefing facts with fixed ranking. Fixtures (leads, interactions, tasks,
+SLAs, notifications, history, AI insights, runs, problems, audit rows) are
+destroyed afterwards.
+
+Live probe (`.notes/d6/d6-probe.mjs`, 42 checks, all passing) covers the
+same ground against the three real leads without creating fixtures.
+
+Browser (`.notes/d6/d6-browser.mjs`, Playwright, real logins for Tim /
+Hunter, lv-test-c / Onboarding Expert, lv-test-b / Main Admin; fixtures
+created and destroyed): see the Day 6 report for the per-check results —
+Intelligence tab loading → data, AI UNAVAILABLE labels, computed score /
+health / next best action with explanations, Accept → real task, duplicate
+Ignore decision, aborted request → error state → Retry recovers, widths
+320 / 390 / 768 without horizontal overflow, dark mode; Copilot page
+briefing, structured answers with KNOWN blocks, pricing "not available",
+delete and "act as admin" NOT PERFORMED, proposal → Confirm → one task;
+Onboarding Expert asking about a Hunter lead refused; Admin Control Tower
+system health with AI operations and unresolved problems; dashboard
+high-opportunity KPI.
+
+Fixture hygiene: AI insight / run rows created by probes are purged
+(`.notes/d6/purge-ai-test-rows.mjs`); the three real leads are untouched.

@@ -1,6 +1,16 @@
 import { defineApplication } from 'twenty-sdk/define';
 
-import { APPLICATION_UNIVERSAL_IDENTIFIER } from 'src/constants/universal-identifiers';
+import {
+  APPLICATION_UNIVERSAL_IDENTIFIER,
+  APPVAR_AI_API_KEY_ID,
+  APPVAR_AI_BASE_URL_ID,
+  APPVAR_AI_MAX_OUTPUT_TOKENS_ID,
+  APPVAR_AI_MAX_RETRIES_ID,
+  APPVAR_AI_MODEL_ID,
+  APPVAR_AI_PROVIDER_ID,
+  APPVAR_AI_TEMPERATURE_ID,
+  APPVAR_AI_TIMEOUT_ID,
+} from 'src/constants/universal-identifiers';
 
 // Application variables are the workspace's own settings for this app
 // (Settings → Applications → La Vivenzia CRM). Twenty injects them into the
@@ -73,6 +83,64 @@ export default defineApplication({
       universalIdentifier: 'ec8485b3-9fbe-458d-9fd6-c4b82a4224de',
       label: 'CRM URL',
       description: 'Public URL of this CRM, used to build links in email (e.g. https://crm.lavivenzia.com).',
+      value: '',
+      isSecret: false,
+    },
+    // Day 6 — AI provider. All optional: with no key the CRM runs unchanged
+    // and every AI feature reports AI_UNAVAILABLE. The key is a secret; it
+    // never reaches the browser, a record, or a log.
+    LV_AI_PROVIDER: {
+      universalIdentifier: APPVAR_AI_PROVIDER_ID,
+      label: 'AI provider',
+      description: '"openai" (default when a key is set), "anthropic", "openai-compatible" (any /chat/completions gateway; needs base URL and model) or "none".',
+      value: '',
+      isSecret: false,
+    },
+    LV_AI_API_KEY: {
+      universalIdentifier: APPVAR_AI_API_KEY_ID,
+      label: 'AI API key',
+      description: 'Provider API key. Stored encrypted; only the logic functions can read it. Leave empty to keep AI features off.',
+      isSecret: true,
+    },
+    LV_AI_BASE_URL: {
+      universalIdentifier: APPVAR_AI_BASE_URL_ID,
+      label: 'AI base URL',
+      description: 'Override the provider endpoint (required for openai-compatible gateways), e.g. https://api.openai.com/v1.',
+      value: '',
+      isSecret: false,
+    },
+    LV_AI_MODEL: {
+      universalIdentifier: APPVAR_AI_MODEL_ID,
+      label: 'AI model',
+      description: 'Model id, e.g. gpt-4o-mini or claude-3-5-haiku-latest. Defaults per provider.',
+      value: '',
+      isSecret: false,
+    },
+    LV_AI_TIMEOUT_MS: {
+      universalIdentifier: APPVAR_AI_TIMEOUT_ID,
+      label: 'AI timeout (ms)',
+      description: 'Per-call timeout, 2000–60000. Default 20000.',
+      value: '',
+      isSecret: false,
+    },
+    LV_AI_MAX_OUTPUT_TOKENS: {
+      universalIdentifier: APPVAR_AI_MAX_OUTPUT_TOKENS_ID,
+      label: 'AI max output tokens',
+      description: 'Hard cap on generated tokens per call, 64–4000. Default 900.',
+      value: '',
+      isSecret: false,
+    },
+    LV_AI_MAX_RETRIES: {
+      universalIdentifier: APPVAR_AI_MAX_RETRIES_ID,
+      label: 'AI max retries',
+      description: 'Retries on timeout / rate limit / provider errors, 0–5. Default 2.',
+      value: '',
+      isSecret: false,
+    },
+    LV_AI_TEMPERATURE: {
+      universalIdentifier: APPVAR_AI_TEMPERATURE_ID,
+      label: 'AI temperature',
+      description: '0–1. Default 0.2 (prompts may lower it further).',
       value: '',
       isSecret: false,
     },

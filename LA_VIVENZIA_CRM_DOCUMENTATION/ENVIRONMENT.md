@@ -43,3 +43,22 @@ npx vite build
 ```
 
 then restart the front-end dev server. Both generated outputs are gitignored.
+
+## AI provider is optional (Day 6)
+
+The AI layer is configured from the application's own variables (Settings →
+Applications → La Vivenzia CRM): `LV_AI_PROVIDER` (`openai` — the default
+when a key is set — `anthropic`, `openai-compatible`, or `none`),
+`LV_AI_API_KEY` (secret), and optional `LV_AI_BASE_URL`, `LV_AI_MODEL`,
+`LV_AI_TIMEOUT_MS`, `LV_AI_MAX_OUTPUT_TOKENS`, `LV_AI_MAX_RETRIES`,
+`LV_AI_TEMPERATURE`. No key = every model feature reports `AI_UNAVAILABLE`
+and the rest of the CRM (including the rules-based intelligence and the
+structured Copilot) is unaffected. Twenty's own `OPENAI_API_KEY` /
+`ANTHROPIC_API_KEY` server variables are not used by the app: its generate
+endpoint is gated by the administrator-only `AI` settings permission.
+Keys are never placed in `.env` files of this repository.
+
+Logic functions are child `node` processes: when the C: drive is (nearly)
+full they fail to start with `Exited with code 3221225794` on Windows
+(STATUS_DLL_INIT_FAILED) and every route answers 500 — free disk space and
+restart the API server.

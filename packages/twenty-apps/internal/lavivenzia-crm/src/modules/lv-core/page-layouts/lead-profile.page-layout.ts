@@ -1,9 +1,12 @@
-import { definePageLayout } from 'twenty-sdk/define';
+import { definePageLayout, PageLayoutTabLayoutMode } from 'twenty-sdk/define';
 
 import {
+  FC_LEAD_GOVERNANCE_ID,
   INTERACTIONS_ON_LEAD_ID,
   INTERACTION_OBJECT_ID,
   LEAD_OBJECT_ID,
+  LEAD_PROFILE_GOVERNANCE_TAB_ID,
+  LEAD_PROFILE_GOVERNANCE_WIDGET_ID,
 } from 'src/constants/universal-identifiers';
 
 // The Lead Profile — the central relationship workspace.
@@ -107,6 +110,28 @@ export default definePageLayout({
           title: 'Files',
           type: 'FILES',
           configuration: { configurationType: 'FILES' },
+        },
+      ],
+    },
+    {
+      // Day 5 — lifecycle & governance. Archive / close / mark duplicate /
+      // reopen for the team; audited permanent delete for the Main Admin.
+      universalIdentifier: LEAD_PROFILE_GOVERNANCE_TAB_ID,
+      title: 'Actions',
+      position: 3,
+      icon: 'IconShieldLock',
+      // A vertical list gives the single widget the whole tab; the default
+      // grid would confine it to a small cell.
+      layoutMode: PageLayoutTabLayoutMode.VERTICAL_LIST,
+      widgets: [
+        {
+          universalIdentifier: LEAD_PROFILE_GOVERNANCE_WIDGET_ID,
+          title: 'Lifecycle & governance',
+          type: 'FRONT_COMPONENT',
+          configuration: {
+            configurationType: 'FRONT_COMPONENT',
+            frontComponentUniversalIdentifier: FC_LEAD_GOVERNANCE_ID,
+          },
         },
       ],
     },

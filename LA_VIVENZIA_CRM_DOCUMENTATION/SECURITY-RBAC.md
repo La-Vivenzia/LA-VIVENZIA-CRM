@@ -281,3 +281,46 @@ a direct database update does not.
   in a request body names them.
 - Running the evaluator on demand requires the WORKFLOWS settings permission
   (Twenty's `executeOneLogicFunction` guard); a governed user is refused.
+
+
+## Dashboards, Control Tower and governance (Day 5)
+
+- Dashboard and Control Tower routes derive **who** is asking from the
+  delegated session token (`currentUser.workspaceMember`) and **what they may
+  see** from the caller's real `permissionFlags` / `objectPermissions`. The
+  request body can ask for a lens or filters — never for an identity, a role or
+  an `isAdmin` flag. A Hunter requesting the ADMIN lens receives HUNTER. API
+  keys are refused (`NOT_AUTHENTICATED`). Verified live.
+- Every aggregate runs with the caller's token, so CM-004 row scoping and object
+  permissions apply to each COUNT / GROUP BY / list. A personal dashboard
+  therefore cannot reveal another member's leads, onboardings, interactions,
+  SLAs or notifications, whatever filter is sent. Verified live for an
+  Experience Hunter and an Onboarding Expert against a Main Admin's fixtures.
+- `POST /control-tower/summary` refuses any caller without the administrator
+  settings permission (`NOT_AUTHORIZED`) before running a query. The sidebar
+  entry is shared workspace metadata and remains visible to every role
+  (LIMITATION — Twenty has no per-role navigation); the API is what is
+  protected, and the page renders an "Administrators only" state with no data.
+  Verified by direct API call and in a real browser as a Hunter.
+- **Destructive actions.** No LV team role holds soft-delete or destroy on LV
+  objects; only Main Admin does. Verified live: a Hunter's `deleteLvLead` and
+  `destroyLvLead` are refused by the platform. The team uses lifecycle actions
+  (`POST /leads/lifecycle`: archive → DORMANT, close → LOST or a specific
+  closing status, mark duplicate → DUPLICATE, reopen → QUALIFYING), each an
+  ordinary update the role already permits and CM-004 already scopes, each
+  written to `lvAuditEvent` with the actor from the session, the target,
+  timestamp, reason and outcome (applied or refused).
+- **Permanent delete cannot be performed by an application function.** A
+  delegated token acts as *user ∩ application role*, and the application role
+  deliberately has neither destroy nor soft-delete; a route calling
+  `destroyLvLead` was refused even for a Main Admin. Granting destroy to the
+  application role would let every function destroy. So permanent deletion is
+  Twenty's native two-step path (Delete → trash → Permanently destroy), gated
+  by the Main Admin role and an explicit confirmation, and audited from the
+  platform's `*.deleted` / `*.restored` / `*.destroyed` events with the actor
+  from the event. `POST /records/delete-impact` shows the Main Admin the
+  dependent counts first and deletes nothing. Verified live: trash → restore →
+  destroy by a Main Admin produced TRASH / RESTORE / PERMANENT_DELETE audit
+  rows naming the admin.
+- Server-side errors are logged with the caller id; the client receives a
+  generic message.

@@ -275,6 +275,17 @@ describeIfLive('La Vivenzia notifications — live', () => {
     for (const leadId of created.leads) {
       await gql(`mutation { destroyLvLead(id: "${leadId}") { id } }`, admin);
     }
+
+    // Day 5: destroys are audited from the platform's events (asynchronously);
+    // remove those rows so a test run leaves no trace in the governance log.
+    await new Promise((resolve) => setTimeout(resolve, 6000));
+    for (const leadId of created.leads) {
+      const audit = await gql<{ lvAuditEvents?: { edges: { node: { id: string } }[] } }>(`query { lvAuditEvents(first: 50, filter: { targetRecordId: { eq: "${leadId}" } }) { edges { node { id } } } }`, admin);
+
+      for (const edge of audit.lvAuditEvents?.edges ?? []) {
+        await gql(`mutation { destroyLvAuditEvent(id: "${edge.node.id}") { id } }`, admin);
+      }
+    }
   });
 
   it('notifies the new owner through the real lvLead.updated flow, with server-derived audit', async () => {

@@ -45,6 +45,7 @@ const graphql = async <T>(
 };
 
 const createdLeadIds: string[] = [];
+const createdOnboardingIds: string[] = [];
 
 describeIfLive('La Vivenzia CRM — installed application', () => {
   describe('metadata', () => {
@@ -206,6 +207,7 @@ describeIfLive('La Vivenzia CRM — installed application', () => {
         { data: { name: 'Integration onboarding' } },
       );
 
+      createdOnboardingIds.push(data.createLvOnboarding.id);
       expect(data.createLvOnboarding.status).toBe('NOT_STARTED');
     });
 
@@ -226,21 +228,57 @@ describeIfLive('La Vivenzia CRM — installed application', () => {
         },
       );
 
+      createdOnboardingIds.push(data.createLvOnboarding.id);
       expect(data.createLvOnboarding.progressPercentage).toBe(40);
     });
   });
 
   afterAll(async () => {
-    // Leave the workspace as we found it.
-    for (const id of createdLeadIds) {
+    // Leave the workspace as we found it — destroyed, not just soft-deleted,
+    // including the rows the engine derives from a lead (SLA, notifications,
+    // assignment history). Before Day 5 this only soft-deleted the leads and
+    // left the onboardings behind, which is where the "stale onboardings" of
+    // the Day 4 pre-flight audit came from.
+    const destroyChildren = async (collection: string, mutation: string, filter: string) => {
       try {
-        await graphql(
-          `mutation($id: UUID!) { deleteLvLead(id: $id) { id } }`,
-          { id },
+        const data = await graphql<Record<string, { edges: { node: { id: string } }[] }>>(
+          `query { ${collection}(first: 50, filter: ${filter}) { edges { node { id } } } }`,
         );
+
+        for (const edge of data[collection]?.edges ?? []) {
+          await graphql(`mutation { ${mutation}(id: "${edge.node.id}") { id } }`);
+        }
       } catch {
         // Best effort: a failed cleanup must not fail the suite.
       }
+    };
+
+    for (const id of createdOnboardingIds) {
+      await destroyChildren('lvSlas', 'destroyLvSla', `{ onboardingId: { eq: "${id}" } }`);
+      try {
+        await graphql(`mutation($id: UUID!) { destroyLvOnboarding(id: $id) { id } }`, { id });
+      } catch {
+        // Best effort.
+      }
+    }
+
+    for (const id of createdLeadIds) {
+      await destroyChildren('lvSlas', 'destroyLvSla', `{ leadId: { eq: "${id}" } }`);
+      await destroyChildren('lvNotifications', 'destroyLvNotification', `{ leadId: { eq: "${id}" } }`);
+      await destroyChildren('lvAssignmentHistories', 'destroyLvAssignmentHistory', `{ leadId: { eq: "${id}" } }`);
+      try {
+        await graphql(`mutation($id: UUID!) { destroyLvLead(id: $id) { id } }`, { id });
+      } catch {
+        // Best effort.
+      }
+    }
+
+    // Day 5: the destroys above are audited from the platform's events
+    // (asynchronously). Give the worker a moment, then remove those rows so a
+    // test run leaves no trace in the governance log.
+    await new Promise((resolve) => setTimeout(resolve, 6000));
+    for (const id of [...createdLeadIds, ...createdOnboardingIds]) {
+      await destroyChildren('lvAuditEvents', 'destroyLvAuditEvent', `{ targetRecordId: { eq: "${id}" } }`);
     }
   });
 

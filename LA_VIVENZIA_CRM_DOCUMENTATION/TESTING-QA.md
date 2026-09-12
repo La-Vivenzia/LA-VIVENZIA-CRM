@@ -227,3 +227,62 @@ Background execution: the cron-trigger scheduler had never been registered
 in this environment (see ENVIRONMENT.md); after registering it, a probe SLA's
 `lastEvaluatedAt` was updated by the scheduled `*/15` run with no client
 involved.
+
+
+## Day 5 — dashboards, Control Tower, governance: verified by real execution
+
+Unit (vitest `--project unit`): metric predicates (overdue, stuck, hot without
+follow-up, incomplete contact, SLA breach set), coordinator channel buckets,
+onboarding health from real facts, viewer-timezone "today" with clamped offset,
+Control Tower filter parsing (drops unknown values, strips SQL wildcards,
+carries owner filters onto SLA / task / onboarding columns), lens derivation
+from permissions, query-batch packing (no repeated root resolver, ≤ 18 roots,
+typed variables, bounded lists), a request budget (each lens and the Control
+Tower stay ≤ 14 documents with a fake client — a constant, never per row), and
+the lifecycle policy (reason rules, closing statuses, reopen only from a closed
+state, no-ops refused).
+
+Live, in the repository — `src/__tests__/lv-dashboards.integration-test.ts`
+(6 tests, real sessions for a Main Admin, an Experience Hunter and an
+Onboarding Expert; skipped without `TWENTY_API_KEY` and the dev users):
+Hunter dashboard deltas from controlled fixtures (overdue task, breached SLA
+via evaluator time travel, high-priority lead) and no leakage of another
+member's lead; Hunter cannot force the ADMIN lens and is refused by the
+Control Tower route; Onboarding Expert sees only their own onboarding; Admin
+dashboard + Control Tower deltas, server-side filters (owner, unowned,
+status, priority, SLA state) and bogus filters ignored; Hunter archive /
+reopen audited with the session actor and refused soft-delete / destroy;
+Main Admin delete-impact, then trash → restore → destroy each captured as an
+audit row.
+
+Browser (`d5-browser.mjs`, Playwright, real credentials for four roles —
+Tim / Experience Hunter, `lv-test-d` / Lead Coordinator, `lv-test-c` /
+Onboarding Expert, `lv-test-b` / Main Admin — fixtures created and destroyed
+by the script; **38/38 checks pass**): dashboard loads with the right lens,
+KPI numbers and lists reflect the fixtures (overdue task, breached SLA via
+evaluator time travel, unowned lead, onboarding in review with pending and
+rejected documents, PHONE follow-up due today), unavailable metrics show
+*n/a*, a row click deep-links to the record, the Hunter gets "Administrators
+only" on the Control Tower with no data, the Admin Control Tower lists every
+fixture in its section, the "unowned only" filter changes the lists
+server-side, a breach row deep-links to the lead, the lead page Actions tab
+shows lifecycle buttons for the Hunter and the deletion impact only for the
+Main Admin, widths 320 / 390 / 768 / 1024 / 1440 / 1920 without horizontal
+overflow, dark mode, first Tab lands on a focusable control.
+
+States (`d5-states.mjs`, 5/5): loading state visible before data, replaced by
+the summary; aborting the route request in the browser shows the error state
+with the message and a Retry button while the previously loaded figures stay
+on screen; Retry recovers.
+
+Operational notes from this round: a disposable user created through the
+sign-up API is asked to complete a profile on first browser login (the script
+handles it); every destroy — including test cleanup — is audited from the
+platform events, so each suite now sweeps the audit rows of its own fixtures
+(the scratchpad suites call `sweep-audit.mjs`), leaving the governance log
+with only real entries.
+
+Fixture hygiene: every suite destroys what it creates (leads, tasks, task
+targets, interactions, onboardings, documents, SLAs, escalation tasks,
+notifications, assignment history, audit rows). The three real leads
+LV-000003/4/5 are never touched.

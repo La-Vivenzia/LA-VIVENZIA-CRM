@@ -13,7 +13,7 @@ export default defineNavigationMenuItem({
   universalIdentifier: NAV_SLAS_ID,
   name: 'SLAs',
   icon: 'IconClockExclamation',
-  position: 5,
+  position: 6,
   type: NavigationMenuItemType.OBJECT,
   folderUniversalIdentifier: NAV_FOLDER_WORK_ID,
   targetObjectUniversalIdentifier: SLA_OBJECT_ID,

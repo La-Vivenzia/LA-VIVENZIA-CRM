@@ -38,7 +38,12 @@ export const callRoute = async (
   }
 
   if (!response.ok) {
-    throw new Error(String(parsed.error ?? 'Request failed.'));
+    // Twenty's REST error body is { statusCode, error: <name>, messages: [...] };
+    // the name alone ("Error") tells the user nothing, so prefer the message.
+    const messages = Array.isArray(parsed.messages) ? parsed.messages.filter((item) => typeof item === 'string') : [];
+    const detail = messages[0] ?? (typeof parsed.message === 'string' ? parsed.message : null) ?? parsed.error;
+
+    throw new Error(`${String(detail ?? 'Request failed.')} (HTTP ${response.status})`);
   }
 
   return parsed;

@@ -9,6 +9,6 @@ export default defineNavigationMenuItem({
   universalIdentifier: NAV_FOLDER_AUTOMATION_ID,
   name: 'Automation',
   icon: 'IconBolt',
-  position: 2,
+  position: 3,
   type: NavigationMenuItemType.FOLDER,
 });

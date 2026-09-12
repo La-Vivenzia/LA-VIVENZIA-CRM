@@ -230,6 +230,20 @@ describeIfLive('La Vivenzia SLA engine — live', () => {
         await gql(`mutation { destroyLvNotification(id: "${row.id}") { id } }`, admin);
       }
 
+      // Follow-up tasks the interaction hook created for this lead.
+      const targets = await gql<{ taskTargets?: { edges: { node: { id: string; taskId: string | null } }[] } }>(
+        `query { taskTargets(first: 50, filter: { targetLvLeadId: { eq: "${leadId}" } }) { edges { node { id taskId } } } }`,
+        admin,
+      );
+
+      for (const edge of targets.taskTargets?.edges ?? []) {
+        await gql(`mutation { destroyTaskTarget(id: "${edge.node.id}") { id } }`, admin);
+
+        if (edge.node.taskId) {
+          await gql(`mutation { destroyTask(id: "${edge.node.taskId}") { id } }`, admin);
+        }
+      }
+
       const history = await gql<{ lvAssignmentHistories?: { edges: { node: { id: string } }[] } }>(`query { lvAssignmentHistories(first: 50, filter: { leadId: { eq: "${leadId}" } }) { edges { node { id } } } }`, admin);
 
       for (const edge of history.lvAssignmentHistories?.edges ?? []) {
@@ -237,6 +251,17 @@ describeIfLive('La Vivenzia SLA engine — live', () => {
       }
 
       await gql(`mutation { destroyLvLead(id: "${leadId}") { id } }`, admin);
+    }
+
+    // Day 5: destroys are audited from the platform's events (asynchronously);
+    // remove those rows so a test run leaves no trace in the governance log.
+    await new Promise((resolve) => setTimeout(resolve, 6000));
+    for (const leadId of created.leads) {
+      const audit = await gql<{ lvAuditEvents?: { edges: { node: { id: string } }[] } }>(`query { lvAuditEvents(first: 50, filter: { targetRecordId: { eq: "${leadId}" } }) { edges { node { id } } } }`, admin);
+
+      for (const edge of audit.lvAuditEvents?.edges ?? []) {
+        await gql(`mutation { destroyLvAuditEvent(id: "${edge.node.id}") { id } }`, admin);
+      }
     }
   });
 

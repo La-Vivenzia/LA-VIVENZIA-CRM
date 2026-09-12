@@ -47,6 +47,10 @@ export type LvTheme = {
     // and shipping a webfont would add a network dependency and a licensing
     // question for a decision nobody has made. Documented as outstanding.
     body: string;
+    // Display serif for page titles and KPI figures (Cinzel-like). Falls back
+    // to the platform serif when the webfont is not installed — no network
+    // dependency is introduced.
+    display: string;
     mono: string;
     size: { xs: number; sm: number; md: number; lg: number; xl: number };
     weight: { regular: number; medium: number; bold: number };
@@ -60,7 +64,8 @@ const SHARED = {
   space: (steps: number) => steps * 4,
   radius: { sm: 4, md: 8, lg: 12, pill: 999 },
   font: {
-    body: 'system-ui, -apple-system, "Segoe UI", Roboto, sans-serif',
+    body: 'Sora, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif',
+    display: 'Cinzel, "Cormorant Garamond", Georgia, "Times New Roman", serif',
     mono: 'ui-monospace, SFMono-Regular, Menlo, monospace',
     size: { xs: 11, sm: 12, md: 14, lg: 18, xl: 24 },
     weight: { regular: 400, medium: 500, bold: 600 },
@@ -166,15 +171,17 @@ export const layout = (theme: LvTheme) => ({
     fontSize: theme.font.size.md,
     fontWeight: theme.font.weight.medium,
     cursor: 'pointer',
-    border: '1px solid transparent',
+    // One `border` shorthand per variant (never shorthand + borderColor):
+    // a button that switches variant would otherwise make React warn about
+    // conflicting style properties.
     ...(variant === 'primary'
-      ? { background: theme.color.brand, color: theme.color.textOnBrand }
+      ? { background: theme.color.brand, color: theme.color.textOnBrand, border: '1px solid transparent' }
       : variant === 'danger'
-        ? { background: 'transparent', color: theme.color.danger, borderColor: theme.color.danger }
+        ? { background: 'transparent', color: theme.color.danger, border: `1px solid ${theme.color.danger}` }
         : {
             background: theme.color.surfaceRaised,
             color: theme.color.text,
-            borderColor: theme.color.border,
+            border: `1px solid ${theme.color.border}`,
           }),
   }),
   input: {

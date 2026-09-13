@@ -541,3 +541,27 @@ export const APPVAR_AI_TIMEOUT_ID = '5319eefc-5d28-4e60-af0a-f4e3395f75f8';
 export const APPVAR_AI_MAX_OUTPUT_TOKENS_ID = '726f01c4-9e38-4cd3-bb3e-db9a1167c8ad';
 export const APPVAR_AI_MAX_RETRIES_ID = 'b73a32a0-ebb0-4874-ad44-4d9d9d65e0d3';
 export const APPVAR_AI_TEMPERATURE_ID = 'f6ac3468-f4b7-4f7b-931e-7d00b2fe138f';
+
+// --- Day 7: Lead 360 & relationship operations -----------------------------
+export const FN_LEAD_360_ID = '7bbfe3a3-5b3c-4188-a23e-279b0819a72d';
+export const FN_LOG_INTERACTION_ID = 'ffbf29a0-ea13-4f52-9dd3-74f40dbd3bad';
+export const FN_TASK_CREATE_ID = 'f81b5694-23f1-413b-a328-98ea2293e189';
+export const FN_TASK_UPDATE_ID = '72a909a0-6cbf-4393-a034-126e4f9d7cdc';
+export const FN_NOTE_CREATE_ID = 'ac132522-ac15-43de-af03-b3deea9f19d6';
+export const FN_LEAD_ASSIGN_ID = '5d2d0339-9367-4602-b2c2-02777a22c737';
+export const FC_LEAD_360_ID = '09a76f9d-0603-4e6a-b7ab-54d97197db26';
+export const LEAD_PROFILE_360_TAB_ID = 'f2ef6750-5350-4916-abe3-104415359a8b';
+export const LEAD_PROFILE_360_WIDGET_ID = 'f54a8437-457f-4e83-b2d3-dab69cb715a1';
+export const PL_QUICK_ADD_ID = '01eb6ada-d1f4-4204-ba09-113d830e9ee1';
+export const PL_QUICK_ADD_TAB_ID = '3c3a693f-aab5-4b55-b577-12768a75e2f1';
+export const PL_QUICK_ADD_WIDGET_ID = 'fb3e8c6a-e03d-49d0-a439-38b02db178ee';
+export const NAV_QUICK_ADD_ID = 'e0f2611c-6a7d-4988-b4a5-d4256bf39cdd';
+export const PL_ONBOARDING_RECORD_ID = '3af05840-f932-4b7b-8752-118b924f7261';
+export const PL_ONBOARDING_RECORD_WIZARD_TAB_ID = '1ddd8f45-e265-4eaa-a607-5881cb212b95';
+export const PL_ONBOARDING_RECORD_WIZARD_WIDGET_ID = 'c81711d1-204a-411e-95dc-efbd56692eab';
+export const PL_ONBOARDING_RECORD_DOCUMENTS_TAB_ID = 'c8413352-6d04-4d6d-bf37-caa6c1004aa3';
+export const PL_ONBOARDING_RECORD_DOCUMENTS_WIDGET_ID = 'a8f077f4-7a7e-42dc-9efd-1b07a8e3f69c';
+export const PL_ONBOARDING_RECORD_FIELDS_TAB_ID = '74f75a18-eff7-4319-ab4d-c7c50f7b7959';
+export const PL_ONBOARDING_RECORD_FIELDS_WIDGET_ID = 'c1378947-8571-4ad8-978d-86210548d797';
+export const VIEW_LEADS_ALL_ID = '93fb8c72-3996-4f17-94a1-780ebb84b5c2';
+export const CMI_QUICK_ADD_LEAD_ID = 'ab7220cf-fbb5-42a9-aa88-369eb3a45a1b';

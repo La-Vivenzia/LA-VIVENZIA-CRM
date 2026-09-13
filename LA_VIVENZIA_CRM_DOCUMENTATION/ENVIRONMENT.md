@@ -62,3 +62,19 @@ Logic functions are child `node` processes: when the C: drive is (nearly)
 full they fail to start with `Exited with code 3221225794` on Windows
 (STATUS_DLL_INIT_FAILED) and every route answers 500 — free disk space and
 restart the API server.
+
+## Lead 360 (Day 7) — nothing new to configure
+
+The Lead 360 page, Quick Add page, onboarding record page and the six
+relationship routes (`/leads/360`, `/interactions/log`, `/tasks/create`,
+`/tasks/update`, `/notes/create`, `/leads/assign`) are part of the application
+manifest: `apply` installs them, no server variable is involved. They run as
+logic functions, so `LOGIC_FUNCTION_TYPE=LOCAL` (production) and free disk on
+the executor's temp drive (see the 3221225794 note above) are prerequisites —
+when the executor cannot start, every Lead 360 action shows "Unable to load this
+lead" with a retry, and the lead's Details / Relationship / Notes tabs (native
+Twenty widgets) keep working.
+
+The Quick Add "Owner" field is a manual assignment: `lv-on-lead-created` passes
+a capture-time `ownerId` to the assignment engine as `manualAssigneeId`
+(precedence rule 1), so the engine records MANUAL and does not re-route it.

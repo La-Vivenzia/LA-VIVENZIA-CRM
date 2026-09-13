@@ -365,3 +365,61 @@ a direct database update does not.
 - Model context is minimised: no email / phone values, no member ids, no
   raw capture text, no provenance JSON, no documents, no secrets. The API
   key is a secret application variable read only inside logic functions.
+
+## Lead 360 and relationship operations (Day 7)
+
+- Lead 360 (`POST /leads/360`) reads every record **as the caller**. A lead the
+  caller cannot open under CM-004 is `NOT_FOUND` — for the page and for every
+  mutation route below. An API key (no session member) is `NOT_AUTHENTICATED`.
+- The page renders only the actions the server returned in `capabilities`,
+  which are derived from the platform's own answers (`currentUser` object
+  permissions, the WORKSPACE settings flag) and the record (ownership,
+  closed/archived, assigned reviewer). The UI is a convenience; every route
+  re-decides with the same inputs and the platform enforces the write.
+- **Identity is never taken from the body.** `/interactions/log`,
+  `/tasks/create`, `/tasks/update`, `/notes/create`, `/leads/lifecycle` and
+  `/leads/assign` use `event.workspaceMemberId`; `actorId`, `workspaceMemberId`,
+  `reviewerId` and `ownerId`-as-identity in a body are ignored. Proven live:
+  a body claiming the coordinator, sent from the hunter's session, records the
+  **hunter** on the interaction row and in the audit row.
+- `lv-on-interaction-created` now corrects `actorId` on any interaction row to
+  the session member that triggered the event, so the native record editor and
+  the API cannot attribute a contact to someone else either. Two exceptions:
+  rows created by integrations (no session member) keep what they carried, and
+  a workspace administrator (WORKSPACE settings flag) may attribute a contact
+  to a colleague explicitly — back-filling a call someone else made — because
+  an admin is unscoped and audited, so there is nothing to gain by lying.
+- **Status changes go through the governed lifecycle route only.**
+  `SET_STATUS` may target the main flow (minus the onboarding-mirrored states
+  ONBOARDING_INITIATED … LIVE_ACTIVE, which only `lv-on-onboarding-updated`
+  sets) and the holding states FOLLOW_UP_LATER / NO_RESPONSE. Closing,
+  duplicate and archive keep their own actions and reason rules. A closed lead
+  must be reopened first. Every change is a STATUS_CHANGE audit row.
+- **Ownership policy** (`assignment-policy.ts`): an administrator may reassign
+  any lead they can see; the current owner may hand over or release their own
+  lead; a lead-writer may claim an unassigned lead **for themselves only**. The
+  update is made as the caller, so CM-004 still applies; a MANUAL
+  `lvAssignmentHistory` row and an OWNER_CHANGE audit row are written. The
+  existing `lvLead.updated` hook notifies the new owner and re-evaluates SLAs.
+- **Experience Hunter and interactions.** The role has no lvInteraction write.
+  Working a lead includes recording the contact, so `/interactions/log` lets a
+  lead-writer log an interaction on a lead they can see: the row is written
+  with the application role carrying the session actor, only after the
+  delegated read proved the lead is theirs. The audit row records
+  `writtenAs: application-for-lead-writer`. Roles with lvInteraction write
+  (Coordinator, Operations, Admin) create the row delegated. This is the one
+  place the role table above is widened, and it is route-enforced, not a role
+  change.
+- Tasks and notes are Twenty's own objects created as the caller (task / note
+  permission binds); `/tasks/update` additionally requires the task to be
+  attached to the lead being viewed, so a guessed task id cannot be completed
+  through another lead.
+- Documents keep the short-lived signed file URL: Lead 360 fetches
+  `lvOnboardingDocument.file` only when a person opens a document, as that
+  person. The bucket is never exposed.
+- Onboarding visibility on Lead 360 follows CM-004 for lvOnboarding: an
+  Onboarding Expert who is not the lead's owner does not get the lead page at
+  all (the onboarding record page, reached from notifications and the
+  Onboarding list, is theirs); a Hunter sees the onboarding on their lead only
+  while it has no reviewer or they are the reviewer. This is deliberate — the
+  page does not read onboarding with the application role to widen it.

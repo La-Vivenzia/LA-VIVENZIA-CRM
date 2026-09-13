@@ -121,6 +121,10 @@ export const handler = async (
     lead: toAssignmentTarget(record),
     port,
     now: new Date().toISOString(),
+    // An owner chosen at capture (Quick Add's Owner field) is a human
+    // decision — precedence rule 1 — not a hint the engine may overrule.
+    manualAssigneeId: record.ownerId ?? null,
+    actorWorkspaceMemberId: payload.workspaceMemberId ?? null,
     // Derived from the event, so a replay is rejected by the unique index
     // rather than appending a second history row.
     eventKey: assignmentEventKey({

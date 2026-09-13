@@ -1,0 +1,156 @@
+import { CoreApiClient } from 'twenty-client-sdk/core';
+import { defineLogicFunction } from 'twenty-sdk/define';
+
+import { FN_TASK_CREATE_ID } from 'src/constants/universal-identifiers';
+import { isLeadPriority, type LeadPriority } from 'src/modules/lv-core/constants/lead-lifecycle';
+import { readRouteInput } from 'src/modules/lv-core/utils/route-event';
+import { dueAtFor, quickAction } from 'src/modules/lv-followups/utils/quick-actions';
+import { writeAuditEvent } from 'src/modules/lv-governance/services/audit-log';
+
+// POST /tasks/create { leadId, title?, description?, dueAt?, priority?, assigneeId?, quickAction?, timezoneOffsetMinutes?, sourceInteractionId? }
+//
+// Creates a Twenty task attached to the lead (task + taskTarget), as the
+// caller: the platform's task permission and CM-004's view of the lead are
+// what authorise it. The assignee defaults to the caller; a body may name a
+// colleague — that is delegation, not identity — but the actor recorded in
+// the audit row is always the session member. A `quickAction` fills title,
+// due date and priority from one shared table (quick-actions.ts) so the
+// one-tap buttons and the full form are the same thing.
+
+type Input = {
+  leadId?: unknown;
+  title?: unknown;
+  description?: unknown;
+  dueAt?: unknown;
+  priority?: unknown;
+  assigneeId?: unknown;
+  quickAction?: unknown;
+  timezoneOffsetMinutes?: unknown;
+  sourceInteractionId?: unknown;
+};
+
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+export const handler = async (event: unknown): Promise<Record<string, unknown>> => {
+  const { input, actorWorkspaceMemberId } = readRouteInput<Input>(event);
+
+  if (actorWorkspaceMemberId === null) {
+    return { ok: false, refusal: 'NOT_AUTHENTICATED', error: 'Only a signed-in team member can create a task.' };
+  }
+
+  if (typeof input.leadId !== 'string' || !UUID.test(input.leadId)) {
+    return { ok: false, refusal: 'INVALID_INPUT', error: 'leadId is required.' };
+  }
+
+  const now = new Date().toISOString();
+  const preset = quickAction(input.quickAction);
+  const offset = typeof input.timezoneOffsetMinutes === 'number' && Number.isFinite(input.timezoneOffsetMinutes) ? Math.max(-840, Math.min(840, input.timezoneOffsetMinutes)) : 0;
+  const title = (typeof input.title === 'string' && input.title.trim().length > 0 ? input.title.trim() : preset?.title ?? '').slice(0, 200);
+
+  if (title.length === 0) {
+    return { ok: false, refusal: 'INVALID_INPUT', error: 'A task needs a title.' };
+  }
+
+  let dueAt: string | null = null;
+
+  if (typeof input.dueAt === 'string' && input.dueAt.length > 0) {
+    if (Number.isNaN(Date.parse(input.dueAt))) {
+      return { ok: false, refusal: 'INVALID_INPUT', error: 'Due date is not valid.' };
+    }
+
+    dueAt = new Date(input.dueAt).toISOString();
+  } else if (preset) {
+    dueAt = dueAtFor(preset, now, offset);
+  }
+
+  const priority: LeadPriority = isLeadPriority(input.priority) ? input.priority : (preset?.priority ?? 'MEDIUM');
+  const assigneeId = typeof input.assigneeId === 'string' && UUID.test(input.assigneeId) ? input.assigneeId : actorWorkspaceMemberId;
+  const description = typeof input.description === 'string' ? input.description.trim().slice(0, 4000) : '';
+  const sourceInteractionId = typeof input.sourceInteractionId === 'string' && UUID.test(input.sourceInteractionId) ? input.sourceInteractionId : null;
+  const delegated = new CoreApiClient();
+  const application = new CoreApiClient({ runAs: 'application' });
+
+  type LeadRow = { id: string; name?: string | null; lvLeadId?: string | null };
+  let lead: LeadRow | null = null;
+
+  try {
+    const result = await delegated.query({ lvLead: { __args: { filter: { id: { eq: input.leadId } } }, id: true, name: true, lvLeadId: true } });
+
+    lead = (result as { lvLead?: LeadRow | null }).lvLead ?? null;
+  } catch {
+    lead = null;
+  }
+
+  if (lead === null) {
+    return { ok: false, refusal: 'NOT_FOUND', error: 'That lead does not exist or is not yours to work.' };
+  }
+
+  const label = `${lead.lvLeadId ?? ''} ${lead.name ?? ''}`.trim() || lead.id;
+  let taskId: string | null = null;
+
+  try {
+    const created = await delegated.mutation({
+      createTask: {
+        __args: {
+          data: {
+            title,
+            bodyV2: { markdown: description },
+            dueAt,
+            status: 'TODO',
+            assigneeId,
+            lvPriority: priority,
+            lvSourceInteractionId: sourceInteractionId,
+          },
+        },
+        id: true,
+      },
+    });
+
+    taskId = (created as { createTask?: { id?: string } }).createTask?.id ?? null;
+
+    if (taskId) {
+      await delegated.mutation({ createTaskTarget: { __args: { data: { taskId, targetLvLeadId: lead.id } }, id: true } });
+    }
+  } catch (error) {
+    await writeAuditEvent(application, {
+      action: 'TASK_CREATED',
+      outcome: 'REFUSED',
+      targetObject: 'lvLead',
+      targetRecordId: lead.id,
+      targetLabel: label,
+      actorWorkspaceMemberId,
+      at: now,
+      reason: null,
+      metadata: { title, error: 'permission', taskId },
+    });
+
+    return { ok: false, refusal: 'NOT_PERMITTED', error: 'Your role cannot create tasks on this lead.', detail: error instanceof Error ? error.message.slice(0, 160) : undefined };
+  }
+
+  if (taskId === null) {
+    return { ok: false, error: 'The task was not created.' };
+  }
+
+  const auditId = await writeAuditEvent(application, {
+    action: 'TASK_CREATED',
+    outcome: 'APPLIED',
+    targetObject: 'lvLead',
+    targetRecordId: lead.id,
+    targetLabel: label,
+    actorWorkspaceMemberId,
+    at: now,
+    reason: null,
+    metadata: { taskId, title, dueAt, priority, assigneeId, quickAction: preset?.key ?? null },
+  });
+
+  return { ok: true, taskId, title, dueAt, priority, assigneeId, auditId };
+};
+
+export default defineLogicFunction({
+  universalIdentifier: FN_TASK_CREATE_ID,
+  name: 'lv-task-create',
+  description: 'Creates a follow-up task on a lead from Lead 360 (full form or quick action), as the caller, with an audit row',
+  timeoutSeconds: 15,
+  handler,
+  httpRouteTriggerSettings: { path: '/tasks/create', httpMethod: 'POST', isAuthRequired: true },
+});

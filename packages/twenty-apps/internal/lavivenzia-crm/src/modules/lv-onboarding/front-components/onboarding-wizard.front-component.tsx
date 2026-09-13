@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { CoreApiClient } from 'twenty-client-sdk/core';
-import { useColorScheme } from 'twenty-sdk/front-component';
+import { useColorScheme, useRecordId } from 'twenty-sdk/front-component';
 
 import {
   DocumentUploadField,
@@ -34,6 +34,7 @@ import {
   withSubmitError,
   type WizardState,
 } from 'src/modules/lv-onboarding/front-components/onboarding-wizard/wizard-state';
+import { isOnboardingStatus } from 'src/modules/lv-onboarding/constants/onboarding-status';
 import { type OnboardingData } from 'src/modules/lv-onboarding/utils/validate-onboarding';
 
 // The partner-facing onboarding wizard.
@@ -489,9 +490,92 @@ export const OnboardingWizard = ({
   );
 };
 
+// On the onboarding record page the wizard works on the record being viewed.
+// Without the id it would render an unsaved, detached form — the state the
+// component sat in until Day 7, when it was first mounted on a page.
+const OnboardingWizardWidget = () => {
+  const recordId = useRecordId();
+  const client = useMemo(() => new CoreApiClient(), []);
+  const [loaded, setLoaded] = useState<
+    | { phase: 'LOADING' }
+    | { phase: 'READY'; status: WizardState['status']; data: OnboardingData }
+    | { phase: 'ERROR'; text: string }
+  >({ phase: 'LOADING' });
+
+  useEffect(() => {
+    let isActive = true;
+
+    if (!recordId) {
+      return;
+    }
+
+    // Resume: the saved answers and status come from the record, read as the
+    // viewer — an onboarding they cannot see is an error here, not a blank
+    // form they could start filling in.
+    void client
+      .query({
+        lvOnboarding: {
+          __args: { filter: { id: { eq: recordId } } },
+          id: true,
+          status: true,
+          answers: true,
+        },
+      })
+      .then((result: unknown) => {
+        if (!isActive) {
+          return;
+        }
+
+        const row = (result as { lvOnboarding?: { id?: string; status?: string | null; answers?: unknown } | null }).lvOnboarding;
+
+        if (!row?.id) {
+          setLoaded({ phase: 'ERROR', text: "You don't have permission to view this onboarding, or it no longer exists." });
+
+          return;
+        }
+
+        const status = typeof row.status === 'string' && isOnboardingStatus(row.status) ? row.status : 'IN_PROGRESS';
+        const data = row.answers && typeof row.answers === 'object' ? (row.answers as OnboardingData) : {};
+
+        setLoaded({ phase: 'READY', status, data });
+      })
+      .catch((error: unknown) => {
+        if (isActive) {
+          setLoaded({ phase: 'ERROR', text: error instanceof Error ? error.message : 'Unable to load this onboarding.' });
+        }
+      });
+
+    return () => {
+      isActive = false;
+    };
+  }, [client, recordId]);
+
+  if (!recordId) {
+    return null;
+  }
+
+  if (loaded.phase === 'LOADING') {
+    return (
+      <p role="status" style={{ padding: 16, fontFamily: 'inherit' }}>
+        Loading onboarding…
+      </p>
+    );
+  }
+
+  if (loaded.phase === 'ERROR') {
+    return (
+      <p role="alert" style={{ padding: 16, fontFamily: 'inherit' }}>
+        {loaded.text}
+      </p>
+    );
+  }
+
+  return <OnboardingWizard key={recordId} onboardingId={recordId} initialStatus={loaded.status} initialData={loaded.data} />;
+};
+
 export default defineFrontComponent({
   universalIdentifier: FC_ONBOARDING_WIZARD_ID,
   name: 'lv-onboarding-wizard',
   description: 'Ten-step partner onboarding, with save and resume',
-  component: OnboardingWizard,
+  component: OnboardingWizardWidget,
 });

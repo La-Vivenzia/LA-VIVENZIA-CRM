@@ -43,6 +43,17 @@ export const GOVERNANCE_ACTIONS = [
   'TRASH',
   'RESTORE',
   'PERMANENT_DELETE',
+  // Day 7 — relationship operations performed from Lead 360. Each is a human
+  // action through a governed route; the platform's own timeline still records
+  // the field-level diff, this row records who decided what and why, and it
+  // survives the record.
+  'STATUS_CHANGE',
+  'OWNER_CHANGE',
+  'INTERACTION_LOGGED',
+  'TASK_CREATED',
+  'TASK_COMPLETED',
+  'TASK_RESCHEDULED',
+  'NOTE_CREATED',
 ] as const;
 
 export type GovernanceAction = (typeof GOVERNANCE_ACTIONS)[number];
@@ -55,6 +66,13 @@ const ACTION_OPTIONS: SelectOption[] = [
   { id: 'a1b2c3d4-0001-4a00-8000-000000000007', value: 'TRASH', label: 'Moved to trash', position: 4, color: 'orange' },
   { id: 'a1b2c3d4-0001-4a00-8000-000000000005', value: 'RESTORE', label: 'Restored from trash', position: 5, color: 'blue' },
   { id: 'a1b2c3d4-0001-4a00-8000-000000000006', value: 'PERMANENT_DELETE', label: 'Permanently deleted', position: 6, color: 'red' },
+  { id: 'a1b2c3d4-0001-4a00-8000-000000000008', value: 'STATUS_CHANGE', label: 'Status changed', position: 7, color: 'blue' },
+  { id: 'a1b2c3d4-0001-4a00-8000-000000000009', value: 'OWNER_CHANGE', label: 'Owner changed', position: 8, color: 'purple' },
+  { id: 'a1b2c3d4-0001-4a00-8000-000000000010', value: 'INTERACTION_LOGGED', label: 'Interaction logged', position: 9, color: 'turquoise' },
+  { id: 'a1b2c3d4-0001-4a00-8000-000000000011', value: 'TASK_CREATED', label: 'Task created', position: 10, color: 'sky' },
+  { id: 'a1b2c3d4-0001-4a00-8000-000000000012', value: 'TASK_COMPLETED', label: 'Task completed', position: 11, color: 'green' },
+  { id: 'a1b2c3d4-0001-4a00-8000-000000000013', value: 'TASK_RESCHEDULED', label: 'Task rescheduled', position: 12, color: 'yellow' },
+  { id: 'a1b2c3d4-0001-4a00-8000-000000000014', value: 'NOTE_CREATED', label: 'Note added', position: 13, color: 'gray' },
 ];
 
 const OUTCOME_OPTIONS: SelectOption[] = [

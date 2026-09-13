@@ -1,11 +1,14 @@
 import { definePageLayout, PageLayoutTabLayoutMode } from 'twenty-sdk/define';
 
 import {
+  FC_LEAD_360_ID,
   FC_LEAD_GOVERNANCE_ID,
   INTERACTIONS_ON_LEAD_ID,
   INTERACTION_OBJECT_ID,
   LEAD_OBJECT_ID,
   FC_LEAD_INTELLIGENCE_ID,
+  LEAD_PROFILE_360_TAB_ID,
+  LEAD_PROFILE_360_WIDGET_ID,
   LEAD_PROFILE_GOVERNANCE_TAB_ID,
   LEAD_PROFILE_INTELLIGENCE_TAB_ID,
   LEAD_PROFILE_INTELLIGENCE_WIDGET_ID,
@@ -35,14 +38,39 @@ export default definePageLayout({
   name: 'Lead profile',
   type: 'RECORD_PAGE',
   objectUniversalIdentifier: LEAD_OBJECT_ID,
-  defaultTabToFocusOnMobileAndSidePanelUniversalIdentifier:
-    '6b4b0dee-076b-56e5-bba9-0cbf160cac70',
+  defaultTabToFocusOnMobileAndSidePanelUniversalIdentifier: LEAD_PROFILE_360_TAB_ID,
   tabs: [
     {
-      universalIdentifier: '6b4b0dee-076b-56e5-bba9-0cbf160cac70',
-      title: 'Overview',
-      position: 0,
+      // Day 7 — Lead 360: the employee workspace. Header, permission-aware
+      // actions, next action, overview + data quality, rules intelligence,
+      // merged relationship timeline, tasks, SLAs, onboarding, documents,
+      // notes, ownership and lifecycle — all from one server composition.
+      universalIdentifier: LEAD_PROFILE_360_TAB_ID,
+      title: 'Lead 360',
+      // Position 1, not 0: Twenty renders a record page's first tab as the
+      // narrow left column (the fields panel). The 360 needs the main area.
+      position: 1,
       icon: 'IconUserSearch',
+      layoutMode: PageLayoutTabLayoutMode.VERTICAL_LIST,
+      widgets: [
+        {
+          universalIdentifier: LEAD_PROFILE_360_WIDGET_ID,
+          title: 'Lead 360',
+          type: 'FRONT_COMPONENT',
+          configuration: {
+            configurationType: 'FRONT_COMPONENT',
+            frontComponentUniversalIdentifier: FC_LEAD_360_ID,
+          },
+        },
+      ],
+    },
+    {
+      // Twenty's native field editor for every lead field, kept as its own
+      // tab so nothing the platform offers is lost behind the LV surface.
+      universalIdentifier: '6b4b0dee-076b-56e5-bba9-0cbf160cac70',
+      title: 'Details',
+      position: 0,
+      icon: 'IconListDetails',
       widgets: [
         {
           // Who is this, what do they offer, who owns them, what is the status.
@@ -64,7 +92,7 @@ export default definePageLayout({
     {
       universalIdentifier: 'e3f0d02e-7bc2-54b1-b4a9-23bee6f2177d',
       title: 'Relationship',
-      position: 1,
+      position: 2,
       icon: 'IconMessageDots',
       widgets: [
         {
@@ -96,7 +124,7 @@ export default definePageLayout({
     {
       universalIdentifier: '5e6f7a8b-9c0d-4eb4-8fc5-3a4b5c6d7e85',
       title: 'Notes & files',
-      position: 2,
+      position: 3,
       icon: 'IconPaperclip',
       widgets: [
         {
@@ -123,7 +151,7 @@ export default definePageLayout({
       // never wait for it.
       universalIdentifier: LEAD_PROFILE_INTELLIGENCE_TAB_ID,
       title: 'Intelligence',
-      position: 3,
+      position: 4,
       icon: 'IconSparkles',
       layoutMode: PageLayoutTabLayoutMode.VERTICAL_LIST,
       widgets: [
@@ -143,7 +171,7 @@ export default definePageLayout({
       // reopen for the team; audited permanent delete for the Main Admin.
       universalIdentifier: LEAD_PROFILE_GOVERNANCE_TAB_ID,
       title: 'Actions',
-      position: 4,
+      position: 5,
       icon: 'IconShieldLock',
       // A vertical list gives the single widget the whole tab; the default
       // grid would confine it to a small cell.

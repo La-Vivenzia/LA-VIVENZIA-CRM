@@ -49,3 +49,20 @@ describe('permanent delete', () => {
     expect(isDeletableObject('workspaceMember')).toBe(false);
   });
 });
+
+describe('SET_STATUS — the governed forward step (Day 7)', () => {
+  it('moves along the main flow and into the holding states, audited as STATUS_CHANGE', () => {
+    expect(decideLifecycleAction({ action: 'SET_STATUS', currentStatus: 'CONTACTED', requestedStatus: 'ENGAGED', reason: null })).toEqual({ ok: true, toStatus: 'ENGAGED', auditAction: 'STATUS_CHANGE' });
+    expect(decideLifecycleAction({ action: 'SET_STATUS', currentStatus: 'ENGAGED', requestedStatus: 'FOLLOW_UP_LATER', reason: null })).toMatchObject({ ok: true, toStatus: 'FOLLOW_UP_LATER' });
+    expect(decideLifecycleAction({ action: 'SET_STATUS', currentStatus: 'INTERESTED', requestedStatus: 'CONTACTED', reason: null })).toMatchObject({ ok: true });
+  });
+
+  it('refuses closing, duplicate, dormant and onboarding-mirrored targets, no-ops and closed leads', () => {
+    expect(decideLifecycleAction({ action: 'SET_STATUS', currentStatus: 'ENGAGED', requestedStatus: 'LOST', reason: 'x' })).toMatchObject({ ok: false });
+    expect(decideLifecycleAction({ action: 'SET_STATUS', currentStatus: 'ENGAGED', requestedStatus: 'DUPLICATE', reason: 'x' })).toMatchObject({ ok: false });
+    expect(decideLifecycleAction({ action: 'SET_STATUS', currentStatus: 'ENGAGED', requestedStatus: 'LIVE_ACTIVE', reason: null })).toMatchObject({ ok: false });
+    expect(decideLifecycleAction({ action: 'SET_STATUS', currentStatus: 'ENGAGED', requestedStatus: 'ENGAGED', reason: null })).toMatchObject({ ok: false });
+    expect(decideLifecycleAction({ action: 'SET_STATUS', currentStatus: 'LOST', requestedStatus: 'ENGAGED', reason: null })).toMatchObject({ ok: false });
+    expect(decideLifecycleAction({ action: 'SET_STATUS', currentStatus: 'ENGAGED', requestedStatus: undefined, reason: null })).toMatchObject({ ok: false });
+  });
+});

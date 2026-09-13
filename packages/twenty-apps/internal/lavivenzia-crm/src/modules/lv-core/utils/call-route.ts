@@ -34,7 +34,12 @@ export const callRoute = async (
   // A refusal is a 200 with ok:false. Treating it as success would show the
   // user a change that never happened.
   if (parsed.ok === false) {
-    throw new Error(String(parsed.error ?? 'The server refused that action.'));
+    // Routes attach the platform's own message as `detail` when a write was
+    // refused; without it the person only sees "refused" and cannot tell a
+    // permission problem from a validation one.
+    const detail = typeof parsed.detail === 'string' && parsed.detail.length > 0 ? ` (${parsed.detail})` : '';
+
+    throw new Error(`${String(parsed.error ?? 'The server refused that action.')}${detail}`);
   }
 
   if (!response.ok) {

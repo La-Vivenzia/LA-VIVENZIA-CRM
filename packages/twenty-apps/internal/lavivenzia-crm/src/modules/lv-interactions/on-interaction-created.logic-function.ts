@@ -6,6 +6,8 @@ import {
 } from 'twenty-sdk/define';
 
 import { FN_ON_INTERACTION_CREATED_ID } from 'src/constants/universal-identifiers';
+import { resolveCaller } from 'src/modules/lv-dashboard/services/caller-context';
+import { DelegatedGraphqlClient } from 'src/modules/lv-dashboard/services/graphql-client';
 import {
   INTERACTION_CHANNEL_LABELS,
   isInteractionChannel,
@@ -68,6 +70,39 @@ export const handler = async (
   const client = new CoreApiClient({ runAs: 'application' });
   const port = createCoreApiInteractionPort(client);
 
+  // Actor identity is the session's, never the row's. A person creating the
+  // row through the native record UI or the API can type any `actorId`; when
+  // the platform tells us who really triggered the event, the row is
+  // corrected to that member so history, notifications and CM-004 scoping
+  // all rest on an identity the client could not choose. Two exceptions:
+  // rows created by integrations (no session member) keep what they carried,
+  // and a workspace administrator may attribute a contact to a colleague
+  // explicitly (back-filling a call someone else made) — an admin is
+  // unscoped and audited, so there is nothing for them to gain by lying.
+  const sessionActorId = payload.workspaceMemberId ?? null;
+  let actorId = record.actorId ?? null;
+  let sessionIsAdmin = false;
+
+  if (sessionActorId !== null && actorId !== null && actorId !== sessionActorId) {
+    try {
+      sessionIsAdmin = (await resolveCaller(new DelegatedGraphqlClient())).isAdmin;
+    } catch {
+      sessionIsAdmin = false;
+    }
+  }
+
+  if (sessionActorId !== null && actorId !== sessionActorId && !sessionIsAdmin) {
+    try {
+      await client.mutation({
+        updateLvInteraction: { __args: { id: record.id, data: { actorId: sessionActorId } }, id: true },
+      });
+      actorId = sessionActorId;
+    } catch {
+      // Leave the row as written; the audit metadata below still records the
+      // session actor as the credited member.
+    }
+  }
+
   // A back-dated entry keeps its stated time; a live one falls back to when the
   // row was written rather than to "now", so a retry cannot drift the timeline.
   const occurredAt =
@@ -100,7 +135,7 @@ export const handler = async (
       nextAction: record.nextAction ?? null,
       nextFollowUpAt: record.nextFollowUpAt ?? null,
       priority: null as LeadPriority | null,
-      actorWorkspaceMemberId: record.actorId ?? null,
+      actorWorkspaceMemberId: actorId,
     },
     port,
   });
@@ -124,7 +159,7 @@ export const handler = async (
         }),
       ],
       sourceEvent: payload.name,
-      actorWorkspaceMemberId: payload.workspaceMemberId ?? record.actorId ?? null,
+      actorWorkspaceMemberId: actorId,
     });
 
     replyNotified = outcome.created.length;

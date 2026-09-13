@@ -1,6 +1,7 @@
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { CoreApiClient } from 'twenty-client-sdk/core';
 import { defineFrontComponent } from 'twenty-sdk/define';
+import { AppPath, navigate } from 'twenty-sdk/front-component';
 
 import { FC_QUICK_ADD_LEAD_ID } from 'src/constants/universal-identifiers';
 import {
@@ -18,7 +19,8 @@ import {
   type QuickAddState,
 } from 'src/modules/lv-capture/front-components/quick-add-lead/quick-add-state';
 import { type CaptureInput } from 'src/modules/lv-capture/types/capture.types';
-import { type LeadCaptureMode } from 'src/modules/lv-core/constants/lead-taxonomy';
+import { LEAD_CATEGORY_OPTIONS, LEAD_SOURCE_OPTIONS, LEAD_SUBCATEGORY_OPTIONS } from 'src/modules/lv-core/constants/select-options.generated';
+import { type LeadCaptureMode, type LeadSource } from 'src/modules/lv-core/constants/lead-taxonomy';
 import {
   findDuplicates,
   type DuplicateCandidateRecord,
@@ -108,10 +110,93 @@ const styles = {
   }),
 };
 
+type CreatedLead = { id: string; lvLeadId: string | null; ownerName: string | null; ownerId: string | null; settled: boolean };
+
+// After creation the LV Lead ID and the owner are written by
+// lv-on-lead-created a moment later; the page polls the record (as the
+// person, so CM-004 applies) until both appear or a few seconds pass, and
+// says which. Nothing is invented while it waits.
+const POLL_MS = 700;
+const POLL_LIMIT = 12;
+
 export const QuickAddLead = () => {
   const client = useMemo(() => new CoreApiClient(), []);
   const [state, setState] = useState<QuickAddState>(initialQuickAddState());
   const [input, setInput] = useState<CaptureInput>({ captureMode: 'MANUAL' });
+  const [ownerId, setOwnerId] = useState('');
+  const [members, setMembers] = useState<{ id: string; name: string }[]>([]);
+  const [created, setCreated] = useState<CreatedLead | null>(null);
+
+  useEffect(() => {
+    let isActive = true;
+
+    void client
+      .query({ workspaceMembers: { __args: { first: 100 }, edges: { node: { id: true, name: { firstName: true, lastName: true } } } } })
+      .then((result: unknown) => {
+        if (!isActive) {
+          return;
+        }
+
+        const rows = (result as { workspaceMembers?: { edges?: { node?: { id: string; name?: { firstName?: string | null; lastName?: string | null } | null } }[] } }).workspaceMembers?.edges ?? [];
+
+        setMembers(
+          rows
+            .map((edge) => edge.node)
+            .filter((node): node is NonNullable<typeof node> => Boolean(node?.id))
+            .map((node) => ({ id: node.id, name: [node.name?.firstName, node.name?.lastName].filter(Boolean).join(' ') || node.id })),
+        );
+      })
+      .catch(() => setMembers([]));
+
+    return () => {
+      isActive = false;
+    };
+  }, [client]);
+
+  useEffect(() => {
+    if (!created || created.settled) {
+      return;
+    }
+
+    let attempts = 0;
+    let isActive = true;
+    const memberName = (id: string | null) => (id ? (members.find((member) => member.id === id)?.name ?? 'Team member') : null);
+    const tick = async () => {
+      attempts += 1;
+
+      try {
+        const result = await client.query({ lvLead: { __args: { filter: { id: { eq: created.id } } }, id: true, lvLeadId: true, ownerId: true } });
+        const row = (result as { lvLead?: { lvLeadId?: string | null; ownerId?: string | null } | null }).lvLead;
+        const lvLeadId = row?.lvLeadId ?? null;
+        const nextOwnerId = row?.ownerId ?? null;
+        const done = (lvLeadId !== null && nextOwnerId !== null) || attempts >= POLL_LIMIT;
+
+        if (isActive) {
+          setCreated({ id: created.id, lvLeadId, ownerId: nextOwnerId, ownerName: memberName(nextOwnerId), settled: done });
+        }
+
+        if (!done && isActive) {
+          setTimeout(() => void tick(), POLL_MS);
+        }
+      } catch {
+        if (isActive) {
+          setCreated({ ...created, settled: attempts >= POLL_LIMIT });
+
+          if (attempts < POLL_LIMIT) {
+            setTimeout(() => void tick(), POLL_MS);
+          }
+        }
+      }
+    };
+
+    setTimeout(() => void tick(), POLL_MS);
+
+    return () => {
+      isActive = false;
+    };
+    // Re-run only for a new lead; the poll updates `created` itself.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [created?.id, client]);
 
   const config = CAPTURE_MODE_FIELDS[state.mode];
 
@@ -180,7 +265,7 @@ export const QuickAddLead = () => {
         return;
       }
 
-      const created = await client.mutation({
+      const createdRow = await client.mutation({
         createLvLead: {
           __args: {
             data: {
@@ -198,13 +283,24 @@ export const QuickAddLead = () => {
               fieldProvenance: draft.provenance,
               duplicateKeys: draft.duplicateKeys,
               dataCompleteness: draft.completeness,
+              emails: draft.email ? { primaryEmail: draft.email } : undefined,
+              phones: draft.phone ? { primaryPhoneNumber: draft.phone } : undefined,
+              website: draft.websiteUrl ? { primaryLinkUrl: draft.websiteUrl } : undefined,
+              instagram: draft.instagramHandle ? { primaryLinkUrl: draft.instagramHandle } : undefined,
+              // A chosen owner is a manual assignment (precedence rule 1);
+              // left empty, the assignment engine routes the lead.
+              ownerId: ownerId || undefined,
             },
           },
           id: true,
         },
       });
 
-      const id = (created as { createLvLead?: { id?: string } }).createLvLead?.id;
+      const id = (createdRow as { createLvLead?: { id?: string } }).createLvLead?.id;
+
+      if (id) {
+        setCreated({ id, lvLeadId: null, ownerId: null, ownerName: null, settled: false });
+      }
 
       setState(id ? withCreatedLead(checked, id) : withSubmissionError(checked, 'The lead was not created.'));
     } catch (error) {
@@ -217,27 +313,58 @@ export const QuickAddLead = () => {
         ),
       );
     }
-  }, [client, input, state]);
+  }, [client, input, state, ownerId]);
 
-  if (state.phase === 'SUCCESS') {
+  if (state.phase === 'SUCCESS' && state.createdLeadId) {
+    const leadId = state.createdLeadId;
+    const openLead = () => void navigate(AppPath.RecordShowPage, { objectNameSingular: 'lvLead', objectRecordId: leadId });
+    const steps: { label: string; state: 'DONE' | 'WAITING' | 'FAILED'; detail: string }[] = [
+      { label: 'Lead created', state: 'DONE', detail: 'Saved with your name as the capturer.' },
+      {
+        label: 'LV Lead ID generated',
+        state: created?.lvLeadId ? 'DONE' : created?.settled ? 'FAILED' : 'WAITING',
+        detail: created?.lvLeadId ?? (created?.settled ? 'Not allocated yet — open the lead; it will appear once routing completes.' : 'Allocating…'),
+      },
+      {
+        label: 'Assignment',
+        state: created?.ownerId ? 'DONE' : created?.settled ? 'FAILED' : 'WAITING',
+        detail: created?.ownerId ? `Owner: ${created.ownerName ?? 'team member'}` : created?.settled ? 'No owner could be assigned — claim it from Lead 360 or ask an administrator.' : 'Routing to an owner…',
+      },
+      { label: 'Next action', state: 'WAITING', detail: 'Open Lead 360 to log the first interaction or schedule the first follow-up.' },
+    ];
+
     return (
       <div style={styles.root}>
-        <div style={styles.banner('ok')}>
-          Lead created. It is being routed to an owner now.
+        <div style={styles.banner('ok')} role="status">
+          Lead created{created?.lvLeadId ? ` — ${created.lvLeadId}` : ''}.
         </div>
-        <button
-          type="button"
-          style={styles.submit(false)}
-          onClick={() => selectMode(state.mode)}
-        >
-          Capture another
-        </button>
+        <ol style={{ listStyle: 'none', margin: '0 0 16px', padding: 0, display: 'flex', flexDirection: 'column', gap: 8 }}>
+          {steps.map((step) => (
+            <li key={step.label} style={{ display: 'flex', gap: 10, alignItems: 'flex-start', fontSize: 14 }}>
+              <span aria-hidden="true" style={{ width: 22, textAlign: 'center', color: step.state === 'DONE' ? PINE : step.state === 'FAILED' ? '#8A1F1F' : SAGE }}>
+                {step.state === 'DONE' ? '✓' : step.state === 'FAILED' ? '!' : '…'}
+              </span>
+              <span>
+                <strong>{step.label}</strong>
+                <span style={{ display: 'block', fontSize: 13, color: SAGE, fontFamily: step.label === 'LV Lead ID generated' && created?.lvLeadId ? 'ui-monospace, monospace' : 'inherit' }}>{step.detail}</span>
+              </span>
+            </li>
+          ))}
+        </ol>
+        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+          <button type="button" style={styles.submit(false)} onClick={openLead}>
+            Open Lead 360
+          </button>
+          <button type="button" style={{ ...styles.submit(false), background: '#FFFFFF', color: PINE, border: `1px solid ${PINE}` }} onClick={() => { setCreated(null); selectMode(state.mode); }}>
+            Capture another
+          </button>
+        </div>
       </div>
     );
   }
 
   return (
-    <div style={styles.root}>
+    <div key={state.mode} style={styles.root}>
       <div style={styles.modeRow}>
         {QUICK_ADD_MODES.map((mode) => (
           <button
@@ -279,7 +406,7 @@ export const QuickAddLead = () => {
           <input
             id="lv-primary"
             style={styles.input}
-            value={
+            defaultValue={
               config.primaryInput === 'text'
                 ? (input.name ?? '')
                 : (input.rawInput ?? '')
@@ -304,7 +431,7 @@ export const QuickAddLead = () => {
             id="lv-file"
             style={styles.input}
             placeholder="Uploaded file path"
-            value={input.attachmentPath ?? ''}
+            defaultValue={input.attachmentPath ?? ''}
             onChange={(event) => update({ attachmentPath: event.target.value })}
           />
         </>
@@ -318,7 +445,7 @@ export const QuickAddLead = () => {
           <input
             id="lv-org"
             style={styles.input}
-            value={input.organisationName ?? ''}
+            defaultValue={input.organisationName ?? ''}
             onChange={(event) => update({ organisationName: event.target.value })}
           />
           <label style={styles.label} htmlFor="lv-phone">
@@ -328,8 +455,18 @@ export const QuickAddLead = () => {
             id="lv-phone"
             style={styles.input}
             inputMode="tel"
-            value={input.phone ?? ''}
+            defaultValue={input.phone ?? ''}
             onChange={(event) => update({ phone: event.target.value })}
+          />
+          <label style={styles.label} htmlFor="lv-email">
+            Email
+          </label>
+          <input
+            id="lv-email"
+            style={styles.input}
+            inputMode="email"
+            defaultValue={input.email ?? ''}
+            onChange={(event) => update({ email: event.target.value })}
           />
           <label style={styles.label} htmlFor="lv-location">
             Location
@@ -337,11 +474,48 @@ export const QuickAddLead = () => {
           <input
             id="lv-location"
             style={styles.input}
-            value={input.location ?? ''}
+            defaultValue={input.location ?? ''}
             onChange={(event) => update({ location: event.target.value })}
           />
+          <label style={styles.label} htmlFor="lv-category">
+            Category
+          </label>
+          <select id="lv-category" style={styles.input} value={input.category ?? ''} onChange={(event) => update({ category: event.target.value || null, subcategory: null })}>
+            <option value="">Not yet known</option>
+            {LEAD_CATEGORY_OPTIONS.map((option) => (
+              <option key={option.value} value={option.value}>{option.label}</option>
+            ))}
+          </select>
+          <label style={styles.label} htmlFor="lv-subcategory">
+            Subcategory
+          </label>
+          <select id="lv-subcategory" style={styles.input} value={input.subcategory ?? ''} onChange={(event) => update({ subcategory: event.target.value || null })}>
+            <option value="">Not yet known</option>
+            {LEAD_SUBCATEGORY_OPTIONS.map((option) => (
+              <option key={option.value} value={option.value}>{option.label}</option>
+            ))}
+          </select>
+          <label style={styles.label} htmlFor="lv-source">
+            Source
+          </label>
+          <select id="lv-source" style={styles.input} value={input.source ?? ''} onChange={(event) => update({ source: (event.target.value || null) as LeadSource | null })}>
+            <option value="">Derived from capture mode</option>
+            {LEAD_SOURCE_OPTIONS.map((option) => (
+              <option key={option.value} value={option.value}>{option.label}</option>
+            ))}
+          </select>
         </>
       )}
+
+      <label style={styles.label} htmlFor="lv-owner">
+        Owner
+      </label>
+      <select id="lv-owner" style={styles.input} value={ownerId} onChange={(event) => setOwnerId(event.target.value)}>
+        <option value="">Let the assignment engine choose</option>
+        {members.map((member) => (
+          <option key={member.id} value={member.id}>{member.name}</option>
+        ))}
+      </select>
 
       {config.showsReferrer && (
         <>
@@ -351,7 +525,7 @@ export const QuickAddLead = () => {
           <input
             id="lv-referrer"
             style={styles.input}
-            value={input.referrerName ?? ''}
+            defaultValue={input.referrerName ?? ''}
             onChange={(event) => update({ referrerName: event.target.value })}
           />
         </>

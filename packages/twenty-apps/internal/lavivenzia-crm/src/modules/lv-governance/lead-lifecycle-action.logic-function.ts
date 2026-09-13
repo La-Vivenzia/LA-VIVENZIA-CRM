@@ -9,9 +9,10 @@ import {
   isLifecycleAction,
 } from 'src/modules/lv-governance/services/governance';
 
-// POST /leads/lifecycle { leadId, action: ARCHIVE|CLOSE|MARK_DUPLICATE|REOPEN, reason?, status? }
+// POST /leads/lifecycle { leadId, action: ARCHIVE|CLOSE|MARK_DUPLICATE|REOPEN|SET_STATUS, reason?, status? }
 //
-// The non-destructive alternatives to deleting a lead. The status change is
+// The non-destructive alternatives to deleting a lead, plus (Day 7) the
+// governed forward step SET_STATUS that Lead 360 uses. The status change is
 // made DELEGATED — as the caller — so Twenty's object permissions and CM-004
 // decide whether this person may change this lead at all; the route adds
 // nothing. What the route adds is the policy (reason required to close or
@@ -34,7 +35,7 @@ export const handler = async (event: unknown): Promise<Record<string, unknown>> 
   }
 
   if (!isLifecycleAction(input.action)) {
-    return { ok: false, error: 'action must be ARCHIVE, CLOSE, MARK_DUPLICATE or REOPEN.' };
+    return { ok: false, error: 'action must be ARCHIVE, CLOSE, MARK_DUPLICATE, REOPEN or SET_STATUS.' };
   }
 
   const reason = typeof input.reason === 'string' ? input.reason.trim().slice(0, 500) : null;

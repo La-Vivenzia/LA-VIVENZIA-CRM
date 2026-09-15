@@ -7,8 +7,9 @@ import { NAV_FOLDER_WORK_ID } from 'src/constants/universal-identifiers';
 
 export default defineNavigationMenuItem({
   universalIdentifier: NAV_FOLDER_WORK_ID,
-  name: 'Work',
-  icon: 'IconChecklist',
-  position: 1,
+  name: 'Workspace',
+  icon: 'IconLayoutDashboard',
+  color: 'green',
+  position: 0,
   type: NavigationMenuItemType.FOLDER,
 });

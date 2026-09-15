@@ -565,3 +565,12 @@ export const PL_ONBOARDING_RECORD_FIELDS_TAB_ID = '74f75a18-eff7-4319-ab4d-c7c50
 export const PL_ONBOARDING_RECORD_FIELDS_WIDGET_ID = 'c1378947-8571-4ad8-978d-86210548d797';
 export const VIEW_LEADS_ALL_ID = '93fb8c72-3996-4f17-94a1-780ebb84b5c2';
 export const CMI_QUICK_ADD_LEAD_ID = 'ab7220cf-fbb5-42a9-aa88-369eb3a45a1b';
+
+// Day 7B — navigation regrouped into Workspace / Relationships / Intelligence /
+// Insights / Administration. Twenty's own root items (Opportunities, Dashboards,
+// Workflows) get LV-owned entries so the sidebar is entirely ours.
+export const NAV_FOLDER_INTELLIGENCE_ID = '0bcf464e-2f4b-4a9c-9c2e-56af4b3a3674';
+export const NAV_OPPORTUNITIES_ID = 'bd5ec4ed-e2a7-45d0-b2a7-3e6c7b080b5f';
+export const NAV_DASHBOARDS_ID = 'fa7d0300-bfdb-4a59-b87a-ff8ecc176abc';
+export const NAV_WORKFLOW_RUNS_ID = '6116d102-38a3-4222-a340-2c2d936bdea5';
+export const NAV_WORKFLOW_VERSIONS_ID = '8f659941-2eeb-4574-bb2b-fb3bdf721ee7';

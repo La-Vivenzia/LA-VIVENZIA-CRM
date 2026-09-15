@@ -7,7 +7,8 @@ import {
   resolveFilesFieldMetadataId,
   type UploadedDocument,
 } from 'src/modules/lv-onboarding/front-components/onboarding-wizard/document-upload-field';
-import { themeFor } from 'src/modules/lv-core/ui/theme';
+import { type LvTheme, layout, themeFor } from 'src/modules/lv-core/ui/theme';
+import { LvStyles } from 'src/modules/lv-core/ui/kit';
 import { defineFrontComponent } from 'twenty-sdk/define';
 
 import { FC_ONBOARDING_WIZARD_ID } from 'src/constants/universal-identifiers';
@@ -46,41 +47,39 @@ import { type OnboardingData } from 'src/modules/lv-onboarding/utils/validate-on
 // The decision logic lives in wizard-state.ts and is unit-tested; this file is
 // rendering and I/O only.
 
-const PINE = '#1F4D3A';
-const SAGE = '#6B846F';
-const GOLD = '#D4AF37';
-const SAND = '#F3EFE7';
-const CHARCOAL = '#1A1A1A';
-const BORDER = '#D8D2C6';
-
-const s = {
+// Styles are a function of the theme so the wizard follows light and dark
+// mode like every other LV surface; the brand values come from tokens.ts.
+const styles = (theme: LvTheme) => ({
   root: {
-    padding: 16,
+    padding: 'clamp(12px, 3vw, 20px)',
     maxWidth: 640,
     margin: '0 auto',
-    fontFamily: 'system-ui, -apple-system, sans-serif',
-    color: CHARCOAL,
+    fontFamily: theme.font.body,
+    color: theme.color.text,
     boxSizing: 'border-box',
   } as React.CSSProperties,
-  eyebrow: { fontSize: 12, letterSpacing: '0.08em', textTransform: 'uppercase', color: SAGE } as React.CSSProperties,
-  h1: { fontSize: 24, margin: '4px 0 4px', fontWeight: 600 } as React.CSSProperties,
-  lede: { fontSize: 14, color: SAGE, marginBottom: 20 } as React.CSSProperties,
-  progressTrack: { height: 6, borderRadius: 3, background: BORDER, overflow: 'hidden', marginBottom: 6 } as React.CSSProperties,
+  eyebrow: { ...theme.type.label, color: theme.color.brand } as React.CSSProperties,
+  h1: { ...theme.type.display, margin: '4px 0 4px', color: theme.color.heading } as React.CSSProperties,
+  lede: { ...theme.type.body, color: theme.color.textMuted, marginBottom: 20 } as React.CSSProperties,
+  progressTrack: { height: 6, borderRadius: 3, background: theme.color.surfaceSunken, overflow: 'hidden', marginBottom: 6 } as React.CSSProperties,
   progressFill: (pct: number): React.CSSProperties => ({
     height: '100%',
     width: `${pct}%`,
-    background: PINE,
-    transition: 'width 200ms ease',
+    background: theme.color.brand,
+    borderRadius: 3,
+    transition: `width ${theme.motion.duration.normal}ms ${theme.motion.easing}`,
   }),
-  progressMeta: { display: 'flex', justifyContent: 'space-between', fontSize: 12, color: SAGE, marginBottom: 20 } as React.CSSProperties,
-  label: { display: 'block', fontSize: 13, marginBottom: 4, color: SAGE } as React.CSSProperties,
-  required: { color: GOLD, marginLeft: 4 } as React.CSSProperties,
+  progressMeta: { ...theme.type.caption, display: 'flex', justifyContent: 'space-between', color: theme.color.textMuted, marginBottom: 20 } as React.CSSProperties,
+  label: { ...theme.type.bodySmall, display: 'block', fontWeight: theme.font.weight.medium, marginBottom: 4, color: theme.color.heading } as React.CSSProperties,
+  required: { color: theme.color.danger, marginLeft: 4 } as React.CSSProperties,
   input: (invalid: boolean): React.CSSProperties => ({
     width: '100%',
     minHeight: 44,
     padding: '10px 12px',
-    borderRadius: 8,
-    border: `1px solid ${invalid ? '#B3261E' : BORDER}`,
+    borderRadius: theme.radius.sm,
+    border: `1px solid ${invalid ? theme.color.danger : theme.color.borderStrong}`,
+    background: theme.color.surfaceRaised,
+    color: theme.color.text,
     fontSize: 16, // 16px stops iOS zooming on focus
     boxSizing: 'border-box',
     marginBottom: 4,
@@ -90,67 +89,64 @@ const s = {
     width: '100%',
     minHeight: 120,
     padding: '10px 12px',
-    borderRadius: 8,
-    border: `1px solid ${invalid ? '#B3261E' : BORDER}`,
+    borderRadius: theme.radius.sm,
+    border: `1px solid ${invalid ? theme.color.danger : theme.color.borderStrong}`,
+    background: theme.color.surfaceRaised,
+    color: theme.color.text,
     fontSize: 16,
     boxSizing: 'border-box',
     marginBottom: 4,
     fontFamily: 'inherit',
     resize: 'vertical',
   }),
-  help: { fontSize: 12, color: SAGE, marginBottom: 14, display: 'block' } as React.CSSProperties,
-  fieldError: { fontSize: 12, color: '#B3261E', marginBottom: 14, display: 'block' } as React.CSSProperties,
+  help: { ...theme.type.caption, color: theme.color.textMuted, marginBottom: 14, display: 'block' } as React.CSSProperties,
+  fieldError: { ...theme.type.caption, color: theme.color.danger, marginBottom: 14, display: 'block' } as React.CSSProperties,
   // Column on phones, row from ~480px up. Inline styles cannot express a media
   // query, so the layout stays single-column and the buttons simply stretch —
   // which is the correct mobile-first default anyway.
   actions: { display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 24 } as React.CSSProperties,
   primary: (disabled: boolean): React.CSSProperties => ({
+    ...layout(theme).button('primary'),
     flex: '1 1 160px',
     minHeight: 48,
-    borderRadius: 8,
-    border: 'none',
-    background: disabled ? '#B9C3BA' : PINE,
-    color: '#FFFFFF',
-    fontSize: 16,
+    fontSize: 15,
+    opacity: disabled ? 0.5 : 1,
     cursor: disabled ? 'not-allowed' : 'pointer',
   }),
   secondary: {
+    ...layout(theme).button('secondary'),
     flex: '0 1 120px',
     minHeight: 48,
-    borderRadius: 8,
-    border: `1px solid ${BORDER}`,
-    background: '#FFFFFF',
-    color: CHARCOAL,
-    fontSize: 16,
-    cursor: 'pointer',
+    fontSize: 15,
   } as React.CSSProperties,
   banner: (tone: 'info' | 'error' | 'ok'): React.CSSProperties => ({
-    borderRadius: 8,
+    ...theme.type.bodySmall,
+    borderRadius: theme.radius.sm,
     padding: 12,
-    fontSize: 13,
     marginBottom: 16,
-    background: tone === 'error' ? '#FDECEC' : tone === 'ok' ? '#EAF4EE' : SAND,
-    color: tone === 'error' ? '#8A1F1F' : tone === 'ok' ? PINE : SAGE,
+    borderLeft: `3px solid ${tone === 'error' ? theme.color.danger : tone === 'ok' ? theme.color.success : theme.color.info}`,
+    background: tone === 'error' ? theme.color.dangerMuted : tone === 'ok' ? theme.color.successMuted : theme.color.infoMuted,
+    color: theme.color.text,
   }),
   checklistRow: (complete: boolean): React.CSSProperties => ({
+    ...theme.type.body,
     display: 'flex',
     justifyContent: 'space-between',
     alignItems: 'center',
     minHeight: 44,
     padding: '8px 12px',
-    borderRadius: 8,
-    border: `1px solid ${BORDER}`,
+    borderRadius: theme.radius.md,
+    border: `1px solid ${theme.color.border}`,
     marginBottom: 8,
-    background: complete ? '#FFFFFF' : SAND,
+    background: complete ? theme.color.surfaceRaised : theme.color.surfaceSunken,
     cursor: 'pointer',
     width: '100%',
     textAlign: 'left',
-    fontSize: 14,
     fontFamily: 'inherit',
-    color: CHARCOAL,
+    color: theme.color.text,
   }),
-  saveBadge: { fontSize: 12, color: SAGE } as React.CSSProperties,
-};
+  saveBadge: { color: theme.color.textMuted } as React.CSSProperties,
+});
 
 const asString = (value: unknown): string =>
   value === null || value === undefined ? '' : String(value);
@@ -171,6 +167,7 @@ export const OnboardingWizard = ({
 
   const scheme = useColorScheme();
   const theme = useMemo(() => themeFor(scheme), [scheme]);
+  const s = useMemo(() => styles(theme), [theme]);
 
   // The FILES field's metadata id is workspace-specific, so it is resolved
   // once at mount rather than hard-coded into the manifest.
@@ -398,12 +395,13 @@ export const OnboardingWizard = ({
   };
 
   return (
-    <div style={s.root}>
+    <div style={s.root} className="lv-root lv-wizard">
+      <LvStyles theme={theme} />
       <div style={s.eyebrow}>{stepNumber(state.step)}</div>
       <h1 style={s.h1}>{stepTitle(state.step)}</h1>
       <p style={s.lede}>{spec.description}</p>
 
-      <div style={s.progressTrack}>
+      <div style={s.progressTrack} role="progressbar" aria-valuemin={0} aria-valuemax={100} aria-valuenow={summary.progress} aria-label="Onboarding progress">
         <div style={s.progressFill(summary.progress)} />
       </div>
       <div style={s.progressMeta}>
@@ -445,7 +443,7 @@ export const OnboardingWizard = ({
               onClick={() => setState((current) => goToStep(current, entry.step))}
             >
               <span>{stepTitle(entry.step)}</span>
-              <span style={{ color: entry.isComplete ? PINE : GOLD }}>
+              <span style={{ ...theme.type.caption, fontWeight: theme.font.weight.bold, color: entry.isComplete ? theme.color.success : theme.color.warning }}>
                 {entry.isComplete ? 'Complete' : `${entry.missingCount} to add`}
               </span>
             </button>

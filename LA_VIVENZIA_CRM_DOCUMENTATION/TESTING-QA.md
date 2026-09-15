@@ -344,3 +344,45 @@ high-opportunity KPI.
 
 Fixture hygiene: AI insight / run rows created by probes are purged
 (`.notes/d6/purge-ai-test-rows.mjs`); the three real leads are untouched.
+
+## Day 7B — design system & UI transformation: verified by real execution
+
+**Baseline before any change** (commit `17709946`): unit 46 files / 963
+tests, `tsc` clean, `oxlint` clean; front-end `tsc` 78 pre-existing errors
+on `main` (untouched files). Screenshots of every LV surface in light / dark
+× 1440 / 390 as Admin saved under `.notes/d7b/shots/before/`.
+
+**After:** unit 47 files / 984 tests (21 new in
+`lv-core/ui/__tests__/tokens.test.ts`: WCAG AA contrast of text, heading,
+muted text, status colours on their washes and on the surface, primary and
+inverse-panel text, focus ring, border visibility — in both schemes; dark
+mode is a pine, not a grey; typography faces and minimum sizes; the host
+stylesheet's generated `--lv-*` blocks byte-identical to `tokens.ts`; fonts
+and licences present, no font CDN; unified status labels never SNAKE_CASE,
+urgency consistent across kinds, unknown values safe). Integration
+`--project integration --no-file-parallelism` 6 files / 42 tests against
+the live server. `tsc` and `oxlint` clean in the application; front-end
+`tsc` still exactly 78 errors, all pre-existing; the two upstream Jest
+suites touched by CM-005 (`getEmptyStateSubTitle`,
+`getTimelineActivityAuthorFullName`) pass (9 tests).
+
+**Browser sweep** (`.notes/d7b/ui-shots.mjs`, Playwright, real logins):
+sign-in, My Dashboard, Notifications, Tasks, Copilot, Partner onboardings,
+Leads, Lead 360 / Intelligence / Actions tabs, Control Tower — as Main
+Admin, Experience Hunter, Lead Coordinator and Onboarding Expert, light and
+dark, 1440 × 900 and 390 × 844. Every LV page reports zero horizontal
+overflow at 390. Screenshots under `.notes/d7b/shots/after/<role>/`.
+
+**Regression:** the Day 5 (`regress/d5-browser.mjs`, `d5-states.mjs`),
+Day 6 (`d6/d6-browser.mjs`) and Day 7 (`d7/d7-browser.mjs`) browser suites
+were updated for the regrouped sidebar (Work → Workspace, CRM →
+Relationships, Management → Insights, Copilot under Intelligence) and for
+Twenty's tab test-ids (and two copy assertions for the new provenance
+label and the renamed panel button), then re-run: Day 5 38/38, Day 6 32/32,
+Day 7 34/34.
+
+**Not covered:** pixel-diff snapshots (none are kept; the screenshots are
+for human review); the widths 320 / 768 / 1024 / 1920 were checked by hand
+on the dashboard and Lead 360 only; screen-reader testing was not run —
+the accessibility work is structural (roles, labels, live regions, focus
+rings) and asserted by inspection.

@@ -13,8 +13,9 @@ import { NAV_FOLDER_CRM_ID, NAV_ORGANISATIONS_ID } from 'src/constants/universal
 export default defineNavigationMenuItem({
   universalIdentifier: NAV_ORGANISATIONS_ID,
   name: 'Organisations',
-  icon: 'IconBuildingSkyscraper',
-  position: 2,
+  icon: 'IconBuilding',
+  color: 'green',
+  position: 4,
   type: NavigationMenuItemType.OBJECT,
   folderUniversalIdentifier: NAV_FOLDER_CRM_ID,
   targetObjectUniversalIdentifier: STANDARD_OBJECT_UNIVERSAL_IDENTIFIERS.company.universalIdentifier,

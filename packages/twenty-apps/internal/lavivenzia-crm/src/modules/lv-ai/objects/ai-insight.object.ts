@@ -110,11 +110,11 @@ export default defineObject({
   labelSingular: 'AI insight',
   labelPlural: 'AI insights',
   description: 'AI-generated or rules-computed insight about a CRM record, with provenance and the human decision',
-  icon: 'IconSparkles',
+  icon: 'IconBulb',
   isSearchable: false,
   labelIdentifierFieldMetadataUniversalIdentifier: AI_INSIGHT_NAME_ID,
   fields: [
-    { universalIdentifier: AI_INSIGHT_NAME_ID, type: FieldType.TEXT, name: 'name', label: 'Insight', icon: 'IconSparkles', defaultValue: "''" },
+    { universalIdentifier: AI_INSIGHT_NAME_ID, type: FieldType.TEXT, name: 'name', label: 'Insight', icon: 'IconBulb', defaultValue: "''" },
     { universalIdentifier: AI_INSIGHT_TYPE_ID, type: FieldType.SELECT, name: 'insightType', label: 'Type', icon: 'IconCategory', isNullable: true, options: TYPE_OPTIONS },
     { universalIdentifier: AI_INSIGHT_STATUS_ID, type: FieldType.SELECT, name: 'status', label: 'Status', icon: 'IconCircleDot', isNullable: true, options: STATUS_OPTIONS },
     { universalIdentifier: AI_INSIGHT_ORIGIN_ID, type: FieldType.SELECT, name: 'origin', label: 'Origin', icon: 'IconCpu', isNullable: true, options: ORIGIN_OPTIONS },

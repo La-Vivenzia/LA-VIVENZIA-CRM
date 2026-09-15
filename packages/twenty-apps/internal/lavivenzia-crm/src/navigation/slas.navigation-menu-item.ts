@@ -1,7 +1,7 @@
 import { defineNavigationMenuItem, NavigationMenuItemType } from 'twenty-sdk/define';
 
 import {
-  NAV_FOLDER_WORK_ID,
+  NAV_FOLDER_MANAGEMENT_ID,
   NAV_SLAS_ID,
   SLA_OBJECT_ID,
 } from 'src/constants/universal-identifiers';
@@ -13,8 +13,9 @@ export default defineNavigationMenuItem({
   universalIdentifier: NAV_SLAS_ID,
   name: 'SLAs',
   icon: 'IconClockExclamation',
-  position: 7,
+  color: 'green',
+  position: 1,
   type: NavigationMenuItemType.OBJECT,
-  folderUniversalIdentifier: NAV_FOLDER_WORK_ID,
+  folderUniversalIdentifier: NAV_FOLDER_MANAGEMENT_ID,
   targetObjectUniversalIdentifier: SLA_OBJECT_ID,
 });

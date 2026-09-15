@@ -57,47 +57,27 @@ const StyledSeparator = styled.span`
 `;
 
 type FooterNoteProps = {
+  // Kept for call-site compatibility; the agreement links were removed (CM-005).
   secondaryAgreement?: 'privacyPolicy' | 'dataProcessingAgreement';
 };
 
-export const FooterNote = ({
-  secondaryAgreement = 'privacyPolicy',
-}: FooterNoteProps) => {
+export const FooterNote = (_props: FooterNoteProps) => {
   const { isOnAWorkspace } = useIsCurrentLocationOnAWorkspace();
 
   const { shouldOfferBypass, shouldUseBypass, enableBypass } =
     useWorkspaceBypass();
 
+  // The upstream note bound the user to Twenty's own terms, DPA and privacy
+  // policy at twenty.com. This is a self-hosted, internal La Vivenzia system,
+  // so those agreements do not apply; an internal-use notice replaces them
+  // (CM-005). Employee legal pages, if the founders want them, can be linked
+  // here later.
   if (!isOnAWorkspace) {
     return (
       <StyledCopyContainer>
-        <Trans>By using Twenty, you agree to the</Trans>{' '}
-        <a
-          href="https://twenty.com/legal/terms"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Trans>Terms of Service</Trans>
-        </a>{' '}
-        <Trans>and</Trans>{' '}
-        {secondaryAgreement === 'dataProcessingAgreement' ? (
-          <a
-            href="https://twenty.com/legal/dpa"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Trans>Data Processing Agreement</Trans>
-          </a>
-        ) : (
-          <a
-            href="https://twenty.com/legal/privacy"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Trans>Privacy Policy</Trans>
-          </a>
-        )}
-        .
+        <Trans>
+          Internal system for authorised La Vivenzia team members only.
+        </Trans>
       </StyledCopyContainer>
     );
   }
@@ -112,21 +92,9 @@ export const FooterNote = ({
           <StyledSeparator>•</StyledSeparator>
         </>
       )}
-      <a
-        href="https://twenty.com/legal/privacy"
-        target="_blank"
-        rel="noopener noreferrer"
-      >
-        <Trans>Privacy Policy</Trans>
-      </a>
-      <StyledSeparator>•</StyledSeparator>
-      <a
-        href="https://twenty.com/legal/terms"
-        target="_blank"
-        rel="noopener noreferrer"
-      >
-        <Trans>Terms of Service</Trans>
-      </a>
+      <span>
+        <Trans>Authorised La Vivenzia team members only</Trans>
+      </span>
     </StyledLinksContainer>
   );
 };

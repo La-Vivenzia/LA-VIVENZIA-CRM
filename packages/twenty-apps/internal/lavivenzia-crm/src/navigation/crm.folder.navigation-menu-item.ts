@@ -7,8 +7,9 @@ import { NAV_FOLDER_CRM_ID } from 'src/constants/universal-identifiers';
 
 export default defineNavigationMenuItem({
   universalIdentifier: NAV_FOLDER_CRM_ID,
-  name: 'CRM',
-  icon: 'IconAddressBook',
-  position: 0,
+  name: 'Relationships',
+  icon: 'IconHeartHandshake',
+  color: 'green',
+  position: 1,
   type: NavigationMenuItemType.FOLDER,
 });

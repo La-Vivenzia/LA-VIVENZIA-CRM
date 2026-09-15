@@ -11,8 +11,9 @@ import { NAV_FOLDER_CRM_ID, NAV_PEOPLE_ID } from 'src/constants/universal-identi
 export default defineNavigationMenuItem({
   universalIdentifier: NAV_PEOPLE_ID,
   name: 'People',
-  icon: 'IconUser',
-  position: 1,
+  icon: 'IconUsers',
+  color: 'green',
+  position: 3,
   type: NavigationMenuItemType.OBJECT,
   folderUniversalIdentifier: NAV_FOLDER_CRM_ID,
   targetObjectUniversalIdentifier: STANDARD_OBJECT_UNIVERSAL_IDENTIFIERS.person.universalIdentifier,

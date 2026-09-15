@@ -422,3 +422,96 @@ Role changes made **outside** `updateWorkspaceMemberRole` (for example, a
 direct SQL update) do not invalidate Twenty's in-process role cache; the old
 role stays in effect until restart. This is Twenty's caching, not CM-004, but
 CM-004 makes the consequence visible. Assign roles through Settings or the API.
+
+---
+
+## CM-005 — La Vivenzia visual identity for the Twenty shell
+
+| | |
+|---|---|
+| **Date** | 2026-09-15 (Day 7B) |
+| **Requested by** | Day 7B brief: "Transform the employee-facing CRM from a default-Twenty look into a premium La Vivenzia product… remove demo identity" |
+| **Reviewer** | *pending* |
+| **Issue / PR** | *pending* |
+
+### Requirement
+
+Everything La Vivenzia builds runs inside Twenty's shell: sidebar, top bar,
+record tables, record pages, sign-in. An application can theme its own front
+components (and does — see `lv-core/ui`), but it cannot change the colours,
+type face or branding of the shell around them. Without this change the
+product read as "Twenty with green cards": Inter, indigo accents, grey
+surfaces, a "20" logo on the sign-in page, "Welcome, Apple", and Twenty's
+terms of service in the footer.
+
+### Why an app extension is insufficient
+
+Twenty's theme is a set of CSS custom properties (`--t-*`) declared on the
+`.light` / `.dark` root classes (`twenty-ui/theme-light.css`,
+`theme-dark.css`) and read back at runtime by `ThemeProvider`. Nothing in the
+application SDK reaches the host document's stylesheet, the workspace default
+logo, the sign-in copy or the PWA icons.
+
+### What changed — presentation only, no component forked
+
+| File | Change |
+|---|---|
+| `packages/twenty-front/src/lv/lv-theme.css` (new) | Imported after the two twenty-ui theme files. Declares the `--lv-*` semantic tokens (generated from the application's `tokens.ts`; a unit test keeps them identical) and **redefines the `--t-*` tokens the shell is built from**: the neutral scale (warm ivory / deep pine instead of grey), the accent scale (pine green instead of indigo), font family (Sora), shadows, snackbar and focus colours. Every Twenty primitive restyles itself through its tokens. |
+| `packages/twenty-front/src/index.tsx` | One import line for the stylesheet above. |
+| `packages/twenty-front/public/fonts/lv/` (new) | Self-hosted Cinzel and Sora (variable, latin + latin-ext, WOFF2, SIL Open Font License — licence files included). No font CDN is contacted. |
+| `packages/twenty-front/public/images/lv/` (new) | The La Vivenzia mark and lockup, from the approved brand assets. |
+| `packages/twenty-front/public/images/icons/**` | Every PWA / favicon icon regenerated from the mark (pine tile, gold mark). Same file names and sizes; `manifest.json` untouched. |
+| `modules/ui/navigation/navigation-drawer/constants/DefaultWorkspaceLogo.ts` | Default workspace logo → `/images/lv/logo-mark.png` (was Twenty's placeholder on GitHub Pages). |
+| `pages/auth/SignInUp.tsx` | Titles: "Welcome to La Vivenzia CRM" (global scope), "Welcome back" / "Welcome to {workspace}" (workspace scope). Was "Welcome to Twenty" / "Welcome, {workspace}." |
+| `modules/auth/components/Title.tsx` | Sign-in title set in the display face and the LV heading colour (falls back to the Twenty tokens if the LV variables are absent). |
+| `modules/auth/sign-in-up/components/FooterNote.tsx` | The links to twenty.com's terms, DPA and privacy policy replaced by an internal-use notice. Those agreements are Twenty's, for Twenty's hosted service; they do not bind users of a self-hosted La Vivenzia system. The "Bypass SSO" control is kept. |
+| `modules/activities/timeline-activities/utils/getTimelineActivityAuthorFullName.ts` (+ its test) | System-authored timeline events attributed to "La Vivenzia CRM" instead of "Twenty". |
+| `pages/not-found/NotFound.tsx` | Page title suffix. |
+
+### Deliberately NOT changed, and why
+
+- **No Twenty React component is forked or restructured.** The sidebar, header,
+  tables, record pages, dialogs and menus are upstream code reading new token
+  values. This keeps the next Twenty upgrade a merge, not a rewrite.
+- **Settings pages** still mention Twenty in places (billing, MCP setup,
+  community, the legal DPA generator). They are admin-only, most are
+  irrelevant to a self-hosted install, and rewording them buys nothing for
+  employees. Listed as a remaining gap in DAY_7B_DESIGN_SYSTEM.md.
+- **`twenty-ui/theme-*.css` themselves** are untouched; the overrides live in
+  one LV file so a diff against upstream stays trivial.
+- **Workspace name and logo** are data, not code: `scripts/brand-workspace.mjs`
+  in the application sets them through the ordinary admin API.
+
+### Risk
+
+Low. The change is CSS variables and copy. If `lv-theme.css` fails to load the
+shell falls back to Twenty's own theme and every LV component still renders
+(the components carry their tokens inline). The only behavioural change is the
+sign-in footer no longer linking to Twenty's legal pages — a founder decision
+on employee legal pages is still open.
+
+### Tests
+
+- `lv-core/ui/__tests__/tokens.test.ts` asserts the `--lv-*` blocks in
+  `lv-theme.css` are byte-identical to the application's tokens, that the font
+  files and licences exist, that no font CDN is referenced, and WCAG AA
+  contrast for text, status colours and focus rings in both schemes.
+- `getTimelineActivityAuthorFullName.test.ts` updated for the new label.
+- Visual verification in Chromium (light / dark, 390 / 1440) is recorded in
+  TESTING-QA.md.
+
+### Rollback plan
+
+Remove the import line in `index.tsx` and delete `src/lv/`; revert the seven
+edited files and the icon folder with `git checkout`. No data migration is
+involved.
+
+### Amendment — same day
+
+Two more presentation-only touches, same rationale and rollback:
+
+| File | Change |
+|---|---|
+| `modules/auth/components/Logo.tsx` | On a single-product install the workspace logo *replaces* the default product icon on the sign-in page rather than sitting on it as a badge (both are the La Vivenzia mark). Instances with a custom primary logo keep the badge. |
+| `modules/object-record/record-table/empty-state/utils/getEmptyStateSubTitle.ts` | Empty-list subtitle no longer says "Use our API or add … manually". |
+| `src/lv/lv-theme.css` | Twenty's blue empty-state illustrations are tinted toward pine with a CSS filter; the PNG assets are untouched. SELECT option chips (the `--t-tag-*` palette) are remapped to muted, brand-harmonious tints with AA text contrast in both schemes. |

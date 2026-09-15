@@ -11,8 +11,9 @@ import { NAV_FOLDER_WORK_ID, NAV_TASKS_ID } from 'src/constants/universal-identi
 export default defineNavigationMenuItem({
   universalIdentifier: NAV_TASKS_ID,
   name: 'Tasks',
-  icon: 'IconCheckbox',
-  position: 4,
+  icon: 'IconListCheck',
+  color: 'green',
+  position: 2,
   type: NavigationMenuItemType.OBJECT,
   folderUniversalIdentifier: NAV_FOLDER_WORK_ID,
   targetObjectUniversalIdentifier: STANDARD_OBJECT_UNIVERSAL_IDENTIFIERS.task.universalIdentifier,

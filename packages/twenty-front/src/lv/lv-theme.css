@@ -1,0 +1,507 @@
+/*
+ * La Vivenzia theme for the Twenty shell (CM-005).
+ *
+ * Twenty resolves its whole theme from CSS custom properties (--t-*) set on
+ * the .light / .dark root classes (twenty-ui/theme-light.css, theme-dark.css)
+ * and reads them back at runtime through ThemeProvider. This stylesheet is
+ * imported after those two files and redefines the tokens the shell is built
+ * from: the neutral scale (warm ivory instead of grey), the accent (pine green
+ * instead of indigo), the type face (Sora instead of Inter) and elevation.
+ * Every Twenty primitive - sidebar, headers, tables, record pages, menus,
+ * dialogs - restyles itself through its tokens; no component is forked.
+ *
+ * The --lv-* blocks are generated from the application's design tokens
+ * (packages/twenty-apps/internal/lavivenzia-crm/src/modules/lv-core/ui/tokens.ts)
+ * and kept identical by a unit test in that package. Edit tokens.ts, not the
+ * blocks.
+ */
+
+/* --- Type faces (self-hosted, SIL Open Font License; see public/fonts/lv) --- */
+@font-face {
+  font-family: 'Cinzel';
+  font-style: normal;
+  font-weight: 400 700;
+  font-display: swap;
+  src: url('/fonts/lv/cinzel-latin.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: 'Cinzel';
+  font-style: normal;
+  font-weight: 400 700;
+  font-display: swap;
+  src: url('/fonts/lv/cinzel-latin-ext.woff2') format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+@font-face {
+  font-family: 'Sora';
+  font-style: normal;
+  font-weight: 400 600;
+  font-display: swap;
+  src: url('/fonts/lv/sora-latin.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: 'Sora';
+  font-style: normal;
+  font-weight: 400 600;
+  font-display: swap;
+  src: url('/fonts/lv/sora-latin-ext.woff2') format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+
+/* --- Semantic La Vivenzia tokens (generated) -------------------------------- */
+.light {
+/* @lv-tokens light */
+  --lv-primary: #1F4D3A;
+  --lv-primary-hover: #163A2B;
+  --lv-primary-muted: #E3EBE5;
+  --lv-primary-fg: #F6F3EC;
+  --lv-sage: #6B846F;
+  --lv-gold: #D4AF37;
+  --lv-gold-ink: #9A7A2E;
+  --lv-gold-muted: #F6EBCB;
+  --lv-sand: #F3EFE7;
+  --lv-bg: #F3EFE7;
+  --lv-surface: #FCFAF6;
+  --lv-surface-elevated: #FFFFFF;
+  --lv-surface-sunken: #ECE5D8;
+  --lv-surface-inverse: #1F4D3A;
+  --lv-surface-inverse-fg: #F3EFE7;
+  --lv-heading: #16261E;
+  --lv-text: #1A1A1A;
+  --lv-text-muted: #6B6660;
+  --lv-text-subtle: #8C8579;
+  --lv-text-inverse: #F6F3EC;
+  --lv-border: #E1DCD0;
+  --lv-border-strong: #CBC3B2;
+  --lv-ring: #1F4D3A;
+  --lv-danger: #8C2B23;
+  --lv-danger-muted: #FBECEA;
+  --lv-success: #2F6042;
+  --lv-success-muted: #EAF1EB;
+  --lv-warning: #8A5A12;
+  --lv-warning-muted: #FBF1E0;
+  --lv-info: #2E4B66;
+  --lv-info-muted: #ECEFF3;
+  --lv-shadow-sm: 0 1px 2px rgba(31, 77, 58, 0.05), 0 2px 8px rgba(31, 77, 58, 0.05);
+  --lv-shadow-md: 0 2px 6px rgba(31, 77, 58, 0.06), 0 10px 30px rgba(31, 77, 58, 0.09);
+  --lv-shadow-lg: 0 8px 20px rgba(31, 77, 58, 0.08), 0 24px 60px rgba(31, 77, 58, 0.12);
+/* @lv-tokens end */
+}
+
+.dark {
+/* @lv-tokens dark */
+  --lv-primary: #2C6B4F;
+  --lv-primary-hover: #357F5E;
+  --lv-primary-muted: #1C3328;
+  --lv-primary-fg: #F3EFE7;
+  --lv-sage: #6B846F;
+  --lv-gold: #D4AF37;
+  --lv-gold-ink: #D9BB5C;
+  --lv-gold-muted: #2E2A1A;
+  --lv-sand: #F3EFE7;
+  --lv-bg: #0D1611;
+  --lv-surface: #15221A;
+  --lv-surface-elevated: #1E2C22;
+  --lv-surface-sunken: #101C15;
+  --lv-surface-inverse: #132B1E;
+  --lv-surface-inverse-fg: #F3EFE7;
+  --lv-heading: #F5F1E8;
+  --lv-text: #F3EFE7;
+  --lv-text-muted: #9FAA9C;
+  --lv-text-subtle: #7C8A7B;
+  --lv-text-inverse: #10190F;
+  --lv-border: #26362A;
+  --lv-border-strong: #3A4D3E;
+  --lv-ring: #CBA94E;
+  --lv-danger: #E58A82;
+  --lv-danger-muted: #3A1F1C;
+  --lv-success: #7FC39A;
+  --lv-success-muted: #17301F;
+  --lv-warning: #E2B45B;
+  --lv-warning-muted: #332912;
+  --lv-info: #8FB4D2;
+  --lv-info-muted: #1A2A36;
+  --lv-shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
+  --lv-shadow-md: 0 2px 8px rgba(0, 0, 0, 0.35), 0 12px 32px rgba(0, 0, 0, 0.3);
+  --lv-shadow-lg: 0 10px 24px rgba(0, 0, 0, 0.4), 0 30px 70px rgba(0, 0, 0, 0.45);
+/* @lv-tokens end */
+}
+
+/* --- Shared ----------------------------------------------------------------- */
+.light,
+.dark {
+  --lv-font-display: 'Cinzel', 'Cormorant Garamond', Georgia, 'Times New Roman', serif;
+  --lv-font-body: 'Sora', 'Segoe UI', system-ui, -apple-system, Roboto, sans-serif;
+  --t-font-family: var(--lv-font-body);
+}
+
+/* --- LIGHT: Twenty tokens remapped ------------------------------------------ */
+.light {
+  /* Warm neutral scale. gray1 is the working surface (cards, tables, main
+     content); gray4 is the frame (sidebar, page ground); gray12 is ink. */
+  --t-gray-scale-gray1: #FCFAF6;
+  --t-gray-scale-gray2: #F9F6F0;
+  --t-gray-scale-gray3: #F6F2EA;
+  --t-gray-scale-gray4: #F3EFE7;
+  --t-gray-scale-gray5: #EAE3D6;
+  --t-gray-scale-gray6: #DAD2C2;
+  --t-gray-scale-gray7: #C4BBA8;
+  --t-gray-scale-gray8: #948C7E;
+  --t-gray-scale-gray9: #6B6660;
+  --t-gray-scale-gray10: #5C5751;
+  --t-gray-scale-gray11: #403C37;
+  --t-gray-scale-gray12: #1A1A1A;
+
+  --t-background-primary: #FCFAF6;
+  --t-background-secondary: #F9F6F0;
+  --t-background-tertiary: #F3EFE7;
+  --t-background-quaternary: #EAE3D6;
+  --t-background-inverted-primary: #1F4D3A;
+  --t-background-inverted-secondary: #2C6B4F;
+  --t-background-primary-inverted: #1F4D3A;
+  --t-background-primary-inverted-hover: #163A2B;
+  --t-background-danger: #FBECEA;
+  --t-background-transparent-strong: rgba(31, 77, 58, 0.16);
+  --t-background-transparent-medium: rgba(31, 77, 58, 0.09);
+  --t-background-transparent-light: rgba(31, 77, 58, 0.05);
+  --t-background-transparent-lighter: rgba(31, 77, 58, 0.03);
+  --t-background-transparent-blue: rgba(31, 77, 58, 0.08);
+  --t-background-transparent-success: rgba(47, 96, 66, 0.12);
+  --t-background-transparent-danger: rgba(140, 43, 35, 0.1);
+  --t-background-transparent-orange: rgba(212, 175, 55, 0.18);
+  --t-background-radial-gradient: radial-gradient(50% 62.62% at 50% 0%, #2C6B4F 0%, #1F4D3A 100%);
+  --t-background-radial-gradient-hover: radial-gradient(76.32% 95.59% at 50% 0%, #1F4D3A 0%, #163A2B 100%);
+
+  --t-font-color-primary: #1A1A1A;
+  --t-font-color-secondary: #403C37;
+  --t-font-color-tertiary: #6B6660;
+  --t-font-color-light: #948C7E;
+  --t-font-color-extra-light: #C4BBA8;
+  --t-font-color-inverted: #FCFAF6;
+  --t-font-color-danger: #8C2B23;
+
+  --t-border-color-strong: #DAD2C2;
+  --t-border-color-medium: #EAE3D6;
+  --t-border-color-light: #F3EFE7;
+  --t-border-color-inverted: #1F4D3A;
+  --t-border-color-secondary-inverted: #2C6B4F;
+  --t-border-color-danger: #E8B4AF;
+  --t-border-color-blue: #86A892;
+  --t-border-color-transparent-strong: rgba(31, 77, 58, 0.1);
+
+  /* Pine accent scale (replaces indigo). Step 9 is the brand primary. */
+  --t-color-blue1: #F8FAF8;
+  --t-color-blue2: #F1F5F2;
+  --t-color-blue3: #E3EBE5;
+  --t-color-blue4: #D3E0D7;
+  --t-color-blue5: #C0D3C6;
+  --t-color-blue6: #A8C2B0;
+  --t-color-blue7: #86A892;
+  --t-color-blue8: #5E8A6E;
+  --t-color-blue9: #1F4D3A;
+  --t-color-blue10: #163A2B;
+  --t-color-blue11: #1F4D3A;
+  --t-color-blue12: #10261B;
+  --t-color-blue: #1F4D3A;
+  --t-accent-primary: #C0D3C6;
+  --t-accent-secondary: #C0D3C6;
+  --t-accent-tertiary: #E3EBE5;
+  --t-accent-quaternary: #F1F5F2;
+  --t-accent-accent3570: #5E8A6E;
+  --t-accent-accent4060: #5E8A6E;
+  --t-accent-accent1: #F8FAF8;
+  --t-accent-accent2: #F1F5F2;
+  --t-accent-accent3: #E3EBE5;
+  --t-accent-accent4: #D3E0D7;
+  --t-accent-accent5: #C0D3C6;
+  --t-accent-accent6: #A8C2B0;
+  --t-accent-accent7: #86A892;
+  --t-accent-accent8: #5E8A6E;
+  --t-accent-accent9: #1F4D3A;
+  --t-accent-accent10: #163A2B;
+  --t-accent-accent11: #1F4D3A;
+  --t-accent-accent12: #10261B;
+  --t-buttons-secondary-text-color: #1F4D3A;
+
+  --t-snack-bar-info-color: #1F4D3A;
+  --t-snack-bar-info-background-color: rgba(31, 77, 58, 0.1);
+  --t-snack-bar-success-color: #2F6042;
+  --t-snack-bar-success-background-color: rgba(47, 96, 66, 0.12);
+  --t-snack-bar-error-color: #8C2B23;
+  --t-snack-bar-error-background-color: rgba(140, 43, 35, 0.1);
+  --t-snack-bar-warning-color: #8A5A12;
+  --t-snack-bar-warning-background-color: rgba(212, 175, 55, 0.18);
+
+  --t-box-shadow-color: rgba(31, 77, 58, 0.06);
+  --t-box-shadow-light: 0px 2px 4px 0px rgba(31, 77, 58, 0.05), 0px 0px 4px 0px rgba(31, 77, 58, 0.06);
+  --t-box-shadow-strong: 2px 4px 16px 0px rgba(31, 77, 58, 0.14), 0px 2px 4px 0px rgba(31, 77, 58, 0.05);
+  --t-box-shadow-underline: 0px 1px 0px 0px rgba(31, 77, 58, 0.3);
+  --t-box-shadow-super-heavy: 0px 4px 20px rgba(31, 77, 58, 0.18);
+}
+
+/* --- DARK: a deep pine night, designed rather than inverted ----------------- */
+.dark {
+  --t-gray-scale-gray1: #0D1611;
+  --t-gray-scale-gray2: #101C15;
+  --t-gray-scale-gray3: #121E17;
+  --t-gray-scale-gray4: #15221A;
+  --t-gray-scale-gray5: #1E2C22;
+  --t-gray-scale-gray6: #2B3D31;
+  --t-gray-scale-gray7: #34483B;
+  --t-gray-scale-gray8: #5B6E60;
+  --t-gray-scale-gray9: #7C8A7B;
+  --t-gray-scale-gray10: #8E9B8D;
+  --t-gray-scale-gray11: #B7C0B4;
+  --t-gray-scale-gray12: #F3EFE7;
+
+  --t-background-primary: #0D1611;
+  --t-background-secondary: #101C15;
+  --t-background-tertiary: #15221A;
+  --t-background-quaternary: #1E2C22;
+  --t-background-inverted-primary: #F3EFE7;
+  --t-background-inverted-secondary: #B7C0B4;
+  --t-background-primary-inverted: #F3EFE7;
+  --t-background-primary-inverted-hover: #DDEBE2;
+  --t-background-danger: #3A1F1C;
+  --t-background-transparent-strong: rgba(243, 239, 231, 0.16);
+  --t-background-transparent-medium: rgba(243, 239, 231, 0.09);
+  --t-background-transparent-light: rgba(243, 239, 231, 0.05);
+  --t-background-transparent-lighter: rgba(243, 239, 231, 0.03);
+  --t-background-transparent-blue: rgba(127, 195, 154, 0.12);
+  --t-background-transparent-success: rgba(127, 195, 154, 0.14);
+  --t-background-transparent-danger: rgba(229, 138, 130, 0.14);
+  --t-background-transparent-orange: rgba(212, 175, 55, 0.18);
+  --t-background-radial-gradient: radial-gradient(50% 62.62% at 50% 0%, #357F5E 0%, #2C6B4F 100%);
+  --t-background-radial-gradient-hover: radial-gradient(76.32% 95.59% at 50% 0%, #2C6B4F 0%, #1F4D3A 100%);
+
+  --t-font-color-primary: #F3EFE7;
+  --t-font-color-secondary: #B7C0B4;
+  --t-font-color-tertiary: #7C8A7B;
+  --t-font-color-light: #5B6E60;
+  --t-font-color-extra-light: #34483B;
+  --t-font-color-inverted: #0D1611;
+  --t-font-color-danger: #E58A82;
+
+  --t-border-color-strong: #2B3D31;
+  --t-border-color-medium: #1E2C22;
+  --t-border-color-light: #15221A;
+  --t-border-color-inverted: #F3EFE7;
+  --t-border-color-secondary-inverted: #B7C0B4;
+  --t-border-color-danger: #6E3A34;
+  --t-border-color-blue: #3B7052;
+  --t-border-color-transparent-strong: rgba(243, 239, 231, 0.1);
+
+  --t-color-blue1: #0F1A14;
+  --t-color-blue2: #12201A;
+  --t-color-blue3: #16281F;
+  --t-color-blue4: #1B3226;
+  --t-color-blue5: #1F3B2C;
+  --t-color-blue6: #264734;
+  --t-color-blue7: #2F583F;
+  --t-color-blue8: #3B7052;
+  --t-color-blue9: #2C6B4F;
+  --t-color-blue10: #357F5E;
+  --t-color-blue11: #8FC4A6;
+  --t-color-blue12: #DDEBE2;
+  --t-color-blue: #2C6B4F;
+  --t-accent-primary: #1F3B2C;
+  --t-accent-secondary: #1F3B2C;
+  --t-accent-tertiary: #16281F;
+  --t-accent-quaternary: #12201A;
+  --t-accent-accent3570: #8FC4A6;
+  --t-accent-accent4060: #8FC4A6;
+  --t-accent-accent1: #0F1A14;
+  --t-accent-accent2: #12201A;
+  --t-accent-accent3: #16281F;
+  --t-accent-accent4: #1B3226;
+  --t-accent-accent5: #1F3B2C;
+  --t-accent-accent6: #264734;
+  --t-accent-accent7: #2F583F;
+  --t-accent-accent8: #3B7052;
+  --t-accent-accent9: #2C6B4F;
+  --t-accent-accent10: #357F5E;
+  --t-accent-accent11: #8FC4A6;
+  --t-accent-accent12: #DDEBE2;
+  --t-buttons-secondary-text-color: #8FC4A6;
+
+  --t-snack-bar-info-color: #8FC4A6;
+  --t-snack-bar-info-background-color: rgba(127, 195, 154, 0.12);
+  --t-snack-bar-success-color: #7FC39A;
+  --t-snack-bar-success-background-color: rgba(127, 195, 154, 0.14);
+  --t-snack-bar-error-color: #E58A82;
+  --t-snack-bar-error-background-color: rgba(229, 138, 130, 0.14);
+  --t-snack-bar-warning-color: #E2B45B;
+  --t-snack-bar-warning-background-color: rgba(212, 175, 55, 0.18);
+
+  --t-box-shadow-color: rgba(0, 0, 0, 0.3);
+  --t-box-shadow-light: 0px 2px 4px 0px rgba(0, 0, 0, 0.3), 0px 0px 4px 0px rgba(0, 0, 0, 0.25);
+  --t-box-shadow-strong: 2px 4px 16px 0px rgba(0, 0, 0, 0.45), 0px 2px 4px 0px rgba(0, 0, 0, 0.3);
+  --t-box-shadow-underline: 0px 1px 0px 0px rgba(243, 239, 231, 0.2);
+  --t-box-shadow-super-heavy: 0px 4px 20px rgba(0, 0, 0, 0.55);
+}
+
+
+/* --- Tag palette (SELECT option chips): the same hues Twenty offers, muted to
+   sit with warm ivory and pine rather than shouting over them. Text keeps
+   AA contrast on its wash in both schemes. --- */
+.light {
+  --t-tag-background-gray: #EAE3D6;
+  --t-tag-text-gray: #5C5751;
+  --t-tag-background-mauve: #EDE0F0;
+  --t-tag-text-mauve: #622C6D;
+  --t-tag-background-slate: #E0E7F0;
+  --t-tag-text-slate: #2C476D;
+  --t-tag-background-sage: #E0F0E8;
+  --t-tag-text-sage: #2C6D4D;
+  --t-tag-background-olive: #E8F0E0;
+  --t-tag-text-olive: #4D6D2C;
+  --t-tag-background-sand: #F0ECE0;
+  --t-tag-text-sand: #6D5D2C;
+  --t-tag-background-tomato: #F0E3E0;
+  --t-tag-text-tomato: #6D392C;
+  --t-tag-background-red: #F0E1E0;
+  --t-tag-text-red: #6D2F2C;
+  --t-tag-background-ruby: #F0E0E3;
+  --t-tag-text-ruby: #6D2C37;
+  --t-tag-background-crimson: #F0E0E5;
+  --t-tag-text-crimson: #6D2C42;
+  --t-tag-background-pink: #F0E0E9;
+  --t-tag-text-pink: #6D2C52;
+  --t-tag-background-plum: #F0E0F0;
+  --t-tag-text-plum: #6D2C6D;
+  --t-tag-background-purple: #E9E0F0;
+  --t-tag-text-purple: #522C6D;
+  --t-tag-background-violet: #E6E0F0;
+  --t-tag-text-violet: #442C6D;
+  --t-tag-background-iris: #E2E0F0;
+  --t-tag-text-iris: #352C6D;
+  --t-tag-background-cyan: #E0ECF0;
+  --t-tag-text-cyan: #2C5D6D;
+  --t-tag-background-turquoise: #E0F0EE;
+  --t-tag-text-turquoise: #2C6D64;
+  --t-tag-background-sky: #E0E9F0;
+  --t-tag-text-sky: #2C526D;
+  --t-tag-background-blue: #E0E5F0;
+  --t-tag-text-blue: #2C406D;
+  --t-tag-background-jade: #E0F0EB;
+  --t-tag-text-jade: #2C6D57;
+  --t-tag-background-green: #E0F0E7;
+  --t-tag-text-green: #2C6D47;
+  --t-tag-background-grass: #E0F0E0;
+  --t-tag-text-grass: #2C6D2C;
+  --t-tag-background-mint: #E0F0EC;
+  --t-tag-text-mint: #2C6D5D;
+  --t-tag-background-lime: #E9F0E0;
+  --t-tag-text-lime: #526D2C;
+  --t-tag-background-bronze: #F0E7E0;
+  --t-tag-text-bronze: #6D472C;
+  --t-tag-background-gold: #F0ECE0;
+  --t-tag-text-gold: #6D5D2C;
+  --t-tag-background-brown: #F0E8E0;
+  --t-tag-text-brown: #6D4C2C;
+  --t-tag-background-orange: #F0E8E0;
+  --t-tag-text-orange: #6D4A2C;
+  --t-tag-background-amber: #F0EBE0;
+  --t-tag-text-amber: #6D572C;
+  --t-tag-background-yellow: #F0EDE0;
+  --t-tag-text-yellow: #6D602C;
+}
+
+.dark {
+  --t-tag-background-gray: #26362A;
+  --t-tag-text-gray: #B7C0B4;
+  --t-tag-background-mauve: #38263B;
+  --t-tag-text-mauve: #CEA2D7;
+  --t-tag-background-slate: #262F3B;
+  --t-tag-text-slate: #A2B8D7;
+  --t-tag-background-sage: #263B30;
+  --t-tag-text-sage: #A2D7BD;
+  --t-tag-background-olive: #303B26;
+  --t-tag-text-olive: #BDD7A2;
+  --t-tag-background-sand: #3B3626;
+  --t-tag-text-sand: #D7CAA2;
+  --t-tag-background-tomato: #3B2A26;
+  --t-tag-text-tomato: #D7ADA2;
+  --t-tag-background-red: #3B2726;
+  --t-tag-text-red: #D7A4A2;
+  --t-tag-background-ruby: #3B2629;
+  --t-tag-text-ruby: #D7A2AB;
+  --t-tag-background-crimson: #3B262D;
+  --t-tag-text-crimson: #D7A2B4;
+  --t-tag-background-pink: #3B2632;
+  --t-tag-text-pink: #D7A2C1;
+  --t-tag-background-plum: #3B263B;
+  --t-tag-text-plum: #D7A2D7;
+  --t-tag-background-purple: #32263B;
+  --t-tag-text-purple: #C1A2D7;
+  --t-tag-background-violet: #2E263B;
+  --t-tag-text-violet: #B6A2D7;
+  --t-tag-background-iris: #29263B;
+  --t-tag-text-iris: #A9A2D7;
+  --t-tag-background-cyan: #26363B;
+  --t-tag-text-cyan: #A2CAD7;
+  --t-tag-background-turquoise: #263B38;
+  --t-tag-text-turquoise: #A2D7D0;
+  --t-tag-background-sky: #26323B;
+  --t-tag-text-sky: #A2C1D7;
+  --t-tag-background-blue: #262C3B;
+  --t-tag-text-blue: #A2B2D7;
+  --t-tag-background-jade: #263B34;
+  --t-tag-text-jade: #A2D7C6;
+  --t-tag-background-green: #263B2F;
+  --t-tag-text-green: #A2D7B8;
+  --t-tag-background-grass: #263B26;
+  --t-tag-text-grass: #A2D7A2;
+  --t-tag-background-mint: #263B36;
+  --t-tag-text-mint: #A2D7CA;
+  --t-tag-background-lime: #323B26;
+  --t-tag-text-lime: #C1D7A2;
+  --t-tag-background-bronze: #3B2F26;
+  --t-tag-text-bronze: #D7B8A2;
+  --t-tag-background-gold: #3B3626;
+  --t-tag-text-gold: #D7CAA2;
+  --t-tag-background-brown: #3B3026;
+  --t-tag-text-brown: #D7BDA2;
+  --t-tag-background-orange: #3B3026;
+  --t-tag-text-orange: #D7BBA2;
+  --t-tag-background-amber: #3B3426;
+  --t-tag-text-amber: #D7C6A2;
+  --t-tag-background-yellow: #3B3726;
+  --t-tag-text-yellow: #D7CDA2;
+}
+
+/* --- Shell refinements (structure untouched; presentation only) ------------- */
+body {
+  font-family: var(--lv-font-body);
+}
+
+/* Focus is visible and on-brand everywhere, including the Twenty primitives. */
+:focus-visible {
+  outline: 2px solid var(--lv-ring);
+  outline-offset: 2px;
+}
+
+/* Selection colour follows the brand rather than the browser default. */
+::selection {
+  background: var(--lv-primary-muted);
+  color: var(--lv-heading);
+}
+
+/* Twenty's empty-state illustrations are blue isometric PNGs. Tinting them
+   toward pine keeps the upstream assets (and their dark variants) while
+   removing the one splash of foreign colour on an otherwise warm page. */
+img[src*="/images/placeholders/"] {
+  filter: sepia(1) hue-rotate(95deg) saturate(0.55) brightness(1.02);
+}
+
+/* Restrained motion: nothing in the shell needs to bounce. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    transition-duration: 0.001ms !important;
+  }
+}

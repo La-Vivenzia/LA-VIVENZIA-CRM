@@ -117,16 +117,16 @@ export const SignInUp = () => {
     }
 
     if (isGlobalScope) {
-      return t`Welcome to Twenty`;
+      return t`Welcome to La Vivenzia CRM`;
     }
 
     const workspaceName = workspacePublicData?.displayName;
 
     if (!workspaceName) {
-      return t`Welcome to your workspace`;
+      return t`Welcome back`;
     }
 
-    return t`Welcome, ${workspaceName}.`;
+    return t`Welcome to ${workspaceName}`;
   }, [
     workspaceInviteHash,
     signInUpStep,

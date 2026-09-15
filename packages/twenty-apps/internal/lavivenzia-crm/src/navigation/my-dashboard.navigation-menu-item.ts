@@ -14,6 +14,7 @@ export default defineNavigationMenuItem({
   universalIdentifier: NAV_MY_DASHBOARD_ID,
   name: 'My Dashboard',
   icon: 'IconLayoutDashboard',
+  color: 'green',
   position: 0,
   type: NavigationMenuItemType.PAGE_LAYOUT,
   folderUniversalIdentifier: NAV_FOLDER_WORK_ID,

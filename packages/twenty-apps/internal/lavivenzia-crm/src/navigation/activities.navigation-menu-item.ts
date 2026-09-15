@@ -10,9 +10,10 @@ import {
 
 export default defineNavigationMenuItem({
   universalIdentifier: NAV_ACTIVITIES_ID,
-  name: 'Activities',
+  name: 'Interactions',
   icon: 'IconMessageCircle',
-  position: 5,
+  color: 'green',
+  position: 4,
   type: NavigationMenuItemType.OBJECT,
   folderUniversalIdentifier: NAV_FOLDER_WORK_ID,
   targetObjectUniversalIdentifier: INTERACTION_OBJECT_ID,

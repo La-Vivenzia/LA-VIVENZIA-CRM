@@ -58,6 +58,6 @@ describe('getTimelineActivityAuthorFullName', () => {
       currentWorkspaceMember as CurrentWorkspaceMember,
     );
 
-    expect(result).toBe('Twenty');
+    expect(result).toBe('La Vivenzia CRM');
   });
 });

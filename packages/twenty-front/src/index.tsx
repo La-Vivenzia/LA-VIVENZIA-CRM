@@ -13,6 +13,8 @@ import 'react-loading-skeleton/dist/skeleton.css';
 import 'twenty-ui/style.css';
 import 'twenty-ui/theme-light.css';
 import 'twenty-ui/theme-dark.css';
+// La Vivenzia theme: must follow the two twenty-ui theme files it overrides (CM-005).
+import './lv/lv-theme.css';
 import './index.css';
 
 const renderApp = () => {

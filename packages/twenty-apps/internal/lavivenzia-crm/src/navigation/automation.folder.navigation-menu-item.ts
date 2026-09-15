@@ -7,8 +7,9 @@ import { NAV_FOLDER_AUTOMATION_ID } from 'src/constants/universal-identifiers';
 
 export default defineNavigationMenuItem({
   universalIdentifier: NAV_FOLDER_AUTOMATION_ID,
-  name: 'Automation',
-  icon: 'IconBolt',
-  position: 3,
+  name: 'Administration',
+  icon: 'IconSettings',
+  color: 'green',
+  position: 4,
   type: NavigationMenuItemType.FOLDER,
 });

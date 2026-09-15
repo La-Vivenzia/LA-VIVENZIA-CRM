@@ -10,7 +10,7 @@ export default defineField({
   type: FieldType.RELATION,
   name: 'lvReviewedAiInsights',
   label: 'Reviewed AI insights',
-  icon: 'IconSparkles',
+  icon: 'IconBulb',
   isNullable: true,
   relationTargetObjectMetadataUniversalIdentifier: AI_INSIGHT_OBJECT_ID,
   relationTargetFieldMetadataUniversalIdentifier: AI_INSIGHT_REVIEWER_ID,

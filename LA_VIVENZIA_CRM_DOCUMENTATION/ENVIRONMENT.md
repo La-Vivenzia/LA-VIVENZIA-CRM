@@ -78,3 +78,29 @@ Twenty widgets) keep working.
 The Quick Add "Owner" field is a manual assignment: `lv-on-lead-created` passes
 a capture-time `ownerId` to the assignment engine as `manualAssigneeId`
 (precedence rule 1), so the engine records MANUAL and does not re-route it.
+
+## Design system (Day 7B) — one script per fresh workspace
+
+The theme itself needs nothing: `packages/twenty-front/src/lv/lv-theme.css`
+is imported by the front-end build, the fonts and the brand mark are static
+files under `packages/twenty-front/public/`, and the sidebar groups and views
+come with `apply`.
+
+What is **data**, and therefore done once per workspace, is the workspace's
+own name and logo. From the application directory, as a Main Admin:
+
+```
+LV_ADMIN_EMAIL=… LV_ADMIN_PASSWORD=… node scripts/brand-workspace.mjs [--api http://localhost:3000] [--front http://localhost:3001]
+```
+
+It renames the workspace to "La Vivenzia" and uploads the mark through the
+ordinary admin API. Credentials come from the environment only.
+
+Twenty's own root sidebar entries (Opportunities, Dashboards, Workflows) are
+not application-owned; an admin removes them by hand (right-click › Delete
+in layout customisation) after the first `apply`, because the application
+ships its own entries for those objects under Relationships / Insights /
+Administration.
+
+If `tokens.ts` changes, regenerate the stylesheet's token blocks with
+`node scripts/sync-lv-theme-css.mjs` (the unit test fails until you do).

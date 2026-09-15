@@ -15,7 +15,7 @@ export default defineField({
   type: FieldType.RELATION,
   name: 'lvExperiences',
   label: 'Experiences',
-  icon: 'IconSparkles',
+  icon: 'IconCompass',
   isNullable: true,
   relationTargetObjectMetadataUniversalIdentifier: EXPERIENCE_OBJECT_ID,
   relationTargetFieldMetadataUniversalIdentifier: EXPERIENCE_PARTNER_FIELD_ID,

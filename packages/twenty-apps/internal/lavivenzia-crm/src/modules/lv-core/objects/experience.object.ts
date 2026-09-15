@@ -40,7 +40,7 @@ export default defineObject({
   labelPlural: 'Experiences',
   description:
     'An experience offered by a La Vivenzia partner: what it is, who runs it and where.',
-  icon: 'IconSparkles',
+  icon: 'IconCompass',
   labelIdentifierFieldMetadataUniversalIdentifier: EXPERIENCE_NAME_FIELD_ID,
   fields: [
     {

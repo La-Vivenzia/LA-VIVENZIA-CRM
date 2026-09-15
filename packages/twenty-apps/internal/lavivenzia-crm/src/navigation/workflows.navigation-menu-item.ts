@@ -12,6 +12,7 @@ export default defineNavigationMenuItem({
   universalIdentifier: NAV_WORKFLOWS_ID,
   name: 'Workflows',
   icon: 'IconSettingsAutomation',
+  color: 'green',
   position: 0,
   type: NavigationMenuItemType.OBJECT,
   folderUniversalIdentifier: NAV_FOLDER_AUTOMATION_ID,

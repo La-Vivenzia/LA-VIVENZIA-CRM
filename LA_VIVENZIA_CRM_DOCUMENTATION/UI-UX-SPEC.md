@@ -30,3 +30,40 @@ Sign in, MFA, Join, Become a Host, Dashboard, Lead list, Lead profile, Lead capt
 
 ## Reference assets
 Inspect every actual image in `public/ui-reference/`. Recreate using real React/HTML/CSS, never screenshots.
+
+---
+
+## Implementation notes (Day 7B, 2026-09-15)
+
+The specification above is implemented as documented in
+`DAY_7B_DESIGN_SYSTEM.md`. Decisions taken where the spec left room:
+
+- **Type faces.** Cinzel and Sora are used directly (both are SIL Open Font
+  License) and **self-hosted** in `packages/twenty-front/public/fonts/lv/`
+  — no font CDN. Cinzel is reserved for page titles, KPI figures and the
+  wordmark; Sora carries all reading text. Cinzel sets lowercase as small
+  caps by design.
+- **Semantic tokens.** `--lv-primary`, `--lv-primary-hover`,
+  `--lv-primary-muted`, `--lv-sage`, `--lv-gold`, `--lv-gold-ink`, `--lv-bg`,
+  `--lv-surface`, `--lv-surface-elevated`, `--lv-surface-sunken`,
+  `--lv-surface-inverse`, `--lv-heading`, `--lv-text`, `--lv-text-muted`,
+  `--lv-text-subtle`, `--lv-border`, `--lv-border-strong`, `--lv-ring`,
+  `--lv-danger`, `--lv-success`, `--lv-warning`, `--lv-info` (+ `-muted`
+  washes) and `--lv-shadow-*`. The source of truth is
+  `lv-core/ui/tokens.ts`; the shell stylesheet is generated from it. A hue
+  change (green → blue) is a change to that one file.
+- **Dark mode** is designed on deep pine grounds, following the consumer
+  reference's dark palette, not an inversion.
+- **Reference assets.** `public/ui-reference/` does not exist in this
+  repository; the visual references used were the consumer site, the SaaS
+  repository's `DESIGN.md` / `globals.css` and its brand assets
+  (`logo-lavivenzia.png`, `logo-mark.png`).
+- **Responsive QA** was run at 390 and 1440 in Chromium for every LV surface
+  in both schemes (see TESTING-QA.md); the layout rules are mobile-first with
+  breakpoints at 768 and 1024.
+- **Required screens** covered here: Sign in, Dashboard, Lead list, Lead
+  profile (Lead 360), Lead capture (Quick add), Timeline, Onboarding, Tasks,
+  Notifications, Search (Twenty command menu, themed), Copilot, Analytics
+  (Control Tower), Settings (Twenty, themed), Workflows (Twenty, themed).
+  MFA, Join and Become a Host are Twenty / consumer-site flows outside the
+  CRM application and inherit the shell theme only.

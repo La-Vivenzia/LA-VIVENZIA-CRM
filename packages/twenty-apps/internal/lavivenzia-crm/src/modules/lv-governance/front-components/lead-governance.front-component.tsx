@@ -5,6 +5,7 @@ import { useColorScheme, useRecordId } from 'twenty-sdk/front-component';
 
 import { FC_LEAD_GOVERNANCE_ID } from 'src/constants/universal-identifiers';
 import { LEAD_STATUS_LABELS, type LeadStatus } from 'src/modules/lv-core/constants/lead-lifecycle';
+import { ErrorState, Field, InlineNotice, LoadingState, LvButton, LvCard, LvInput, LvPage, LvSelect, LvStatusBadge, PageHeader, Section } from 'src/modules/lv-core/ui/kit';
 import { layout, themeFor } from 'src/modules/lv-core/ui/theme';
 import { callRoute } from 'src/modules/lv-core/utils/call-route';
 import { CLOSING_STATUSES, isClosedOrArchived } from 'src/modules/lv-governance/services/governance';
@@ -110,106 +111,114 @@ export const LeadGovernance = () => {
   const dependentTotal = impact ? Object.values(impact.dependents).reduce((sum, count) => sum + count, 0) : 0;
 
   return (
-    <div style={{ ...s.page, padding: theme.space(3) }}>
-      <style>{`.lv-gov button:focus-visible, .lv-gov input:focus-visible, .lv-gov select:focus-visible { outline: 2px solid ${theme.color.accent}; outline-offset: 2px; }`}</style>
-      <div className="lv-gov" style={s.stack(3)}>
-        <div>
-          <h2 style={{ margin: 0, fontFamily: theme.font.display, fontSize: theme.font.size.lg, color: theme.color.brand }}>Lifecycle & governance</h2>
-          <p style={{ margin: `${theme.space(1)}px 0 0`, color: theme.color.textMuted, fontSize: theme.font.size.sm }}>
-            Records are never deleted by the team. Archive, close or mark a duplicate instead; every action is audited with who, what, when and why.
-          </p>
-        </div>
+    <LvPage theme={theme} maxWidth={900} className="lv-gov">
+      <div style={s.stack(3)}>
+        <PageHeader theme={theme} eyebrow={lead?.lvLeadId ?? 'Lead'} title="Lifecycle & governance" subtitle="Records are never deleted by the team. Archive, close or mark a duplicate instead; every action is audited with who, what, when and why." />
 
-        {error && <div role="alert" style={{ ...s.card, border: `1px solid ${theme.color.danger}`, color: theme.color.danger }}>{error}</div>}
-        {notice && <div role="status" style={{ ...s.card, border: `1px solid ${theme.color.success}`, color: theme.color.success }}>{notice}</div>}
-        {isLoading && <p role="status" style={{ color: theme.color.textMuted }}>Loading…</p>}
+        {error && <ErrorState theme={theme} text={error} />}
+        {notice && (
+          <InlineNotice theme={theme} tone="success">
+            {notice}
+          </InlineNotice>
+        )}
+        {isLoading && <LoadingState theme={theme} rows={2} label="Loading lead" />}
 
         {!isLoading && lead && (
           <>
-            <div style={{ ...s.card, display: 'flex', gap: theme.space(2), flexWrap: 'wrap', alignItems: 'center' }}>
-              <span style={{ color: theme.color.textMuted, fontSize: theme.font.size.sm }}>Current status</span>
-              <span style={s.badge(isClosedOrArchived(lead.status ?? '') ? 'neutral' : 'success')}>
-                {lead.status ? LEAD_STATUS_LABELS[lead.status as LeadStatus] ?? lead.status : '—'}
-              </span>
-            </div>
+            <Section theme={theme} title="Current status" actions={<LvStatusBadge theme={theme} kind="lead" value={lead.status} />}>
+              <p style={{ ...theme.type.bodySmall, margin: 0, color: theme.color.textMuted }}>
+                {isClosedOrArchived(lead.status ?? '') ? 'This lead is closed or archived. Reopening returns it to Qualifying.' : 'Open leads can be archived, closed with a reason, or marked as a duplicate.'}
+              </p>
+            </Section>
 
-            <div style={s.card}>
-              <label htmlFor="lv-gov-reason" style={{ display: 'block', fontSize: theme.font.size.sm, marginBottom: 4 }}>
-                Reason <span style={{ color: theme.color.textMuted }}>(required to close, mark duplicate, or delete)</span>
-              </label>
-              <input id="lv-gov-reason" value={reason} onChange={(event) => setReason(event.target.value)} maxLength={500} style={s.input} placeholder="Why is this happening?" />
+            <Section theme={theme} title="Take an action">
+              <Field theme={theme} label="Reason" htmlFor="lv-gov-reason" help="Required to close, mark duplicate, or delete. Kept in the audit log.">
+                <LvInput theme={theme} id="lv-gov-reason" value={reason} onChange={(event) => setReason(event.target.value)} maxLength={500} placeholder="Why is this happening?" />
+              </Field>
 
               <div style={{ display: 'flex', gap: theme.space(2), flexWrap: 'wrap', marginTop: theme.space(3), alignItems: 'center' }}>
                 {isClosedOrArchived(lead.status ?? '') ? (
-                  <button type="button" onClick={() => void act('REOPEN')} disabled={busy !== null} style={s.button('primary')}>
-                    {busy === 'REOPEN' ? 'Reopening…' : 'Reopen (back to Qualifying)'}
-                  </button>
+                  <LvButton theme={theme} variant="primary" onClick={() => void act('REOPEN')} disabled={busy !== null} busy={busy === 'REOPEN'}>
+                    Reopen (back to Qualifying)
+                  </LvButton>
                 ) : (
                   <>
-                    <button type="button" onClick={() => void act('ARCHIVE')} disabled={busy !== null} style={s.button('secondary')}>
-                      {busy === 'ARCHIVE' ? 'Archiving…' : 'Archive (Dormant)'}
-                    </button>
-                    <span style={{ display: 'inline-flex', gap: 6, alignItems: 'center' }}>
-                      <label htmlFor="lv-gov-close" style={{ fontSize: theme.font.size.sm }}>Close as</label>
-                      <select id="lv-gov-close" value={closeStatus} onChange={(event) => setCloseStatus(event.target.value as LeadStatus)} style={{ ...s.input, width: 'auto', minHeight: 36 }}>
+                    <LvButton theme={theme} variant="secondary" onClick={() => void act('ARCHIVE')} disabled={busy !== null} busy={busy === 'ARCHIVE'}>
+                      Archive (Dormant)
+                    </LvButton>
+                    <span style={{ display: 'inline-flex', gap: 6, alignItems: 'center', flexWrap: 'wrap' }}>
+                      <label htmlFor="lv-gov-close" style={{ ...theme.type.bodySmall, color: theme.color.textMuted }}>
+                        Close as
+                      </label>
+                      <LvSelect theme={theme} id="lv-gov-close" value={closeStatus} onChange={(event) => setCloseStatus(event.target.value as LeadStatus)} style={{ width: 'auto', minHeight: 40 }}>
                         {CLOSING_STATUSES.map((status) => (
-                          <option key={status} value={status}>{LEAD_STATUS_LABELS[status]}</option>
+                          <option key={status} value={status}>
+                            {LEAD_STATUS_LABELS[status]}
+                          </option>
                         ))}
-                      </select>
-                      <button type="button" onClick={() => void act('CLOSE')} disabled={busy !== null || reason.trim().length < 3} style={s.button('secondary')}>
-                        {busy === 'CLOSE' ? 'Closing…' : 'Close'}
-                      </button>
+                      </LvSelect>
+                      <LvButton theme={theme} variant="secondary" onClick={() => void act('CLOSE')} disabled={busy !== null || reason.trim().length < 3} busy={busy === 'CLOSE'}>
+                        Close
+                      </LvButton>
                     </span>
-                    <button type="button" onClick={() => void act('MARK_DUPLICATE')} disabled={busy !== null || reason.trim().length < 3} style={s.button('secondary')}>
-                      {busy === 'MARK_DUPLICATE' ? 'Marking…' : 'Mark duplicate'}
-                    </button>
+                    <LvButton theme={theme} variant="danger" onClick={() => void act('MARK_DUPLICATE')} disabled={busy !== null || reason.trim().length < 3} busy={busy === 'MARK_DUPLICATE'}>
+                      Mark duplicate
+                    </LvButton>
                   </>
                 )}
               </div>
-            </div>
+            </Section>
 
             {canDestroy && impact && (
-              <div style={{ ...s.card, border: `1px solid ${theme.color.danger}` }}>
-                <h3 style={{ margin: `0 0 ${theme.space(1)}px`, fontSize: theme.font.size.md, color: theme.color.danger }}>Permanent deletion (Main Admin)</h3>
-                <p style={{ margin: `0 0 ${theme.space(2)}px`, fontSize: theme.font.size.sm, color: theme.color.textMuted }}>
+              <LvCard theme={theme} tone="danger" as="section" ariaLabel="Permanent deletion">
+                <h3 style={{ ...theme.type.subheading, margin: `0 0 ${theme.space(1)}px`, color: theme.color.danger }}>Permanent deletion (Main Admin)</h3>
+                <p style={{ ...theme.type.bodySmall, margin: `0 0 ${theme.space(2)}px`, color: theme.color.textMuted }}>
                   Irreversible, and deliberately not a one-click button. Your role holds the destroy permission; use the record menu to move the lead to the trash, then “Permanently destroy” it from the trash. Both steps are recorded in the audit log with your identity. Prefer Archive or Close.
                 </p>
-                <table style={{ borderCollapse: 'collapse', fontSize: theme.font.size.sm, marginBottom: theme.space(2) }}>
+                <table style={{ ...theme.type.bodySmall, borderCollapse: 'collapse', marginBottom: theme.space(2) }}>
                   <caption style={{ textAlign: 'left', fontWeight: theme.font.weight.medium, marginBottom: 4 }}>
                     What depends on this lead ({dependentTotal} record{dependentTotal === 1 ? '' : 's'} would be destroyed or unlinked)
                   </caption>
                   <thead>
                     <tr>
-                      <th scope="col" style={{ textAlign: 'left', padding: '4px 8px 4px 0', borderBottom: `1px solid ${theme.color.border}` }}>Records</th>
-                      <th scope="col" style={{ textAlign: 'right', padding: '4px 0', borderBottom: `1px solid ${theme.color.border}` }}>Count</th>
+                      <th scope="col" style={{ ...theme.type.label, color: theme.color.textMuted, textAlign: 'left', padding: '4px 8px 4px 0', borderBottom: `1px solid ${theme.color.borderStrong}` }}>
+                        Records
+                      </th>
+                      <th scope="col" style={{ ...theme.type.label, color: theme.color.textMuted, textAlign: 'right', padding: '4px 0', borderBottom: `1px solid ${theme.color.borderStrong}` }}>
+                        Count
+                      </th>
                     </tr>
                   </thead>
                   <tbody>
                     {Object.entries(impact.dependents).map(([key, count]) => (
                       <tr key={key}>
                         <td style={{ padding: '4px 8px 4px 0' }}>{key.replace(/([A-Z])/g, ' $1').toLowerCase()}</td>
-                        <td style={{ textAlign: 'right', fontFamily: theme.font.mono }}>{count}</td>
+                        <td style={{ ...theme.type.mono, textAlign: 'right' }}>{count}</td>
                       </tr>
                     ))}
                   </tbody>
                 </table>
-                <ol style={{ margin: 0, paddingLeft: 18, fontSize: theme.font.size.sm, color: theme.color.textMuted }}>
+                <ol style={{ ...theme.type.bodySmall, margin: 0, paddingLeft: 18, color: theme.color.textMuted }}>
                   {impact.path.map((step) => (
                     <li key={step}>{step}</li>
                   ))}
                 </ol>
-              </div>
+              </LvCard>
             )}
             {!canDestroy && (
-              <p style={{ margin: 0, fontSize: theme.font.size.xs, color: theme.color.textMuted }}>
+              <p style={{ ...theme.type.caption, margin: 0, color: theme.color.textMuted }}>
                 Permanent deletion is reserved for the Main Admin role and is audited. Your role cannot delete records.
               </p>
             )}
           </>
         )}
-        {!isLoading && !lead && !notice && <p role="status" style={{ color: theme.color.textMuted }}>This lead is not available.</p>}
+        {!isLoading && !lead && !notice && (
+          <p role="status" style={{ ...theme.type.bodySmall, color: theme.color.textMuted }}>
+            This lead is not available.
+          </p>
+        )}
       </div>
-    </div>
+    </LvPage>
   );
 };
 

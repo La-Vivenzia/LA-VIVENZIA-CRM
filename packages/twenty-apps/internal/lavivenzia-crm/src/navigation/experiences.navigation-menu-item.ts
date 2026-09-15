@@ -11,8 +11,9 @@ import {
 export default defineNavigationMenuItem({
   universalIdentifier: NAV_EXPERIENCES_ID,
   name: 'Experiences',
-  icon: 'IconSparkles',
-  position: 3,
+  icon: 'IconCompass',
+  color: 'green',
+  position: 5,
   type: NavigationMenuItemType.OBJECT,
   folderUniversalIdentifier: NAV_FOLDER_CRM_ID,
   targetObjectUniversalIdentifier: EXPERIENCE_OBJECT_ID,

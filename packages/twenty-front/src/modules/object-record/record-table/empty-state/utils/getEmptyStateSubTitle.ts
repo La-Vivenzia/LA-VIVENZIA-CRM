@@ -13,5 +13,6 @@ export const getEmptyStateSubTitle = (
     return t`Run a workflow and return here to view its executions`;
   }
 
-  return t`Use our API or add your first ${objectLabel} manually`;
+  // La Vivenzia wording (CM-005): employees add records; the API is not their concern.
+  return t`Nothing here yet — add your first ${objectLabel} when you are ready`;
 };

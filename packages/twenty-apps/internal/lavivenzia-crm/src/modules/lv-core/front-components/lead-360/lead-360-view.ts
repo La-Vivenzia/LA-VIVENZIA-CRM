@@ -61,8 +61,10 @@ export const statusLabel = (status: string | null | undefined): string =>
 export const priorityLabel = (priority: string | null | undefined): string =>
   isLeadPriority(priority) ? LEAD_PRIORITY_LABELS[priority as LeadPriority] : (priority ?? '—');
 
+// An empty string is what a SELECT field holds before anyone chose a value;
+// it means "not started" just as null does.
 export const onboardingStatusLabel = (status: string | null | undefined): string =>
-  status && isOnboardingStatus(status) ? ONBOARDING_STATUS_LABELS[status as OnboardingStatus] : (status ?? 'Not started');
+  status && isOnboardingStatus(status) ? ONBOARDING_STATUS_LABELS[status as OnboardingStatus] : status ? status : 'Not started';
 
 export const humanize = (value: string | null | undefined): string =>
   (value ?? '—').toLowerCase().replace(/_/g, ' ').replace(/^\w/, (character) => character.toUpperCase());

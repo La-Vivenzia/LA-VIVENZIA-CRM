@@ -1,7 +1,7 @@
 import { defineNavigationMenuItem, NavigationMenuItemType } from 'twenty-sdk/define';
 
 import {
-  NAV_FOLDER_WORK_ID,
+  NAV_FOLDER_CRM_ID,
   NAV_ONBOARDING_ID,
   ONBOARDING_OBJECT_ID,
 } from 'src/constants/universal-identifiers';
@@ -10,10 +10,11 @@ import {
 
 export default defineNavigationMenuItem({
   universalIdentifier: NAV_ONBOARDING_ID,
-  name: 'Onboarding',
+  name: 'Partner onboardings',
   icon: 'IconRoute',
-  position: 3,
+  color: 'green',
+  position: 1,
   type: NavigationMenuItemType.OBJECT,
-  folderUniversalIdentifier: NAV_FOLDER_WORK_ID,
+  folderUniversalIdentifier: NAV_FOLDER_CRM_ID,
   targetObjectUniversalIdentifier: ONBOARDING_OBJECT_ID,
 });

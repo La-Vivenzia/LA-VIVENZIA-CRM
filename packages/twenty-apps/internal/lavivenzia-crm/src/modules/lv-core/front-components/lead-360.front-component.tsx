@@ -31,9 +31,9 @@ import {
   TimelineSection,
 } from 'src/modules/lv-core/front-components/lead-360/sections';
 import { type Lead360Model, type TaskSummary } from 'src/modules/lv-core/services/lead-360';
-import { layout, themeFor } from 'src/modules/lv-core/ui/theme';
+import { ErrorState, ForbiddenState, InlineNotice, LoadingState, LvPage } from 'src/modules/lv-core/ui/kit';
+import { themeFor } from 'src/modules/lv-core/ui/theme';
 import { callRoute } from 'src/modules/lv-core/utils/call-route';
-import { ErrorState, FocusStyles, LoadingState } from 'src/modules/lv-dashboard/front-components/dashboard-kit';
 
 // Lead 360 — the employee's workspace for one relationship.
 //
@@ -57,7 +57,6 @@ export const Lead360 = () => {
   const recordId = useRecordId();
   const scheme = useColorScheme();
   const theme = useMemo(() => themeFor(scheme), [scheme]);
-  const s = useMemo(() => layout(theme), [theme]);
   const client = useMemo(() => new CoreApiClient(), []);
   const [state, setState] = useState<LoadState>({ phase: 'LOADING' });
   const [open, setOpen] = useState<OpenForm>(null);
@@ -239,21 +238,15 @@ export const Lead360 = () => {
   }
 
   return (
-    <div className="lv-dash lv-360" style={{ ...s.page, padding: theme.space(3) }}>
-      <FocusStyles theme={theme} />
-      <style>{`.lv-360 form input:focus-visible, .lv-360 textarea:focus-visible { outline: 2px solid ${theme.color.accent}; outline-offset: 2px; } .lv-360 textarea, .lv-360 select, .lv-360 input { font: inherit; } .lv-360 a:focus-visible { outline: 2px solid ${theme.color.accent}; }`}</style>
-      <div style={s.stack(3)}>
-        {state.phase === 'LOADING' && <LoadingState theme={theme} rows={4} />}
+    <LvPage theme={theme} maxWidth={1400} className="lv-360">
+      <style>{`.lv-360 textarea, .lv-360 select, .lv-360 input { font: inherit; }`}</style>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: theme.space(3) }}>
+        {state.phase === 'LOADING' && <LoadingState theme={theme} rows={4} label="Loading lead" />}
         {state.phase === 'ERROR' && <ErrorState theme={theme} text={`Unable to load this lead. ${state.text}`} onRetry={() => void load()} />}
-        {state.phase === 'FORBIDDEN' && (
-          <div role="status" style={{ ...s.card, borderLeft: `4px solid ${theme.color.warning}` }}>
-            <div style={{ fontWeight: theme.font.weight.medium }}>{state.text}</div>
-            <p style={{ margin: `${theme.space(1)}px 0 0`, fontSize: theme.font.size.sm, color: theme.color.textMuted }}>Leads are scoped to their owner. Ask an administrator to reassign it, or claim it if it is unassigned.</p>
-          </div>
-        )}
+        {state.phase === 'FORBIDDEN' && <ForbiddenState theme={theme} title={state.text} text="Leads are scoped to their owner. Ask an administrator to reassign it, or claim it if it is unassigned." />}
         {state.phase === 'READY' && renderReady(state.model)}
       </div>
-    </div>
+    </LvPage>
   );
 
   // A render function, not a nested component: a component declared inside
@@ -333,15 +326,15 @@ export const Lead360 = () => {
         <Header theme={theme} model={model} />
         <ActionBar theme={theme} model={model} onAction={onAction} open={open && open.kind !== 'RESCHEDULE' ? open.kind : null} />
         {notice && (
-          <div role="status" style={{ ...s.card, padding: theme.space(2), borderLeft: `4px solid ${theme.color.accent}`, fontSize: theme.font.size.sm }}>
+          <InlineNotice theme={theme} tone="info">
             {notice}
-          </div>
+          </InlineNotice>
         )}
         {form}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 420px), 1fr))', gap: theme.space(3), alignItems: 'start' }}>
+        <div className="lv-fade-in" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 420px), 1fr))', gap: theme.space(3), alignItems: 'start' }}>
           {order.map((key) => section(key))}
         </div>
-        <p style={{ margin: 0, fontSize: theme.font.size.xs, color: theme.color.textMuted }}>
+        <p style={{ ...theme.type.caption, margin: 0, color: theme.color.textSubtle }}>
           Viewing as {model.caller.lens.toLowerCase()} · sections are ordered for your role · every action is decided again on the server and audited with your name.
         </p>
       </>

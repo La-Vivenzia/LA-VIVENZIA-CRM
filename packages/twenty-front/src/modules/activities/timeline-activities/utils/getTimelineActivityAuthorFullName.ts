@@ -11,5 +11,7 @@ export const getTimelineActivityAuthorFullName = (
       ? 'You'
       : `${event.workspaceMember?.name.firstName} ${event.workspaceMember?.name.lastName}`;
   }
-  return 'Twenty';
+  // System-authored events (automations, logic functions) are attributed to
+  // the product, not to the upstream vendor (CM-005).
+  return 'La Vivenzia CRM';
 };

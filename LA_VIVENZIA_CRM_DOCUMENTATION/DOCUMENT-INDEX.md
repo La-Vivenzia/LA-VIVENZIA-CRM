@@ -22,3 +22,6 @@
 - LICENSING-DEPLOYMENT.md — licensing/deployment
 - ENVIRONMENT.md — environments
 - IMPLEMENTATION-ORDER.md — build order
+- DAY_5_DASHBOARDS.md — Day 5 dashboards and Control Tower
+- DAY_6_AI_INTELLIGENCE.md — Day 6 AI intelligence and Copilot
+- DAY_7B_DESIGN_SYSTEM.md — Day 7B design system and UI/UX transformation

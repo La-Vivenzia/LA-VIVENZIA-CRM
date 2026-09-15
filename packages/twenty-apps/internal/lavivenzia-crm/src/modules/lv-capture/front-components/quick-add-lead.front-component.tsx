@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { CoreApiClient } from 'twenty-client-sdk/core';
 import { defineFrontComponent } from 'twenty-sdk/define';
-import { AppPath, navigate } from 'twenty-sdk/front-component';
+import { AppPath, navigate, useColorScheme } from 'twenty-sdk/front-component';
 
 import { FC_QUICK_ADD_LEAD_ID } from 'src/constants/universal-identifiers';
 import {
@@ -21,6 +21,8 @@ import {
 import { type CaptureInput } from 'src/modules/lv-capture/types/capture.types';
 import { LEAD_CATEGORY_OPTIONS, LEAD_SOURCE_OPTIONS, LEAD_SUBCATEGORY_OPTIONS } from 'src/modules/lv-core/constants/select-options.generated';
 import { type LeadCaptureMode, type LeadSource } from 'src/modules/lv-core/constants/lead-taxonomy';
+import { LvStyles } from 'src/modules/lv-core/ui/kit';
+import { type LvTheme, layout, themeFor } from 'src/modules/lv-core/ui/theme';
 import {
   findDuplicates,
   type DuplicateCandidateRecord,
@@ -35,22 +37,15 @@ import {
 // security" — a create attempt without permission fails in the API and lands in
 // the error state below, which is the behaviour we actually rely on.
 
-// UI-UX-SPEC.md brand tokens. Inlined rather than imported from twenty-ui
-// because a front component renders in a sandbox without the host stylesheet;
-// scoping them here also avoids a core retheme (see DECISION-04).
-const PINE = '#1F4D3A';
-const SAGE = '#6B846F';
-const SAND = '#F3EFE7';
-const CHARCOAL = '#1A1A1A';
-const BORDER = '#D8D2C6';
-
-const styles = {
+// Styles are a function of the theme (tokens.ts), so the page follows light
+// and dark mode like every other LV surface.
+const buildStyles = (theme: LvTheme) => ({
   root: {
-    padding: 16,
+    padding: 'clamp(12px, 3vw, 20px)',
     maxWidth: 560,
     margin: '0 auto',
-    fontFamily: 'system-ui, -apple-system, sans-serif',
-    color: CHARCOAL,
+    fontFamily: theme.font.body,
+    color: theme.color.text,
     boxSizing: 'border-box',
   } as React.CSSProperties,
   modeRow: {
@@ -60,55 +55,56 @@ const styles = {
     marginBottom: 16,
   } as React.CSSProperties,
   modeButton: (active: boolean): React.CSSProperties => ({
-    minHeight: 44,
-    padding: '10px 14px',
-    borderRadius: 8,
-    border: `1px solid ${active ? PINE : BORDER}`,
-    background: active ? PINE : '#FFFFFF',
-    color: active ? '#FFFFFF' : CHARCOAL,
+    ...layout(theme).button(active ? 'primary' : 'secondary'),
     fontSize: 14,
-    cursor: 'pointer',
     flex: '1 1 auto',
   }),
-  label: { display: 'block', fontSize: 13, marginBottom: 4, color: SAGE } as React.CSSProperties,
+  label: { ...theme.type.bodySmall, display: 'block', fontWeight: theme.font.weight.medium, marginBottom: 4, color: theme.color.heading } as React.CSSProperties,
   input: {
     width: '100%',
     minHeight: 44,
     padding: '10px 12px',
-    borderRadius: 8,
-    border: `1px solid ${BORDER}`,
+    borderRadius: theme.radius.sm,
+    border: `1px solid ${theme.color.borderStrong}`,
+    background: theme.color.surfaceRaised,
+    color: theme.color.text,
     fontSize: 16, // 16px avoids iOS zoom-on-focus
     boxSizing: 'border-box',
     marginBottom: 12,
+    fontFamily: 'inherit',
   } as React.CSSProperties,
   hint: {
-    background: SAND,
-    borderRadius: 8,
+    ...theme.type.bodySmall,
+    background: theme.color.surfaceSunken,
+    borderRadius: theme.radius.sm,
     padding: 12,
-    fontSize: 13,
-    color: SAGE,
+    color: theme.color.textMuted,
     marginBottom: 16,
   } as React.CSSProperties,
   submit: (disabled: boolean): React.CSSProperties => ({
+    ...layout(theme).button('primary'),
     width: '100%',
     minHeight: 48,
-    borderRadius: 8,
-    border: 'none',
-    background: disabled ? '#B9C3BA' : PINE,
-    color: '#FFFFFF',
-    fontSize: 16,
+    fontSize: 15,
+    opacity: disabled ? 0.5 : 1,
     cursor: disabled ? 'not-allowed' : 'pointer',
   }),
+  secondaryAction: {
+    ...layout(theme).button('secondary'),
+    width: '100%',
+    minHeight: 48,
+    fontSize: 15,
+  } as React.CSSProperties,
   banner: (tone: 'error' | 'warn' | 'ok'): React.CSSProperties => ({
-    borderRadius: 8,
+    ...theme.type.bodySmall,
+    borderRadius: theme.radius.sm,
     padding: 12,
-    fontSize: 13,
     marginBottom: 12,
-    background:
-      tone === 'error' ? '#FDECEC' : tone === 'warn' ? '#FFF7E0' : '#EAF4EE',
-    color: tone === 'error' ? '#8A1F1F' : tone === 'warn' ? '#7A5B00' : PINE,
+    borderLeft: `3px solid ${tone === 'error' ? theme.color.danger : tone === 'warn' ? theme.color.warning : theme.color.success}`,
+    background: tone === 'error' ? theme.color.dangerMuted : tone === 'warn' ? theme.color.warningMuted : theme.color.successMuted,
+    color: theme.color.text,
   }),
-};
+});
 
 type CreatedLead = { id: string; lvLeadId: string | null; ownerName: string | null; ownerId: string | null; settled: boolean };
 
@@ -121,6 +117,9 @@ const POLL_LIMIT = 12;
 
 export const QuickAddLead = () => {
   const client = useMemo(() => new CoreApiClient(), []);
+  const scheme = useColorScheme();
+  const theme = useMemo(() => themeFor(scheme), [scheme]);
+  const styles = useMemo(() => buildStyles(theme), [theme]);
   const [state, setState] = useState<QuickAddState>(initialQuickAddState());
   const [input, setInput] = useState<CaptureInput>({ captureMode: 'MANUAL' });
   const [ownerId, setOwnerId] = useState('');
@@ -334,19 +333,20 @@ export const QuickAddLead = () => {
     ];
 
     return (
-      <div style={styles.root}>
+      <div style={styles.root} className="lv-root">
+        <LvStyles theme={theme} />
         <div style={styles.banner('ok')} role="status">
           Lead created{created?.lvLeadId ? ` — ${created.lvLeadId}` : ''}.
         </div>
         <ol style={{ listStyle: 'none', margin: '0 0 16px', padding: 0, display: 'flex', flexDirection: 'column', gap: 8 }}>
           {steps.map((step) => (
             <li key={step.label} style={{ display: 'flex', gap: 10, alignItems: 'flex-start', fontSize: 14 }}>
-              <span aria-hidden="true" style={{ width: 22, textAlign: 'center', color: step.state === 'DONE' ? PINE : step.state === 'FAILED' ? '#8A1F1F' : SAGE }}>
+              <span aria-hidden="true" style={{ width: 22, textAlign: 'center', color: step.state === 'DONE' ? theme.color.success : step.state === 'FAILED' ? theme.color.danger : theme.color.textMuted }}>
                 {step.state === 'DONE' ? '✓' : step.state === 'FAILED' ? '!' : '…'}
               </span>
               <span>
                 <strong>{step.label}</strong>
-                <span style={{ display: 'block', fontSize: 13, color: SAGE, fontFamily: step.label === 'LV Lead ID generated' && created?.lvLeadId ? 'ui-monospace, monospace' : 'inherit' }}>{step.detail}</span>
+                <span style={{ display: 'block', fontSize: 13, color: theme.color.textMuted, fontFamily: step.label === 'LV Lead ID generated' && created?.lvLeadId ? theme.font.mono : 'inherit' }}>{step.detail}</span>
               </span>
             </li>
           ))}
@@ -355,7 +355,7 @@ export const QuickAddLead = () => {
           <button type="button" style={styles.submit(false)} onClick={openLead}>
             Open Lead 360
           </button>
-          <button type="button" style={{ ...styles.submit(false), background: '#FFFFFF', color: PINE, border: `1px solid ${PINE}` }} onClick={() => { setCreated(null); selectMode(state.mode); }}>
+          <button type="button" style={styles.secondaryAction} onClick={() => { setCreated(null); selectMode(state.mode); }}>
             Capture another
           </button>
         </div>
@@ -364,7 +364,8 @@ export const QuickAddLead = () => {
   }
 
   return (
-    <div key={state.mode} style={styles.root}>
+    <div key={state.mode} style={styles.root} className="lv-root">
+      <LvStyles theme={theme} />
       <div style={styles.modeRow}>
         {QUICK_ADD_MODES.map((mode) => (
           <button

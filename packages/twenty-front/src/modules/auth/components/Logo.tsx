@@ -46,7 +46,9 @@ const StyledSecondaryLogoContainer = styled.div`
 `;
 
 const StyledPrimaryLogo = styled.div`
-  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: contain;
   height: 100%;
   width: 100%;
 `;
@@ -75,12 +77,22 @@ export const Logo = ({
 
   const isUsingDefaultLogo = !isDefined(primaryLogo);
 
+  // Single-product install (CM-005): the product mark and the workspace mark
+  // are the same brand, so a workspace logo replaces the default product icon
+  // instead of sitting on it as a badge. Multi-workspace instances with a
+  // custom primary logo keep the badge.
+  const showWorkspaceLogoAsPrimary =
+    isUsingDefaultLogo && isDefined(secondaryLogoUrl);
+  const displayedPrimaryLogoUrl = showWorkspaceLogoAsPrimary
+    ? secondaryLogoUrl
+    : primaryLogoUrl;
+
   return (
     <StyledContainer onClick={() => onClick?.()}>
       {isUsingDefaultLogo ? (
         <UndecoratedLink to={to} onClick={() => redirectToDefaultDomain()}>
           <StyledPrimaryLogo
-            style={{ backgroundImage: `url(${primaryLogoUrl})` }}
+            style={{ backgroundImage: `url(${displayedPrimaryLogoUrl})` }}
           />
         </UndecoratedLink>
       ) : (
@@ -88,7 +100,7 @@ export const Logo = ({
           style={{ backgroundImage: `url(${primaryLogoUrl})` }}
         />
       )}
-      {isDefined(secondaryLogoUrl) ? (
+      {showWorkspaceLogoAsPrimary ? null : isDefined(secondaryLogoUrl) ? (
         <StyledSecondaryLogoContainer>
           <StyledSecondaryLogo src={secondaryLogoUrl} />
         </StyledSecondaryLogoContainer>

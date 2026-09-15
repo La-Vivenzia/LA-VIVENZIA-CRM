@@ -3,6 +3,7 @@ import { type ReactNode, useState } from 'react';
 import { LEAD_PRIORITIES, LEAD_PRIORITY_LABELS, type LeadPriority } from 'src/modules/lv-core/constants/lead-lifecycle';
 import { formatDateTimeLocal, localInputToIso, statusLabel } from 'src/modules/lv-core/front-components/lead-360/lead-360-view';
 import { type Lead360Model, type MemberSummary, type TaskSummary } from 'src/modules/lv-core/services/lead-360';
+import { Disclosure, Field, LvButton, LvCard } from 'src/modules/lv-core/ui/kit';
 import { type LvTheme, layout } from 'src/modules/lv-core/ui/theme';
 import { CLOSING_STATUSES } from 'src/modules/lv-governance/services/governance';
 import { LEAD_CATEGORY_OPTIONS, LEAD_SOURCE_OPTIONS, LEAD_SUBCATEGORY_OPTIONS } from 'src/modules/lv-core/constants/select-options.generated';
@@ -31,48 +32,38 @@ import { validateInteractionInput } from 'src/modules/lv-interactions/utils/vali
 
 type Submit = (body: Record<string, unknown>) => Promise<void>;
 
-const Field = ({ theme, label, htmlFor, children, hint }: { theme: LvTheme; label: string; htmlFor: string; children: ReactNode; hint?: string }) => (
-  <div style={{ display: 'flex', flexDirection: 'column', gap: 4, minWidth: 0 }}>
-    <label htmlFor={htmlFor} style={{ fontSize: theme.font.size.sm, fontWeight: theme.font.weight.medium }}>
-      {label}
-      {hint && <span style={{ color: theme.color.textMuted, fontWeight: theme.font.weight.regular }}> {hint}</span>}
-    </label>
-    {children}
-  </div>
-);
-
 const grid = (theme: LvTheme) => ({ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: theme.space(3) });
 
-const FormShell = ({ theme, title, children, error, busy, submitLabel, onSubmit, onCancel, submitDisabled }: { theme: LvTheme; title: string; children: ReactNode; error: string | null; busy: boolean; submitLabel: string; onSubmit: () => void; onCancel: () => void; submitDisabled?: boolean }) => {
-  const s = layout(theme);
-
-  return (
-    <form
-      aria-label={title}
-      onSubmit={(event) => {
-        event.preventDefault();
-        onSubmit();
-      }}
-      style={{ ...s.card, padding: theme.space(3), border: `1px solid ${theme.color.brand}`, display: 'flex', flexDirection: 'column', gap: theme.space(3) }}
-    >
-      <h3 style={{ margin: 0, fontFamily: theme.font.display, fontSize: theme.font.size.md, color: theme.color.brand }}>{title}</h3>
+const FormShell = ({ theme, title, children, error, busy, submitLabel, onSubmit, onCancel, submitDisabled, intro }: { theme: LvTheme; title: string; children: ReactNode; error: string | null; busy: boolean; submitLabel: string; onSubmit: () => void; onCancel: () => void; submitDisabled?: boolean; intro?: string }) => (
+  <form
+    aria-label={title}
+    onSubmit={(event) => {
+      event.preventDefault();
+      onSubmit();
+    }}
+  >
+    <LvCard theme={theme} tone="info" padding={theme.space(3)} style={{ display: 'flex', flexDirection: 'column', gap: theme.space(3), background: theme.color.surfaceRaised }}>
+      <div>
+        <h3 style={{ ...theme.type.title, margin: 0, color: theme.color.heading }}>{title}</h3>
+        {intro && <p style={{ ...theme.type.bodySmall, margin: `${theme.space(1)}px 0 0`, color: theme.color.textMuted }}>{intro}</p>}
+      </div>
       {children}
       {error && (
-        <div role="alert" style={{ color: theme.color.danger, fontSize: theme.font.size.sm }}>
+        <div role="alert" style={{ ...theme.type.bodySmall, color: theme.color.danger, background: theme.color.dangerMuted, borderRadius: theme.radius.sm, padding: `${theme.space(2)}px ${theme.space(3)}px` }}>
           {error}
         </div>
       )}
       <div style={{ display: 'flex', gap: theme.space(2), flexWrap: 'wrap' }}>
-        <button type="submit" disabled={busy || submitDisabled} style={s.button('primary')}>
-          {busy ? 'Saving…' : submitLabel}
-        </button>
-        <button type="button" onClick={onCancel} disabled={busy} style={s.button('secondary')}>
+        <LvButton theme={theme} type="submit" variant="primary" disabled={submitDisabled} busy={busy}>
+          {submitLabel}
+        </LvButton>
+        <LvButton theme={theme} variant="ghost" onClick={onCancel} disabled={busy}>
           Cancel
-        </button>
+        </LvButton>
       </div>
-    </form>
-  );
-};
+    </LvCard>
+  </form>
+);
 
 const nowLocal = () => formatDateTimeLocal(new Date().toISOString());
 
@@ -131,9 +122,9 @@ export const InteractionForm = ({ theme, leadId, onSubmit, onCancel, initialChan
   };
 
   return (
-    <FormShell theme={theme} title="Add interaction" error={error} busy={busy} submitLabel="Log interaction" onSubmit={() => void submit()} onCancel={onCancel}>
+    <FormShell theme={theme} title="Add interaction" intro="The essentials take a minute; open the details if the conversation had more in it." error={error} busy={busy} submitLabel="Log interaction" onSubmit={() => void submit()} onCancel={onCancel}>
       <div style={grid(theme)}>
-        <Field theme={theme} label="Channel" htmlFor="lv360-channel">
+        <Field theme={theme} label="Channel" htmlFor="lv360-channel" required>
           <select id="lv360-channel" value={channel} onChange={(event) => (isInteractionChannel(event.target.value) ? setChannel(event.target.value) : undefined)} style={s.input}>
             {INTERACTION_CHANNELS.map((value) => (
               <option key={value} value={value}>{INTERACTION_CHANNEL_LABELS[value]}</option>
@@ -150,27 +141,6 @@ export const InteractionForm = ({ theme, leadId, onSubmit, onCancel, initialChan
         <Field theme={theme} label="Date and time" htmlFor="lv360-occurred">
           <input id="lv360-occurred" type="datetime-local" defaultValue={occurredAt} onChange={(event) => setOccurredAt(event.target.value)} style={s.input} />
         </Field>
-        {channelSupportsDuration(channel) && (
-          <Field theme={theme} label="Duration" htmlFor="lv360-duration" hint="(minutes)">
-            <input id="lv360-duration" type="number" min={0} max={1440} defaultValue={duration} onChange={(event) => setDuration(event.target.value)} style={s.input} placeholder="e.g. 15" />
-          </Field>
-        )}
-        <Field theme={theme} label="Purpose" htmlFor="lv360-purpose">
-          <select id="lv360-purpose" value={purpose} onChange={(event) => setPurpose(event.target.value)} style={s.input}>
-            <option value="">—</option>
-            {INTERACTION_PURPOSES.map((value) => (
-              <option key={value} value={value}>{INTERACTION_PURPOSE_LABELS[value]}</option>
-            ))}
-          </select>
-        </Field>
-        <Field theme={theme} label="Sentiment" htmlFor="lv360-sentiment">
-          <select id="lv360-sentiment" value={sentiment} onChange={(event) => setSentiment(event.target.value)} style={s.input}>
-            <option value="">—</option>
-            {INTERACTION_SENTIMENTS.map((value) => (
-              <option key={value} value={value}>{INTERACTION_SENTIMENT_LABELS[value]}</option>
-            ))}
-          </select>
-        </Field>
         <Field theme={theme} label="Outcome" htmlFor="lv360-outcome">
           <select id="lv360-outcome" value={outcome} onChange={(event) => setOutcome(event.target.value)} style={s.input}>
             <option value="">—</option>
@@ -180,23 +150,48 @@ export const InteractionForm = ({ theme, leadId, onSubmit, onCancel, initialChan
           </select>
         </Field>
       </div>
-      <Field theme={theme} label="Summary" htmlFor="lv360-summary" hint="what was said, in the lead's words where possible">
+      <Field theme={theme} label="Summary" htmlFor="lv360-summary" help="What was said, in the lead's own words where possible.">
         <textarea id="lv360-summary" defaultValue={summary} onChange={(event) => setSummary(event.target.value)} rows={4} style={{ ...s.input, minHeight: 88 }} placeholder="Interested in hosting weekend wellness experiences; wants pricing before onboarding." />
       </Field>
       <div style={grid(theme)}>
-        <Field theme={theme} label="Problems / objections" htmlFor="lv360-objections">
-          <input id="lv360-objections" defaultValue={objections} onChange={(event) => setObjections(event.target.value)} style={s.input} />
-        </Field>
-        <Field theme={theme} label="Commitments" htmlFor="lv360-commitments">
-          <input id="lv360-commitments" defaultValue={commitments} onChange={(event) => setCommitments(event.target.value)} style={s.input} />
-        </Field>
         <Field theme={theme} label="Next action" htmlFor="lv360-next-action">
           <input id="lv360-next-action" defaultValue={nextAction} onChange={(event) => setNextAction(event.target.value)} style={s.input} placeholder="Send pricing sheet" />
         </Field>
-        <Field theme={theme} label="Next follow-up" htmlFor="lv360-next-follow-up" hint="(creates a follow-up task)">
+        <Field theme={theme} label="Next follow-up" htmlFor="lv360-next-follow-up" help="Creates a follow-up task.">
           <input id="lv360-next-follow-up" type="datetime-local" defaultValue={nextFollowUpAt} onChange={(event) => setNextFollowUpAt(event.target.value)} style={s.input} />
         </Field>
       </div>
+      <Disclosure theme={theme} label="More detail" hint="purpose, sentiment, objections, commitments, duration">
+        <div style={grid(theme)}>
+          {channelSupportsDuration(channel) && (
+            <Field theme={theme} label="Duration" htmlFor="lv360-duration" help="Minutes.">
+              <input id="lv360-duration" type="number" min={0} max={1440} defaultValue={duration} onChange={(event) => setDuration(event.target.value)} style={s.input} placeholder="e.g. 15" />
+            </Field>
+          )}
+          <Field theme={theme} label="Purpose" htmlFor="lv360-purpose">
+            <select id="lv360-purpose" value={purpose} onChange={(event) => setPurpose(event.target.value)} style={s.input}>
+              <option value="">—</option>
+              {INTERACTION_PURPOSES.map((value) => (
+                <option key={value} value={value}>{INTERACTION_PURPOSE_LABELS[value]}</option>
+              ))}
+            </select>
+          </Field>
+          <Field theme={theme} label="Sentiment" htmlFor="lv360-sentiment">
+            <select id="lv360-sentiment" value={sentiment} onChange={(event) => setSentiment(event.target.value)} style={s.input}>
+              <option value="">—</option>
+              {INTERACTION_SENTIMENTS.map((value) => (
+                <option key={value} value={value}>{INTERACTION_SENTIMENT_LABELS[value]}</option>
+              ))}
+            </select>
+          </Field>
+          <Field theme={theme} label="Problems / objections" htmlFor="lv360-objections">
+            <input id="lv360-objections" defaultValue={objections} onChange={(event) => setObjections(event.target.value)} style={s.input} />
+          </Field>
+          <Field theme={theme} label="Commitments" htmlFor="lv360-commitments">
+            <input id="lv360-commitments" defaultValue={commitments} onChange={(event) => setCommitments(event.target.value)} style={s.input} />
+          </Field>
+        </div>
+      </Disclosure>
     </FormShell>
   );
 };
@@ -244,12 +239,12 @@ export const TaskForm = ({ theme, leadId, members, defaultAssigneeId, sourceInte
   return (
     <FormShell theme={theme} title="Create task" error={error} busy={busy} submitLabel="Create task" onSubmit={() => void submit()} onCancel={onCancel}>
       <div>
-        <div style={{ fontSize: theme.font.size.sm, color: theme.color.textMuted, marginBottom: 6 }}>Quick actions</div>
+        <div style={{ ...theme.type.label, color: theme.color.textMuted, marginBottom: 6 }}>Quick actions</div>
         <div style={{ display: 'flex', gap: theme.space(2), flexWrap: 'wrap' }}>
           {QUICK_ACTIONS.map((action) => (
-            <button key={action.key} type="button" disabled={busy} onClick={() => void submit(action.key)} style={{ ...s.button('secondary'), minHeight: 40 }}>
+            <LvButton key={action.key} theme={theme} variant="secondary" size="sm" disabled={busy} onClick={() => void submit(action.key)}>
               {action.label}
-            </button>
+            </LvButton>
           ))}
         </div>
       </div>
@@ -312,7 +307,7 @@ export const NoteForm = ({ theme, leadId, onSubmit, onCancel }: { theme: LvTheme
 
   return (
     <FormShell theme={theme} title="Internal note" error={error} busy={busy} submitLabel="Add note" onSubmit={() => void submit()} onCancel={onCancel}>
-      <Field theme={theme} label="Title" htmlFor="lv360-note-title" hint="(optional)">
+      <Field theme={theme} label="Title" htmlFor="lv360-note-title" help="(optional)">
         <input id="lv360-note-title" defaultValue={title} onChange={(event) => setTitle(event.target.value)} style={s.input} />
       </Field>
       <Field theme={theme} label="Note" htmlFor="lv360-note-body">
@@ -357,8 +352,8 @@ export const StatusForm = ({ theme, leadId, currentStatus, settableStatuses, onS
         Currently <strong>{statusLabel(currentStatus)}</strong>. Every change is audited with your name and, when given, the reason.
       </p>
       <div style={{ display: 'flex', gap: theme.space(2), flexWrap: 'wrap' }}>
-        <button type="button" onClick={() => setMode('SET_STATUS')} style={{ ...s.button(mode === 'SET_STATUS' ? 'primary' : 'secondary'), minHeight: 36 }}>Progress</button>
-        <button type="button" onClick={() => setMode('CLOSE')} style={{ ...s.button(mode === 'CLOSE' ? 'primary' : 'secondary'), minHeight: 36 }}>Close</button>
+        <LvButton theme={theme} size="sm" variant={mode === 'SET_STATUS' ? 'primary' : 'secondary'} ariaPressed={mode === 'SET_STATUS'} onClick={() => setMode('SET_STATUS')}>Progress</LvButton>
+        <LvButton theme={theme} size="sm" variant={mode === 'CLOSE' ? 'primary' : 'secondary'} ariaPressed={mode === 'CLOSE'} onClick={() => setMode('CLOSE')}>Close</LvButton>
       </div>
       {mode === 'SET_STATUS' ? (
         <Field theme={theme} label="New status" htmlFor="lv360-status">
@@ -377,7 +372,7 @@ export const StatusForm = ({ theme, leadId, currentStatus, settableStatuses, onS
           </select>
         </Field>
       )}
-      <Field theme={theme} label="Reason" htmlFor="lv360-status-reason" hint={mode === 'CLOSE' ? '(required)' : '(optional)'}>
+      <Field theme={theme} label="Reason" htmlFor="lv360-status-reason" help={mode === 'CLOSE' ? '(required)' : '(optional)'}>
         <input id="lv360-status-reason" defaultValue={reason} onChange={(event) => setReason(event.target.value)} maxLength={500} style={s.input} />
       </Field>
     </FormShell>
@@ -420,7 +415,7 @@ export const OwnerForm = ({ theme, model, onSubmit, onCancel }: { theme: LvTheme
           </select>
         </Field>
       )}
-      <Field theme={theme} label="Reason" htmlFor="lv360-owner-reason" hint="(optional, kept in the assignment history)">
+      <Field theme={theme} label="Reason" htmlFor="lv360-owner-reason" help="(optional, kept in the assignment history)">
         <input id="lv360-owner-reason" defaultValue={reason} onChange={(event) => setReason(event.target.value)} maxLength={500} style={s.input} />
       </Field>
     </FormShell>

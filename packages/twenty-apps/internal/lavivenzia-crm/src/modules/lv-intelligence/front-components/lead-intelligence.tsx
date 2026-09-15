@@ -3,7 +3,7 @@ import { AppPath, navigate, useColorScheme, useRecordId } from 'twenty-sdk/front
 
 import { type LvTheme, layout, themeFor } from 'src/modules/lv-core/ui/theme';
 import { callRoute } from 'src/modules/lv-core/utils/call-route';
-import { EmptyState, ErrorState, FocusStyles, LoadingState, Section } from 'src/modules/lv-dashboard/front-components/dashboard-kit';
+import { EmptyState, ErrorState, InlineNotice, LoadingState, LvBadge, LvButton, LvPage, PageHeader, Provenance, Section } from 'src/modules/lv-core/ui/kit';
 import { type DataQualityResult } from 'src/modules/lv-intelligence/engines/data-quality';
 import { type DuplicateScanResult } from 'src/modules/lv-intelligence/engines/duplicate-scan';
 import { type NextBestActionResult } from 'src/modules/lv-intelligence/engines/next-best-action';
@@ -62,13 +62,15 @@ const open = (target: { object: string; recordId: string } | null | undefined) =
 };
 
 const Tag = ({ theme, children, tone = 'neutral' }: { theme: LvTheme; children: ReactNode; tone?: 'neutral' | 'success' | 'warning' | 'danger' | 'info' }) => (
-  <span style={{ ...layout(theme).badge(tone), fontFamily: theme.font.body, letterSpacing: '0.04em' }}>{children}</span>
+  <LvBadge theme={theme} tone={tone}>
+    {children}
+  </LvBadge>
 );
 
+// Where a result came from. Rules are computed and repeatable; anything from
+// the model is labelled as such and stays a suggestion until accepted.
 const OriginTag = ({ theme, origin }: { theme: LvTheme; origin: 'RULES' | 'MODEL' | 'DRAFT' | 'SUGGESTION' }) => (
-  <Tag theme={theme} tone={origin === 'RULES' ? 'info' : origin === 'DRAFT' ? 'warning' : 'neutral'}>
-    {origin === 'RULES' ? 'COMPUTED · rules' : origin === 'DRAFT' ? 'AI DRAFT' : origin === 'SUGGESTION' ? 'AI SUGGESTION' : 'AI GENERATED'}
-  </Tag>
+  <Provenance theme={theme} source={origin === 'RULES' ? 'rules' : 'ai'} label={origin === 'RULES' ? 'COMPUTED · rules' : origin === 'DRAFT' ? 'AI DRAFT' : origin === 'SUGGESTION' ? 'AI SUGGESTION' : 'AI GENERATED'} />
 );
 
 const List = ({ theme, items, tone }: { theme: LvTheme; items: string[]; tone?: 'danger' | 'success' | 'muted' }) => (
@@ -154,26 +156,29 @@ export const LeadIntelligence = () => {
   const ai = base?.ai ?? null;
 
   return (
-    <div style={{ ...s.page, padding: theme.space(3) }} className="lv-intel">
-      <FocusStyles theme={theme} />
-      <style>{`.lv-intel button:focus-visible, .lv-intel select:focus-visible, .lv-intel textarea:focus-visible, .lv-intel input:focus-visible { outline: 2px solid ${theme.color.accent}; outline-offset: 2px; } .lv-intel textarea { font: inherit; }`}</style>
+    <LvPage theme={theme} maxWidth={1400} className="lv-intel">
+      <style>{`.lv-intel textarea, .lv-intel select, .lv-intel input { font: inherit; }`}</style>
       <div style={s.stack(3)}>
-        <header style={{ display: 'flex', flexWrap: 'wrap', gap: theme.space(2), alignItems: 'center', justifyContent: 'space-between' }}>
-          <div>
-            <h2 style={{ margin: 0, fontFamily: theme.font.display, fontSize: theme.font.size.lg, color: theme.color.brand }}>Intelligence</h2>
-            <p style={{ margin: `${theme.space(1)}px 0 0`, fontSize: theme.font.size.sm, color: theme.color.textMuted }}>
-              Computed from this lead’s own records. AI output is a suggestion until you accept it; nothing here changes the lead on its own.
-            </p>
-          </div>
-          <div style={{ display: 'flex', gap: theme.space(2), alignItems: 'center', flexWrap: 'wrap' }}>
-            {ai && (ai.available ? <Tag theme={theme} tone="success">AI · {ai.provider} · {ai.model}</Tag> : <Tag theme={theme} tone="warning">AI UNAVAILABLE</Tag>)}
-            <button type="button" onClick={() => void loadBase()} disabled={isLoading} style={{ ...s.button('secondary'), minHeight: 36 }}>
-              {isLoading ? 'Refreshing…' : 'Refresh'}
-            </button>
-          </div>
-        </header>
+        <PageHeader
+          theme={theme}
+          eyebrow={base?.lead.lvLeadId ?? 'Lead'}
+          title="Intelligence"
+          subtitle="Computed from this lead’s own records. AI output is a suggestion until you accept it; nothing here changes the lead on its own."
+          right={
+            <>
+              {ai && (ai.available ? <Provenance theme={theme} source="ai" label={`AI · ${ai.provider} · ${ai.model}`} /> : <Tag theme={theme} tone="neutral">AI UNAVAILABLE</Tag>)}
+              <LvButton theme={theme} variant="ghost" size="sm" onClick={() => void loadBase()} disabled={isLoading} busy={isLoading && base !== null}>
+                Refresh
+              </LvButton>
+            </>
+          }
+        />
 
-        {notice && <div role="status" style={{ ...s.card, border: `1px solid ${theme.color.accent}`, padding: theme.space(2), fontSize: theme.font.size.sm }}>{notice}</div>}
+        {notice && (
+          <InlineNotice theme={theme} tone="info">
+            {notice}
+          </InlineNotice>
+        )}
         {baseError && <ErrorState theme={theme} text={baseError} onRetry={() => void loadBase()} />}
         {isLoading && !base && <LoadingState theme={theme} rows={4} />}
 
@@ -207,7 +212,7 @@ export const LeadIntelligence = () => {
           </>
         )}
       </div>
-    </div>
+    </LvPage>
   );
 };
 
@@ -216,7 +221,7 @@ const OpportunityCard = ({ theme, result }: { theme: LvTheme; result: Opportunit
   <Section theme={theme} title="Opportunity" hint={result.rulesVersion}>
     <div style={{ display: 'flex', gap: theme.space(3), alignItems: 'flex-start', flexWrap: 'wrap' }}>
       <div style={{ minWidth: 96 }}>
-        <div style={{ fontFamily: theme.font.display, fontSize: 40, lineHeight: 1, color: result.available ? theme.color.brand : theme.color.textMuted }}>{result.available ? result.score : 'n/a'}</div>
+        <div style={{ ...theme.type.figure, fontSize: 40, color: result.available ? theme.color.heading : theme.color.textSubtle }}>{result.available ? result.score : 'n/a'}</div>
         <div style={{ fontSize: theme.font.size.xs, color: theme.color.textMuted, marginTop: 4 }}>
           <OriginTag theme={theme} origin="RULES" />
         </div>
@@ -476,10 +481,10 @@ const DuplicateCard = ({ theme, result, insight, busy, onDecide }: { theme: LvTh
       {result && result.candidates.length > 0 && (
         <ul style={{ margin: 0, padding: 0, listStyle: 'none', display: 'flex', flexDirection: 'column', gap: theme.space(2) }}>
           {result.candidates.map((candidate) => (
-            <li key={candidate.leadId} style={{ fontSize: theme.font.size.sm, ...s.card, padding: theme.space(2) }}>
+            <li key={candidate.leadId} style={{ ...theme.type.bodySmall, background: theme.color.surfaceRaised, border: `1px solid ${theme.color.border}`, borderRadius: theme.radius.md, padding: theme.space(2) }}>
               <div style={{ display: 'flex', gap: theme.space(2), alignItems: 'center', flexWrap: 'wrap' }}>
                 <Tag theme={theme} tone={candidate.strength === 'STRONG' ? 'danger' : 'warning'}>{candidate.percent}% similarity</Tag>
-                <button type="button" onClick={() => open({ object: 'lvLead', recordId: candidate.leadId })} style={{ ...s.button('secondary'), minHeight: 32, padding: '4px 10px' }}>
+                <button type="button" onClick={() => open({ object: 'lvLead', recordId: candidate.leadId })} style={{ ...s.button('ghost'), minHeight: 32, padding: '4px 10px', border: `1px solid ${theme.color.border}`, color: theme.color.text }}>
                   {candidate.lvLeadId ?? ''} {candidate.name ?? candidate.organisationName ?? 'lead'}
                 </button>
               </div>
@@ -548,7 +553,7 @@ const ConversationCard = ({ theme, leadId, ai, interactions, stored, problems, b
         const relatedProblems = problems.filter((problem) => ((problem.payload ?? {}) as Record<string, unknown>).interactionId === row.targetRecordId);
 
         return (
-          <div key={row.id} style={{ ...s.card, padding: theme.space(2), marginBottom: theme.space(2), fontSize: theme.font.size.sm }}>
+          <div key={row.id} style={{ ...theme.type.bodySmall, background: theme.color.surfaceRaised, border: `1px solid ${theme.color.border}`, borderRadius: theme.radius.md, padding: theme.space(2), marginBottom: theme.space(2) }}>
             <div style={{ display: 'flex', gap: theme.space(2), flexWrap: 'wrap', alignItems: 'center' }}>
               <OriginTag theme={theme} origin="MODEL" />
               <Tag theme={theme} tone={payload.sentiment === 'POSITIVE' ? 'success' : payload.sentiment === 'NEGATIVE' ? 'danger' : 'neutral'}>sentiment (suggested): {String(payload.sentiment ?? 'UNCLEAR')}</Tag>
@@ -580,8 +585,8 @@ const ConversationCard = ({ theme, leadId, ai, interactions, stored, problems, b
                       {typeof suggestion.suggestedResolution === 'string' && <div style={{ color: theme.color.textMuted }}>Suggested resolution: {suggestion.suggestedResolution}</div>}
                       {problem.status === 'AI_SUGGESTED' ? (
                         <div style={{ display: 'flex', gap: theme.space(2), flexWrap: 'wrap', marginTop: theme.space(1) }}>
-                          <button type="button" disabled={busy !== null} onClick={() => void onDecide(problem.id, 'ACCEPTED', {}, 'Problem created.')} style={{ ...s.button('primary'), minHeight: 32 }}>Confirm problem</button>
-                          <button type="button" disabled={busy !== null} onClick={() => void onDecide(problem.id, 'REJECTED', {}, 'Problem suggestion rejected.')} style={{ ...s.button('secondary'), minHeight: 32 }}>Not a problem</button>
+                          <button type="button" disabled={busy !== null} onClick={() => void onDecide(problem.id, 'ACCEPTED', {}, 'Problem created.')} style={{ ...s.button('primary'), minHeight: 36 }}>Confirm problem</button>
+                          <button type="button" disabled={busy !== null} onClick={() => void onDecide(problem.id, 'REJECTED', {}, 'Problem suggestion rejected.')} style={{ ...s.button('secondary'), minHeight: 36 }}>Not a problem</button>
                         </div>
                       ) : (
                         <Tag theme={theme} tone={problem.status === 'AI_CONFIRMED' ? 'success' : 'neutral'}>{problem.humanDecision ?? problem.status}</Tag>
@@ -647,7 +652,7 @@ const DraftCard = ({ theme, leadId, ai }: { theme: LvTheme; leadId: string; ai: 
           {state.error && <ErrorState theme={theme} text={state.error} onRetry={() => void generate()} />}
           {state.failure && <p role="status" style={{ margin: 0, fontSize: theme.font.size.sm, color: theme.color.textMuted }}><Tag theme={theme} tone="warning">{state.failure.code ?? 'AI_UNAVAILABLE'}</Tag> {state.failure.message ?? state.failure.error}</p>}
           {draft && (
-            <div style={{ ...s.card, padding: theme.space(2), display: 'flex', flexDirection: 'column', gap: theme.space(2) }}>
+            <div style={{ background: theme.color.surfaceRaised, border: `1px solid ${theme.color.border}`, borderRadius: theme.radius.md, padding: theme.space(2), display: 'flex', flexDirection: 'column', gap: theme.space(2) }}>
               <div style={{ display: 'flex', gap: theme.space(2), flexWrap: 'wrap', alignItems: 'center' }}>
                 <OriginTag theme={theme} origin="DRAFT" />
                 <span style={{ fontSize: theme.font.size.xs, color: theme.color.textMuted }}>{draft.provider} · {draft.model} · not sent — review, edit, then copy into your email or WhatsApp</span>
@@ -711,7 +716,7 @@ const OnboardingAssistCard = ({ theme, leadId, ai, onboarding, busy, onDecide }:
           {state.error && <ErrorState theme={theme} text={state.error} onRetry={() => void run()} />}
           {state.failure && <p role="status" style={{ margin: 0, fontSize: theme.font.size.sm, color: theme.color.textMuted }}><Tag theme={theme} tone="warning">{state.failure.code ?? 'AI_UNAVAILABLE'}</Tag> {state.failure.message ?? state.failure.error}</p>}
           {result && (
-            <div style={{ ...s.card, padding: theme.space(2), display: 'flex', flexDirection: 'column', gap: theme.space(2), fontSize: theme.font.size.sm }}>
+            <div style={{ ...theme.type.bodySmall, background: theme.color.surfaceRaised, border: `1px solid ${theme.color.border}`, borderRadius: theme.radius.md, padding: theme.space(2), display: 'flex', flexDirection: 'column', gap: theme.space(2) }}>
               <div style={{ display: 'flex', gap: theme.space(2), flexWrap: 'wrap', alignItems: 'center' }}>
                 <OriginTag theme={theme} origin="SUGGESTION" />
                 <span style={{ fontSize: theme.font.size.xs, color: theme.color.textMuted }}>Only facts already in the partner’s text; nothing added.</span>

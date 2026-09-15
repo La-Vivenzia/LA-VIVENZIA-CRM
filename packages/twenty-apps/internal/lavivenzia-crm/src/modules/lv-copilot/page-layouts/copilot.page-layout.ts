@@ -15,7 +15,7 @@ export default definePageLayout({
       universalIdentifier: PL_COPILOT_TAB_ID,
       title: 'Copilot',
       position: 0,
-      icon: 'IconSparkles',
+      icon: 'IconBulb',
       layoutMode: PageLayoutTabLayoutMode.VERTICAL_LIST,
       widgets: [
         {

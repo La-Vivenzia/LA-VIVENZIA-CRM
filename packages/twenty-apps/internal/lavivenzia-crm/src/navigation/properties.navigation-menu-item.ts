@@ -11,8 +11,9 @@ import {
 export default defineNavigationMenuItem({
   universalIdentifier: NAV_PROPERTIES_ID,
   name: 'Properties',
-  icon: 'IconHome',
-  position: 4,
+  icon: 'IconMapPin',
+  color: 'green',
+  position: 6,
   type: NavigationMenuItemType.OBJECT,
   folderUniversalIdentifier: NAV_FOLDER_CRM_ID,
   targetObjectUniversalIdentifier: PROPERTY_OBJECT_ID,

@@ -12,6 +12,7 @@ export default defineNavigationMenuItem({
   universalIdentifier: NAV_LEADS_ID,
   name: 'Leads',
   icon: 'IconTargetArrow',
+  color: 'green',
   position: 0,
   type: NavigationMenuItemType.OBJECT,
   folderUniversalIdentifier: NAV_FOLDER_CRM_ID,

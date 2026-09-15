@@ -8,8 +8,9 @@ import { NAV_FOLDER_MANAGEMENT_ID } from 'src/constants/universal-identifiers';
 
 export default defineNavigationMenuItem({
   universalIdentifier: NAV_FOLDER_MANAGEMENT_ID,
-  name: 'Management',
-  icon: 'IconRadar',
-  position: 2,
+  name: 'Insights',
+  icon: 'IconChartBar',
+  color: 'green',
+  position: 3,
   type: NavigationMenuItemType.FOLDER,
 });

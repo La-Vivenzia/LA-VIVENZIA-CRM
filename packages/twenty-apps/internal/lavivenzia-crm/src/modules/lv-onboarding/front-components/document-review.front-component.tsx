@@ -17,6 +17,7 @@ import {
   formatBytes,
   previewModeFor,
 } from 'src/modules/lv-onboarding/constants/document-policy';
+import { EmptyState, ErrorState, Field, InlineNotice, LoadingState, LvBadge, LvButton, LvCard, LvPage, LvSelect, LvStatusBadge, LvTextarea, PageHeader, Section } from 'src/modules/lv-core/ui/kit';
 import { layout, themeFor } from 'src/modules/lv-core/ui/theme';
 
 // The reviewer's workspace for one partner onboarding.
@@ -47,18 +48,6 @@ type DocumentRow = {
 type MemberRow = {
   id: string;
   name?: { firstName?: string; lastName?: string } | null;
-};
-
-const STATE_TONE: Record<
-  DocumentVerificationState,
-  'neutral' | 'success' | 'warning' | 'danger' | 'info'
-> = {
-  PENDING: 'neutral',
-  UNDER_REVIEW: 'info',
-  VERIFIED: 'success',
-  REJECTED: 'danger',
-  EXPIRED: 'warning',
-  NEEDS_REPLACEMENT: 'warning',
 };
 
 // Outcomes a reviewer may choose. PENDING is not offered — a reviewer does not
@@ -372,165 +361,99 @@ export const DocumentReview = () => {
 
   if (isLoading) {
     return (
-      <div style={s.page}>
-        <div style={{ ...s.container(760), ...s.card }}>Loading documents…</div>
-      </div>
+      <LvPage theme={theme} maxWidth={860}>
+        <LoadingState theme={theme} rows={3} label="Loading documents" />
+      </LvPage>
     );
   }
 
-  return (
-    <div style={s.page}>
-      <div style={{ ...s.container(760), ...s.stack(4) }}>
-        <div style={s.card}>
-          <div style={{ ...s.row, justifyContent: 'space-between' }}>
-            <strong style={{ fontSize: theme.font.size.lg }}>
-              Document review
-            </strong>
-            <span style={s.badge(allVerified ? 'success' : 'neutral')}>
-              {verifiedCount}/{documents.length} verified
-            </span>
-          </div>
+  const pendingCount = documents.length - verifiedCount;
 
-          <div style={{ ...s.stack(2), marginTop: theme.space(3) }}>
-            <label
-              style={{
-                color: theme.color.textMuted,
-                fontSize: theme.font.size.sm,
-              }}
-            >
-              Reviewer
-            </label>
-            <select
-              style={s.input}
-              value={reviewerId ?? ''}
-              onChange={(event) => void assignReviewer(event.target.value)}
-            >
+  return (
+    <LvPage theme={theme} maxWidth={860}>
+      <div style={s.stack(4)}>
+        <PageHeader
+          theme={theme}
+          eyebrow="Onboarding"
+          title="Document review"
+          subtitle={documents.length === 0 ? 'Nothing to review yet.' : allVerified ? 'Every uploaded document is verified. The onboarding can be approved.' : `${pendingCount} document${pendingCount === 1 ? '' : 's'} still need${pendingCount === 1 ? 's' : ''} a decision.`}
+          right={
+            <LvBadge theme={theme} tone={allVerified ? 'success' : documents.length > 0 ? 'warning' : 'neutral'}>
+              {verifiedCount}/{documents.length} verified
+            </LvBadge>
+          }
+        />
+
+        <Section theme={theme} title="Reviewer" actions={<LvStatusBadge theme={theme} kind="onboarding" value={onboardingStatus.length > 0 ? onboardingStatus : null} />}>
+          <Field theme={theme} label="Assigned reviewer" htmlFor="lv-review-reviewer" help="The reviewer is recorded on every verification decision.">
+            <LvSelect theme={theme} id="lv-review-reviewer" value={reviewerId ?? ''} onChange={(event) => void assignReviewer(event.target.value)}>
               <option value="">Not assigned</option>
               {members.map((member) => (
                 <option key={member.id} value={member.id}>
                   {memberName(member.id)}
                 </option>
               ))}
-            </select>
-            <span
-              style={{
-                color: theme.color.textMuted,
-                fontSize: theme.font.size.xs,
-              }}
-            >
-              Onboarding status: {onboardingStatus.length > 0 ? onboardingStatus : 'unknown'}
-            </span>
-          </div>
-        </div>
+            </LvSelect>
+          </Field>
+        </Section>
 
-        {error !== null && (
-          <div
-            style={{
-              ...s.card,
-              borderColor: theme.color.danger,
-              color: theme.color.danger,
-            }}
-          >
-            {error}
-          </div>
-        )}
-
+        {error !== null && <ErrorState theme={theme} text={error} />}
         {notice !== null && (
-          <div style={{ ...s.card, borderColor: theme.color.success }}>
+          <InlineNotice theme={theme} tone="success">
             {notice}
-          </div>
+          </InlineNotice>
         )}
 
-        {documents.length === 0 && (
-          <div style={s.card}>
-            No documents have been uploaded for this onboarding yet.
-          </div>
-        )}
+        {documents.length === 0 && <EmptyState theme={theme} quiet={false} title="No documents yet" text="Documents appear here as soon as the partner uploads them in the onboarding wizard." />}
 
         {documents.map((documentRow) => {
           const mode = previewModeFor(documentRow.mimeType);
           const flags = draftFlags[documentRow.id] ?? [];
           const isBusy = busyId === documentRow.id;
+          const state = documentRow.verificationState;
+          const tone = state === 'VERIFIED' ? 'success' : state === 'REJECTED' || state === 'EXPIRED' ? 'danger' : state === 'NEEDS_REPLACEMENT' ? 'warning' : undefined;
 
           return (
-            <div key={documentRow.id} style={s.card}>
-              <div style={{ ...s.row, justifyContent: 'space-between' }}>
-                <strong>{documentRow.documentType ?? 'Document'}</strong>
-                <span style={s.badge(STATE_TONE[documentRow.verificationState])}>
-                  {
-                    DOCUMENT_VERIFICATION_STATE_LABELS[
-                      documentRow.verificationState
-                    ]
-                  }
-                </span>
-              </div>
-
-              <div
-                style={{
-                  ...s.stack(1),
-                  margin: theme.space(3) + 'px 0',
-                  color: theme.color.textMuted,
-                  fontSize: theme.font.size.sm,
-                }}
-              >
-                <div>{documentRow.originalFilename ?? 'unnamed file'}</div>
-                <div>
-                  {documentRow.mimeType ?? 'unknown type'} ·{' '}
-                  {formatBytes(documentRow.fileSizeBytes ?? 0)}
-                </div>
-                <div>Uploaded {documentRow.uploadedAt ?? '—'}</div>
-                {documentRow.expiresAt !== null && (
-                  <div>Expires {documentRow.expiresAt}</div>
-                )}
-                {documentRow.verifiedAt !== null && (
-                  <div>Verified {documentRow.verifiedAt}</div>
-                )}
-                <div>Reviewed by {memberName(documentRow.reviewerId)}</div>
-                {documentRow.rejectionReason !== null &&
-                  documentRow.rejectionReason !== '' && (
-                    <div style={{ color: theme.color.danger }}>
-                      Reason: {documentRow.rejectionReason}
+            <Section key={documentRow.id} theme={theme} title={documentRow.documentType ?? 'Document'} tone={tone} actions={<LvStatusBadge theme={theme} kind="document" value={state} />}>
+              <dl style={{ ...theme.type.bodySmall, display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: `${theme.space(2)}px ${theme.space(3)}px`, margin: `0 0 ${theme.space(3)}px`, color: theme.color.text }}>
+                {[
+                  ['File', documentRow.originalFilename ?? 'unnamed file'],
+                  ['Type · size', `${documentRow.mimeType ?? 'unknown type'} · ${formatBytes(documentRow.fileSizeBytes ?? 0)}`],
+                  ['Uploaded', documentRow.uploadedAt ?? '—'],
+                  documentRow.expiresAt !== null ? ['Expires', documentRow.expiresAt] : null,
+                  documentRow.verifiedAt !== null ? ['Verified', documentRow.verifiedAt] : null,
+                  ['Reviewed by', memberName(documentRow.reviewerId)],
+                ]
+                  .filter((row): row is [string, string] => row !== null)
+                  .map(([label, value]) => (
+                    <div key={label} style={{ minWidth: 0 }}>
+                      <dt style={{ ...theme.type.label, color: theme.color.textMuted, marginBottom: 2 }}>{label}</dt>
+                      <dd style={{ margin: 0, overflowWrap: 'anywhere' }}>{value}</dd>
                     </div>
-                  )}
-              </div>
+                  ))}
+              </dl>
+              {documentRow.rejectionReason !== null && documentRow.rejectionReason !== '' && (
+                <div style={{ marginBottom: theme.space(3) }}>
+                  <InlineNotice theme={theme} tone="danger">
+                    Reason: {documentRow.rejectionReason}
+                  </InlineNotice>
+                </div>
+              )}
 
-              <button
-                type="button"
-                style={s.button('secondary')}
-                onClick={() => void openPreview(documentRow)}
-              >
+              <LvButton theme={theme} variant="secondary" size="sm" onClick={() => void openPreview(documentRow)}>
                 {previewId === documentRow.id ? 'Hide' : 'Open document'}
-              </button>
+              </LvButton>
 
               {previewId === documentRow.id && (
                 <div style={{ marginTop: theme.space(3) }}>
                   {previewUrl === null ? (
-                    <span style={{ color: theme.color.textMuted }}>
-                      Opening…
-                    </span>
+                    <span style={{ ...theme.type.bodySmall, color: theme.color.textMuted }}>Opening…</span>
                   ) : mode === 'IMAGE' ? (
-                    <img
-                      src={previewUrl}
-                      alt={documentRow.originalFilename ?? 'document'}
-                      style={{
-                        maxWidth: '100%',
-                        borderRadius: theme.radius.md,
-                        border: '1px solid ' + theme.color.border,
-                      }}
-                    />
+                    <img src={previewUrl} alt={documentRow.originalFilename ?? 'document'} style={{ maxWidth: '100%', borderRadius: theme.radius.md, border: '1px solid ' + theme.color.border }} />
                   ) : mode === 'PDF' ? (
-                    <iframe
-                      title={documentRow.originalFilename ?? 'document'}
-                      src={previewUrl}
-                      style={{
-                        width: '100%',
-                        height: 420,
-                        border: '1px solid ' + theme.color.border,
-                        borderRadius: theme.radius.md,
-                      }}
-                    />
+                    <iframe title={documentRow.originalFilename ?? 'document'} src={previewUrl} style={{ width: '100%', height: 420, border: '1px solid ' + theme.color.border, borderRadius: theme.radius.md }} />
                   ) : (
-                    <a href={previewUrl} target="_blank" rel="noreferrer">
+                    <a href={previewUrl} target="_blank" rel="noreferrer" style={{ color: theme.color.brand }}>
                       Download {documentRow.originalFilename ?? 'file'}
                     </a>
                   )}
@@ -538,131 +461,74 @@ export const DocumentReview = () => {
               )}
 
               <div style={{ marginTop: theme.space(4) }}>
-                <div
-                  style={{
-                    color: theme.color.textMuted,
-                    fontSize: theme.font.size.sm,
-                    marginBottom: theme.space(2),
-                  }}
-                >
-                  Issues you found — your judgement, nothing is checked
-                  automatically
-                </div>
+                <div style={{ ...theme.type.label, color: theme.color.textMuted, marginBottom: theme.space(2) }}>Issues you found — your judgement, nothing is checked automatically</div>
                 <div style={s.row}>
-                  {DOCUMENT_VERIFICATION_FLAGS.map((flag) => (
-                    <label
-                      key={flag}
-                      style={{
-                        ...s.badge(
-                          flags.includes(flag) ? 'warning' : 'neutral',
-                        ),
-                        cursor: 'pointer',
-                        minHeight: 32,
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        gap: 6,
-                      }}
-                    >
-                      <input
-                        type="checkbox"
-                        checked={flags.includes(flag)}
-                        onChange={() => toggleFlag(documentRow.id, flag)}
-                      />
-                      {DOCUMENT_VERIFICATION_FLAG_LABELS[flag]}
-                    </label>
-                  ))}
+                  {DOCUMENT_VERIFICATION_FLAGS.map((flag) => {
+                    const on = flags.includes(flag);
+
+                    return (
+                      <label
+                        key={flag}
+                        style={{
+                          ...theme.type.bodySmall,
+                          cursor: 'pointer',
+                          minHeight: 36,
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: 8,
+                          padding: `4px ${theme.space(3)}px`,
+                          borderRadius: theme.radius.pill,
+                          border: `1px solid ${on ? theme.color.warning : theme.color.borderStrong}`,
+                          background: on ? theme.color.warningMuted : theme.color.surfaceRaised,
+                          color: on ? theme.color.warning : theme.color.text,
+                          fontWeight: on ? theme.font.weight.medium : theme.font.weight.regular,
+                        }}
+                      >
+                        <input type="checkbox" checked={on} onChange={() => toggleFlag(documentRow.id, flag)} />
+                        {DOCUMENT_VERIFICATION_FLAG_LABELS[flag]}
+                      </label>
+                    );
+                  })}
                 </div>
               </div>
 
-              <textarea
-                style={{ ...s.input, marginTop: theme.space(3), minHeight: 72 }}
-                placeholder="Reason (required to reject or request a replacement)"
-                value={draftReason[documentRow.id] ?? ''}
-                onChange={(event) =>
-                  setDraftReason((current) => ({
-                    ...current,
-                    [documentRow.id]: event.target.value,
-                  }))
-                }
-              />
+              <div style={{ marginTop: theme.space(3) }}>
+                <Field theme={theme} label="Reason" htmlFor={`lv-review-reason-${documentRow.id}`} help="Required to reject or request a replacement; the partner sees it.">
+                  <LvTextarea theme={theme} id={`lv-review-reason-${documentRow.id}`} style={{ minHeight: 72 }} placeholder="What needs to change?" value={draftReason[documentRow.id] ?? ''} onChange={(event) => setDraftReason((current) => ({ ...current, [documentRow.id]: event.target.value }))} />
+                </Field>
+              </div>
 
               <div style={{ ...s.row, marginTop: theme.space(3) }}>
-                {REVIEW_ACTIONS.filter((to) =>
-                  canTransitionDocument(documentRow.verificationState, to),
-                ).map((to) => (
-                  <button
-                    key={to}
-                    type="button"
-                    disabled={isBusy}
-                    style={
-                      to === 'REJECTED'
-                        ? s.button('danger')
-                        : to === 'VERIFIED'
-                          ? s.button('primary')
-                          : s.button('secondary')
-                    }
-                    onClick={() => void applyDecision(documentRow, to)}
-                  >
+                {REVIEW_ACTIONS.filter((to) => canTransitionDocument(documentRow.verificationState, to)).map((to) => (
+                  <LvButton key={to} theme={theme} disabled={isBusy} busy={isBusy} variant={to === 'REJECTED' ? 'danger' : to === 'VERIFIED' ? 'primary' : 'secondary'} onClick={() => void applyDecision(documentRow, to)}>
                     {DOCUMENT_VERIFICATION_STATE_LABELS[to]}
-                  </button>
+                  </LvButton>
                 ))}
               </div>
-            </div>
+            </Section>
           );
         })}
 
-        <div style={s.card}>
-          <strong>Onboarding decision</strong>
-          <p
-            style={{
-              color: theme.color.textMuted,
-              fontSize: theme.font.size.sm,
-            }}
-          >
-            {allVerified
-              ? 'Every uploaded document is verified.'
-              : 'Approval is refused until every uploaded document is verified.'}
-          </p>
-          <textarea
-            style={{ ...s.input, minHeight: 72 }}
-            placeholder="Reason (required to reject or request changes)"
-            value={draftReason.onboarding ?? ''}
-            onChange={(event) =>
-              setDraftReason((current) => ({
-                ...current,
-                onboarding: event.target.value,
-              }))
-            }
-          />
+        <LvCard theme={theme} as="section" ariaLabel="Onboarding decision" tone={allVerified ? 'success' : 'warning'}>
+          <h2 style={{ ...theme.type.title, margin: 0, color: theme.color.heading }}>Onboarding decision</h2>
+          <p style={{ ...theme.type.bodySmall, color: theme.color.textMuted, margin: `${theme.space(1)}px 0 ${theme.space(3)}px` }}>{allVerified ? 'Every uploaded document is verified.' : 'Approval is refused until every uploaded document is verified.'}</p>
+          <Field theme={theme} label="Reason" htmlFor="lv-review-onboarding-reason" help="Required to reject or request changes.">
+            <LvTextarea theme={theme} id="lv-review-onboarding-reason" style={{ minHeight: 72 }} placeholder="What should the partner do next?" value={draftReason.onboarding ?? ''} onChange={(event) => setDraftReason((current) => ({ ...current, onboarding: event.target.value }))} />
+          </Field>
           <div style={{ ...s.row, marginTop: theme.space(3) }}>
-            <button
-              type="button"
-              disabled={busyId === 'onboarding' || !allVerified}
-              style={{ ...s.button('primary'), opacity: allVerified ? 1 : 0.5 }}
-              onClick={() => void decide('APPROVED')}
-            >
+            <LvButton theme={theme} variant="primary" disabled={busyId === 'onboarding' || !allVerified} busy={busyId === 'onboarding'} onClick={() => void decide('APPROVED')} title={allVerified ? undefined : 'Every document must be verified first'}>
               Approve
-            </button>
-            <button
-              type="button"
-              disabled={busyId === 'onboarding'}
-              style={s.button('secondary')}
-              onClick={() => void decide('CHANGES_REQUESTED')}
-            >
+            </LvButton>
+            <LvButton theme={theme} variant="secondary" disabled={busyId === 'onboarding'} onClick={() => void decide('CHANGES_REQUESTED')}>
               Request changes
-            </button>
-            <button
-              type="button"
-              disabled={busyId === 'onboarding'}
-              style={s.button('danger')}
-              onClick={() => void decide('REJECTED')}
-            >
+            </LvButton>
+            <LvButton theme={theme} variant="danger" disabled={busyId === 'onboarding'} onClick={() => void decide('REJECTED')}>
               Reject
-            </button>
+            </LvButton>
           </div>
-        </div>
+        </LvCard>
       </div>
-    </div>
+    </LvPage>
   );
 };
 

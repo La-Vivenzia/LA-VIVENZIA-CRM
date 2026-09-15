@@ -152,7 +152,7 @@ export default definePageLayout({
       universalIdentifier: LEAD_PROFILE_INTELLIGENCE_TAB_ID,
       title: 'Intelligence',
       position: 4,
-      icon: 'IconSparkles',
+      icon: 'IconBulb',
       layoutMode: PageLayoutTabLayoutMode.VERTICAL_LIST,
       widgets: [
         {

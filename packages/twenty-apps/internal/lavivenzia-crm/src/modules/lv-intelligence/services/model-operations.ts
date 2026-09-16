@@ -167,6 +167,97 @@ export const generateClassification = async (common: Common): Promise<ModelOpera
   return { ok: true, status: reviewRequired ? 'REVIEW_REQUIRED' : 'AI_SUGGESTED', code: null, message: null, insight, output, provider: result.provider, model: result.model, promptVersion: LEAD_CLASSIFICATION_PROMPT.id };
 };
 
+// Day 8: the same classification for a lead that does not exist yet (the
+// capture review screen). The draft is dressed as a lead context — the same
+// minimiser applies, so email and phone values never reach the model and
+// raw capture input is excluded — and the run is audited against the
+// capture key. No insight row is stored: the decision (accept / edit /
+// reject) is recorded on the lead at creation, in captureProvenance and
+// the CLASSIFICATION_* audit rows.
+export type DraftClassification = {
+  status: 'AI_SUGGESTED' | 'REVIEW_REQUIRED' | 'UNAVAILABLE';
+  category: string | null;
+  subcategory: string | null;
+  confidence: number | null;
+  reasoning: string | null;
+  code: string | null;
+  runId: string | null;
+  provider: string;
+  model: string | null;
+  promptVersion: string;
+};
+
+export const classifyDraft = async (
+  provider: AiProvider,
+  application: GraphqlClient,
+  draft: { name: string; organisationName: string | null; location: string | null; source: string | null; websiteUrl: string | null; instagramHandle: string | null; hasEmail: boolean; hasPhone: boolean; languages: readonly string[]; notes: string | null },
+  context: { actorWorkspaceMemberId: string | null; captureKey: string },
+): Promise<DraftClassification> => {
+  const now = new Date().toISOString();
+  const leadContext: LeadContext = {
+    lead: {
+      id: context.captureKey,
+      lvLeadId: null,
+      name: draft.name,
+      organisationName: draft.organisationName,
+      category: null,
+      subcategory: null,
+      location: draft.location,
+      source: draft.source,
+      captureMode: null,
+      status: 'NEW',
+      priority: null,
+      ownerId: null,
+      assignedAt: null,
+      emails: draft.hasEmail ? { primaryEmail: 'on-file' } : null,
+      phones: draft.hasPhone ? { primaryPhoneNumber: 'on-file' } : null,
+      website: draft.websiteUrl ? { primaryLinkUrl: draft.websiteUrl } : null,
+      instagram: draft.instagramHandle ? { primaryLinkUrl: draft.instagramHandle } : null,
+      languages: [...draft.languages],
+      opportunityScore: null,
+      dataCompleteness: null,
+      lastInteractionAt: null,
+      nextAction: null,
+      nextFollowUpAt: null,
+      onboardingStatus: null,
+      rawCaptureInput: null,
+      duplicateKeys: null, jobTitle: null, socialProfiles: null, captureProvenance: null, captureFiles: null,
+      createdAt: now,
+      updatedAt: now,
+    },
+    interactions: [],
+    tasks: [],
+    notes: draft.notes ? [{ id: 'capture-notes', title: 'Capture notes', body: draft.notes.slice(0, 300), updatedAt: now }] : [],
+    slas: [],
+    onboarding: null,
+    problems: [],
+    loadedAt: now,
+  };
+
+  if (!provider.available) {
+    return { status: 'UNAVAILABLE', category: null, subcategory: null, confidence: null, reasoning: null, code: 'AI_UNAVAILABLE', runId: null, provider: provider.name, model: provider.model, promptVersion: LEAD_CLASSIFICATION_PROMPT.id };
+  }
+
+  const { result, runId } = await runPrompt(provider, application, LEAD_CLASSIFICATION_PROMPT, classificationContext(leadContext), {
+    operation: 'CLASSIFICATION',
+    actorWorkspaceMemberId: context.actorWorkspaceMemberId,
+    targetObject: 'lvCapture',
+    targetRecordId: null,
+    sourceRecordIds: [],
+    metadata: { captureKey: context.captureKey },
+  });
+
+  if (!result.ok) {
+    return { status: 'UNAVAILABLE', category: null, subcategory: null, confidence: null, reasoning: null, code: result.code, runId, provider: result.provider, model: result.model, promptVersion: LEAD_CLASSIFICATION_PROMPT.id };
+  }
+
+  const category = result.value.category && isLeadCategory(result.value.category) ? result.value.category : null;
+  const subcategory = category && result.value.subcategory && (LEAD_SUBCATEGORIES_BY_CATEGORY[category] as readonly string[]).includes(result.value.subcategory) ? result.value.subcategory : null;
+  const reviewRequired = category === null || (result.value.confidence ?? 0) < CLASSIFICATION_REVIEW_THRESHOLD;
+
+  return { status: reviewRequired ? 'REVIEW_REQUIRED' : 'AI_SUGGESTED', category, subcategory, confidence: result.value.confidence, reasoning: result.value.reasoning || null, code: null, runId, provider: result.provider, model: result.model, promptVersion: LEAD_CLASSIFICATION_PROMPT.id };
+};
+
 // --------------------------------------------------- conversation summary
 export const summarizeConversation = async (common: Common, interaction: InteractionRecord): Promise<ModelOperationResult<ConversationSummaryOutput>> => {
   const { context } = common;

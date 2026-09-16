@@ -241,3 +241,39 @@ describe('prompt registry', () => {
     }
   });
 });
+
+describe('Day 8 · images in a request (vision OCR)', () => {
+  const png = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==';
+
+  it('OpenAI dialect sends the image as an image_url data URI alongside the text', async () => {
+    const p = provider(() => response(200, openaiBody('{"ok":true}')));
+    const result = await p.instance.generateText({ purpose: 'capture', system: 'read the card', user: 'JSON please', images: [{ mimeType: 'image/png', base64: png }] });
+
+    expect(result.ok).toBe(true);
+    const body = JSON.parse(String(p.requests[0]!.init.body)) as { messages: { role: string; content: unknown }[] };
+    const user = body.messages.find((message) => message.role === 'user')!;
+
+    expect(Array.isArray(user.content)).toBe(true);
+    expect(user.content).toEqual(expect.arrayContaining([expect.objectContaining({ type: 'text', text: 'JSON please' }), expect.objectContaining({ type: 'image_url', image_url: expect.objectContaining({ url: `data:image/png;base64,${png}` }) })]));
+  });
+
+  it('Anthropic dialect sends the image as a base64 source part', async () => {
+    const p = provider(() => response(200, JSON.stringify({ content: [{ type: 'text', text: '{"ok":true}' }], usage: { input_tokens: 1, output_tokens: 1 } })), { provider: 'anthropic' });
+    const result = await p.instance.generateText({ purpose: 'capture', system: 'read the card', user: 'JSON please', images: [{ mimeType: 'image/png', base64: png }] });
+
+    expect(result.ok).toBe(true);
+    const body = JSON.parse(String(p.requests[0]!.init.body)) as { messages: { role: string; content: unknown }[] };
+    const user = body.messages.find((message) => message.role === 'user')!;
+
+    expect(user.content).toEqual(expect.arrayContaining([expect.objectContaining({ type: 'image', source: { type: 'base64', media_type: 'image/png', data: png } }), expect.objectContaining({ type: 'text', text: 'JSON please' })]));
+  });
+
+  it('without images the user content stays a plain string (Day 6 requests unchanged)', async () => {
+    const p = provider(() => response(200, openaiBody('{"ok":true}')));
+
+    await p.instance.generateText({ purpose: 'x', system: 's', user: 'plain' });
+    const body = JSON.parse(String(p.requests[0]!.init.body)) as { messages: { role: string; content: unknown }[] };
+
+    expect(body.messages.find((message) => message.role === 'user')!.content).toBe('plain');
+  });
+});

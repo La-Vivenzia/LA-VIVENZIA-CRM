@@ -11,6 +11,7 @@ import {
 } from 'src/modules/lv-core/front-components/lead-360/lead-360-view';
 import { type Lead360Model, type TaskSummary, type TimelineEntry } from 'src/modules/lv-core/services/lead-360';
 import { type LvTheme } from 'src/modules/lv-core/ui/theme';
+import { openCapturePage } from 'src/modules/lv-core/utils/open-capture';
 import { EmptyState, Eyebrow, Facts, InversePanel, LvBadge, LvButton, LvStatusBadge, Provenance, Section, formatWhen } from 'src/modules/lv-core/ui/kit';
 import { badgeToneOf, describeStatus } from 'src/modules/lv-core/ui/status';
 
@@ -150,6 +151,16 @@ export const ActionBar = ({ theme, model, onAction, open }: { theme: LvTheme; mo
     actions.push(button('MORE', 'More actions', 'ghost'));
   }
 
+  // Capture is a create, not an edit of this lead: it appears whenever the
+  // person can add leads at all, after the lead's own actions.
+  if (capabilities.canCapture) {
+    actions.push(
+      <LvButton key="CAPTURE" theme={theme} variant="ghost" onClick={() => void openCapturePage()}>
+        Capture lead
+      </LvButton>,
+    );
+  }
+
   if (actions.length === 0) {
     return (
       <p role="status" style={{ ...theme.type.bodySmall, margin: 0, color: theme.color.textMuted }}>
@@ -241,6 +252,8 @@ export const OverviewSection = ({ theme, model }: { theme: LvTheme; model: Lead3
     ['Website', lead.website?.primaryLinkUrl ?? null],
     ['Instagram', lead.instagram?.primaryLinkUrl ?? null],
     ['Organisation', lead.organisationName],
+    ['Job title', lead.jobTitle],
+    ['Social profile', lead.socialProfiles?.primaryLinkUrl ?? null],
     ['Category', lead.category ? humanize(lead.category) : null],
     ['Subcategory', lead.subcategory ? humanize(lead.subcategory) : null],
     ['Location', lead.location],
@@ -260,6 +273,29 @@ export const OverviewSection = ({ theme, model }: { theme: LvTheme; model: Lead3
   return (
     <Section theme={theme} title="Overview">
       <Facts theme={theme} columns={3} items={rows.map(([label, value]) => ({ label, value: value ?? <span style={{ color: theme.color.textSubtle }}>Not recorded</span> }))} />
+      {model.capture && (
+        <div style={{ marginTop: theme.space(3), padding: theme.space(3), background: theme.color.surfaceSunken, borderRadius: theme.radius.md }} data-testid="lv-capture-history">
+          <div style={{ display: 'flex', gap: theme.space(2), alignItems: 'center', flexWrap: 'wrap', marginBottom: 6 }}>
+            <Eyebrow theme={theme}>Capture history</Eyebrow>
+            {model.capture.extraction?.status === 'EXTRACTED' && <Provenance theme={theme} source="ai" label={model.capture.extraction.kind === 'OCR' ? 'AI READ · confirmed by a person' : 'PAGE METADATA · confirmed'} />}
+            {model.capture.classification && model.capture.classification.status !== 'NOT_RUN' && model.capture.classification.status !== 'UNAVAILABLE' && <LvBadge theme={theme} tone="neutral">classification {model.capture.classification.status.toLowerCase()}</LvBadge>}
+          </div>
+          <Facts
+            theme={theme}
+            columns={3}
+            items={[
+              { label: 'Method', value: `${model.capture.methodLabel}${model.capture.platformLabel ? ` · ${model.capture.platformLabel}` : ''}` },
+              { label: 'Captured by', value: model.capture.capturedBy?.displayName ?? 'Team member' },
+              { label: 'Captured at', value: model.capture.capturedAt ? model.capture.capturedAt.replace('T', ' ').slice(0, 16) : lead.createdAt.slice(0, 10) },
+              ...(model.capture.originalHandle ? [{ label: 'Original handle', value: `@${model.capture.originalHandle}` }] : []),
+              ...(model.capture.originalUrl ? [{ label: 'Original link', value: model.capture.originalUrl }] : []),
+              ...(model.capture.extraction && model.capture.extraction.status !== 'NOT_APPLICABLE' ? [{ label: 'Automatic extraction', value: model.capture.extraction.status === 'EXTRACTED' ? `${model.capture.extraction.fieldCount} field${model.capture.extraction.fieldCount === 1 ? '' : 's'} read, reviewed by a person` : humanize(model.capture.extraction.status) }] : []),
+              ...(model.capture.duplicateDecision ? [{ label: 'Duplicate check', value: humanize(model.capture.duplicateDecision.decision) }] : []),
+              ...(model.capture.files.length > 0 ? [{ label: 'Attached', value: model.capture.files.map((file) => file.label ?? 'file').join(', ') }] : []),
+            ]}
+          />
+        </div>
+      )}
       {warnings.length > 0 && (
         <div style={{ marginTop: theme.space(3) }}>
           <div style={{ display: 'flex', gap: theme.space(2), alignItems: 'center', flexWrap: 'wrap', marginBottom: 6 }}>

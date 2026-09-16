@@ -1,7 +1,9 @@
+import { type SocialProfile } from 'src/modules/lv-capture/utils/normalize-input';
 import {
   type FieldProvenance,
   type LeadCaptureMode,
   type LeadSource,
+  type SocialPlatform,
 } from 'src/modules/lv-core/constants/lead-taxonomy';
 import {
   type LeadPriority,
@@ -21,6 +23,11 @@ export type CaptureInput = {
   phone?: string | null;
   websiteUrl?: string | null;
   instagramHandle?: string | null;
+  // Day 8: any other social profile (LinkedIn, Facebook, YouTube, X …) as a
+  // pasted link or handle, with the platform when the link does not say.
+  socialProfileUrl?: string | null;
+  socialPlatform?: SocialPlatform | null;
+  jobTitle?: string | null;
   location?: string | null;
   category?: string | null;
   subcategory?: string | null;
@@ -35,6 +42,12 @@ export type CaptureInput = {
   // Set when a human has eyeballed the values. CAPTURE-OCR.md requires a
   // confirmation step before an extracted lead becomes a real lead.
   isHumanConfirmed?: boolean;
+  // Day 8: which fields an extractor filled and were left unchanged by the
+  // person, so their provenance is recorded as extracted rather than typed.
+  extractedFields?: readonly string[] | null;
+  extractionKind?: 'OCR' | 'PAGE_METADATA' | null;
+  // Set when the category came from the classifier and was accepted as-is.
+  classificationOrigin?: 'AI' | 'USER' | null;
 };
 
 export type FieldProvenanceMap = Readonly<Record<string, FieldProvenance>>;
@@ -48,6 +61,8 @@ export type LeadDraft = {
   phone: string | null;
   websiteUrl: string | null;
   instagramHandle: string | null;
+  socialProfile: SocialProfile | null;
+  jobTitle: string | null;
   location: string | null;
   category: string | null;
   subcategory: string | null;

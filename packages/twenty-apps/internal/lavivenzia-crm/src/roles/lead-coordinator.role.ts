@@ -1,4 +1,4 @@
-import { defineRole, STANDARD_OBJECT_UNIVERSAL_IDENTIFIERS } from 'twenty-sdk/define';
+import { defineRole, STANDARD_OBJECT_UNIVERSAL_IDENTIFIERS, SystemPermissionFlag } from 'twenty-sdk/define';
 
 import {
   ROLE_LEAD_COORDINATOR_ID,
@@ -25,6 +25,9 @@ export default defineRole({
   canBeAssignedToUsers: true,
   canBeAssignedToAgents: false,
   canBeAssignedToApiKeys: true,
+  // Day 8: capturing a lead from a visiting card or screenshot uploads the
+  // photo into the lead's FILES field, and reviewing it later downloads it.
+  permissionFlagUniversalIdentifiers: [SystemPermissionFlag.UPLOAD_FILE, SystemPermissionFlag.DOWNLOAD_FILE],
   objectPermissions: [
     ...AI_PRIVATE_OBJECT_PERMISSIONS,
     {

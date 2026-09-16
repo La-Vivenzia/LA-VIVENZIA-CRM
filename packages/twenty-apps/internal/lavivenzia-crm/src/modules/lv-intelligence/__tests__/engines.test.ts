@@ -48,7 +48,7 @@ const lead = (overrides: Partial<LeadContext['lead']> = {}): LeadContext['lead']
   nextFollowUpAt: new Date(Date.parse(NOW) + 2 * DAY).toISOString(),
   onboardingStatus: null,
   rawCaptureInput: null,
-  duplicateKeys: ['email:host@hilltop.in', 'name:hilltop retreat|lonavala'],
+  duplicateKeys: ['email:host@hilltop.in', 'name:hilltop retreat|lonavala'], jobTitle: null, socialProfiles: null, captureProvenance: null, captureFiles: null,
   createdAt: ago(30),
   updatedAt: ago(1),
   ...overrides,

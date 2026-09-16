@@ -256,3 +256,110 @@ export const normalizeLocation = (raw: string | null | undefined): string | null
 // region list. Case- and punctuation-insensitive.
 export const locationKey = (raw: string | null | undefined): string =>
   normalizeNameForMatching(raw);
+
+// ---------------------------------------------------------------------------
+// Social profiles (Day 8)
+// ---------------------------------------------------------------------------
+
+export type SocialProfile = {
+  platform: 'INSTAGRAM' | 'LINKEDIN' | 'FACEBOOK' | 'YOUTUBE' | 'X' | 'OTHER';
+  // Canonical profile URL, or null when only a handle is known for a
+  // platform whose profile URL shape is not fixed (OTHER).
+  url: string | null;
+  handle: string | null;
+};
+
+const HOST_PLATFORM: ReadonlyArray<[RegExp, SocialProfile['platform']]> = [
+  [/(^|\.)instagram\.com$/i, 'INSTAGRAM'],
+  [/(^|\.)linkedin\.com$/i, 'LINKEDIN'],
+  [/(^|\.)facebook\.com$/i, 'FACEBOOK'],
+  [/(^|\.)fb\.com$/i, 'FACEBOOK'],
+  [/(^|\.)youtube\.com$/i, 'YOUTUBE'],
+  [/(^|\.)twitter\.com$/i, 'X'],
+  [/(^|\.)x\.com$/i, 'X'],
+];
+
+const HANDLE = /^[A-Za-z0-9._-]{2,64}$/;
+
+// Reads a pasted profile link or handle. LinkedIn keeps the path (`in/name`,
+// `company/name`) because that IS the identity; other platforms use the
+// first path segment. A bare handle (with or without @) is accepted when the
+// platform is given or implied by the caller.
+export const parseSocialProfile = (raw: string | null | undefined, assumedPlatform: SocialProfile['platform'] | null = null): SocialProfile | null => {
+  const value = nullIfBlank(raw);
+
+  if (value === null) {
+    return null;
+  }
+
+  const looksLikeUrl = /^(https?:\/\/|www\.)/i.test(value) || /\.[a-z]{2,}\//i.test(value);
+
+  if (!looksLikeUrl) {
+    const handle = value.replace(/^@/, '');
+
+    if (!HANDLE.test(handle)) {
+      return null;
+    }
+
+    const platform = assumedPlatform ?? 'OTHER';
+    const url =
+      platform === 'INSTAGRAM'
+        ? `https://instagram.com/${handle.toLowerCase()}`
+        : platform === 'FACEBOOK'
+          ? `https://facebook.com/${handle}`
+          : platform === 'YOUTUBE'
+            ? `https://youtube.com/@${handle}`
+            : platform === 'X'
+              ? `https://x.com/${handle}`
+              : platform === 'LINKEDIN'
+                ? `https://linkedin.com/in/${handle}`
+                : null;
+
+    return { platform, url, handle: platform === 'INSTAGRAM' ? handle.toLowerCase() : handle };
+  }
+
+  let parsed: URL;
+
+  try {
+    parsed = new URL(/^https?:\/\//i.test(value) ? value : `https://${value}`);
+  } catch {
+    return null;
+  }
+
+  const host = parsed.hostname.toLowerCase().replace(/^www\./, '');
+  const platform = HOST_PLATFORM.find(([pattern]) => pattern.test(host))?.[1] ?? assumedPlatform ?? 'OTHER';
+  const segments = parsed.pathname.split('/').filter((segment) => segment.length > 0);
+
+  if (platform === 'INSTAGRAM') {
+    const handle = parseInstagramHandle(value);
+
+    return handle === null ? null : { platform, url: `https://instagram.com/${handle}`, handle };
+  }
+
+  if (platform === 'LINKEDIN') {
+    const [kind, slug] = segments;
+
+    if ((kind === 'in' || kind === 'company' || kind === 'school') && slug && HANDLE.test(slug)) {
+      return { platform, url: `https://linkedin.com/${kind}/${slug}`, handle: slug };
+    }
+
+    return null;
+  }
+
+  if (platform === 'YOUTUBE') {
+    const first = segments[0] ?? '';
+    const handle = first.startsWith('@') ? first.slice(1) : segments[0] === 'c' || segments[0] === 'channel' || segments[0] === 'user' ? (segments[1] ?? '') : first;
+
+    return handle && HANDLE.test(handle) ? { platform, url: `https://youtube.com/@${handle}`, handle } : null;
+  }
+
+  const first = segments[0] ?? null;
+
+  if (first === null || !HANDLE.test(first) || ['posts', 'p', 'reel', 'share', 'watch', 'status'].includes(first.toLowerCase())) {
+    return platform === 'OTHER' ? { platform, url: parsed.toString(), handle: null } : null;
+  }
+
+  const base = platform === 'FACEBOOK' ? 'https://facebook.com' : platform === 'X' ? 'https://x.com' : `https://${host}`;
+
+  return { platform, url: `${base}/${first}`, handle: first };
+};

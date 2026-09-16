@@ -11,6 +11,7 @@ import {
   deleteFrontComponentStorageItem,
   type FrontComponentExecutionContext,
   type FrontComponentHostCommunicationApi,
+  resolveSerializedFile,
   setFrontComponentStorageItem,
 } from 'twenty-front-component-renderer';
 import {
@@ -493,7 +494,13 @@ export const useFrontComponentExecutionContext = ({
     };
 
   const hostUploadFile: FrontComponentHostCommunicationApi['uploadFile'] =
-    async (file, params) => {
+    async (sandboxFile, params) => {
+      // CM-006 (La Vivenzia): a file picked in the sandbox's <input type="file">
+      // arrives as serialized metadata carrying a host-side handle; resolve it
+      // to the real File the host document still holds. A Blob the sandbox
+      // produced itself (e.g. a recording) passes through unchanged.
+      const file = resolveSerializedFile(sandboxFile);
+
       // Arguments come from sandboxed application code: reject malformed
       // shapes here. fieldMetadataId is mandatory — a file uploaded outside
       // a FILES field could never be attached to a record and would leak.
@@ -541,7 +548,12 @@ export const useFrontComponentExecutionContext = ({
             mimeType: file.type.split(';')[0],
           },
         };
-      } catch {
+      } catch (error) {
+        // CM-006: the sandbox only gets a reason code; keep the cause visible
+        // to whoever is debugging the host.
+        // eslint-disable-next-line no-console
+        console.error('[front-components] uploadFile failed', error);
+
         return { status: 'failed', reason: 'upload-failed' };
       }
     };

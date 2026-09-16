@@ -27,6 +27,7 @@ import {
 } from 'src/modules/lv-core/ui/kit';
 import { badgeToneOf, describeStatus, type StatusKind } from 'src/modules/lv-core/ui/status';
 import { themeFor } from 'src/modules/lv-core/ui/theme';
+import { openCapturePage } from 'src/modules/lv-core/utils/open-capture';
 import { callRoute } from 'src/modules/lv-core/utils/call-route';
 import { type DashboardLens } from 'src/modules/lv-dashboard/services/caller-context';
 import { type DashboardSummary } from 'src/modules/lv-dashboard/services/dashboard-summary';
@@ -143,6 +144,9 @@ export const MyDashboard = () => {
         subtitle={`${heading.subtitle}${summary ? ` Updated ${formatWhen(summary.generatedAt, new Date().toISOString())}.` : ''}`}
         right={
           <>
+            <LvButton theme={theme} variant="gold" size="sm" onClick={() => void openCapturePage()}>
+              Capture lead
+            </LvButton>
             {summary && summary.availableLenses.length > 1 && (
               <Segmented theme={theme} label="Dashboard view" value={lens ?? summary.lens} onChange={(key) => void load(key as DashboardLens)} options={summary.availableLenses.map((option) => ({ key: option, label: LENS_LABEL[option] }))} />
             )}

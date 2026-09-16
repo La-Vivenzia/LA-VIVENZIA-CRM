@@ -340,9 +340,72 @@ Respond with JSON only: {"known": string[], "inferred": string[], "suggested": s
   })),
 };
 
+// ---------------------------------------------------------- capture extraction
+// Day 8. Reads contact fields off a picture (visiting card, screenshot,
+// brochure) or off the public metadata of a web page. Every value carries a
+// confidence and NOTHING extracted becomes a lead until a person has reviewed
+// it — the output is a proposal for the review screen, not a record.
+export type ExtractedField = { value: string | null; confidence: number };
+
+export type CaptureExtractionOutput = {
+  name: ExtractedField;
+  organisationName: ExtractedField;
+  jobTitle: ExtractedField;
+  phone: ExtractedField;
+  email: ExtractedField;
+  websiteUrl: ExtractedField;
+  instagramHandle: ExtractedField;
+  socialProfileUrl: ExtractedField;
+  address: ExtractedField;
+  city: ExtractedField;
+  state: ExtractedField;
+  country: ExtractedField;
+  notes: string;
+};
+
+export const CAPTURE_EXTRACTION_FIELDS = ['name', 'organisationName', 'jobTitle', 'phone', 'email', 'websiteUrl', 'instagramHandle', 'socialProfileUrl', 'address', 'city', 'state', 'country'] as const;
+
+const extractedField = (value: unknown): ExtractedField => {
+  if (!isRecord(value)) {
+    return { value: null, confidence: 0 };
+  }
+
+  const text = optionalString(value.value, 300);
+
+  return { value: text ?? null, confidence: text ? confidence01(value.confidence) ?? 0 : 0 };
+};
+
+export const CAPTURE_EXTRACTION_PROMPT: PromptDefinition<CaptureExtractionOutput> = {
+  id: 'capture-extraction-v1',
+  purpose: 'Read contact details off a visiting card, screenshot or brochure',
+  system: `You read contact information off a single image for a CRM operator who will check every value before anything is saved.
+Return only what is legibly printed in the image. Never guess, complete or normalise a value you cannot read; use null with confidence 0 instead. Do not infer a person's name from an email address, or a city from a phone code.
+Respond with JSON only:
+{"name": F, "organisationName": F, "jobTitle": F, "phone": F, "email": F, "websiteUrl": F, "instagramHandle": F, "socialProfileUrl": F, "address": F, "city": F, "state": F, "country": F, "notes": string}
+where F is {"value": string|null, "confidence": number 0..1}. Keep phone numbers exactly as printed (with country code if printed). instagramHandle is the handle without @. socialProfileUrl is any LinkedIn/Facebook/other profile printed. notes is one short sentence about what the artefact is (e.g. "Visiting card of a homestay owner"), with no personal data.`,
+  maxOutputTokens: 600,
+  temperature: 0,
+  validate: objectValidator((record) => ({
+    name: extractedField(record.name),
+    organisationName: extractedField(record.organisationName),
+    jobTitle: extractedField(record.jobTitle),
+    phone: extractedField(record.phone),
+    email: extractedField(record.email),
+    websiteUrl: extractedField(record.websiteUrl),
+    instagramHandle: extractedField(record.instagramHandle),
+    socialProfileUrl: extractedField(record.socialProfileUrl),
+    address: extractedField(record.address),
+    city: extractedField(record.city),
+    state: extractedField(record.state),
+    country: extractedField(record.country),
+    notes: optionalString(record.notes, 200) ?? '',
+  })),
+};
+
 export const PROMPT_VERSIONS = {
   leadSummary: LEAD_SUMMARY_PROMPT.id,
   classification: LEAD_CLASSIFICATION_PROMPT.id,
+  captureExtraction: CAPTURE_EXTRACTION_PROMPT.id,
   conversationSummary: CONVERSATION_SUMMARY_PROMPT.id,
   briefing: MORNING_BRIEFING_PROMPT.id,
   draft: DRAFT_PROMPT.id,

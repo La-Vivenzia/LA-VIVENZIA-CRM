@@ -1,4 +1,6 @@
 export { FrontComponentRenderer } from '@/host/components/FrontComponentRenderer';
+// CM-006 (La Vivenzia): resolves a sandbox-serialized file back to the host File.
+export { resolveSerializedFile } from '@/host/events/utils/serializedFileRegistry';
 export { FrontComponentInputFocusContext } from '@/host/caret/contexts/FrontComponentInputFocusContext';
 export { type SetEditableFocused } from '@/host/caret/types/SetEditableFocused';
 export { componentRegistry } from '@/host/generated/host-component-registry';

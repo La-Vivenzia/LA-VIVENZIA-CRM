@@ -423,3 +423,64 @@ a direct database update does not.
   Onboarding list, is theirs); a Hunter sees the onboarding on their lead only
   while it has no reviewer or they are the reviewer. This is deliberate — the
   page does not read onboarding with the application role to widen it.
+
+## Universal lead capture (Day 8)
+
+- The five capture routes (`/capture/extract`, `/capture/preflight`,
+  `/capture/create`, `/capture/import/inspect|validate|commit`) are
+  session-only: an API key is `NOT_AUTHENTICATED`. The actor comes from the
+  session; `actorId`, `workspaceMemberId`, `ownerId`, `reviewerId` in a body are
+  never read (`readCaptureInput`). Proven live: a Hunter's body naming the
+  admin as `ownerId` / `actorWorkspaceMemberId` creates the lead owned by the
+  **Hunter**.
+- **Assigning a colleague at capture is an administrator's call.** `assignment
+  { mode: 'MEMBER', memberId }` for anyone but the caller is refused for a
+  non-admin with `POLICY` before anything is written, and audited
+  `ASSIGNMENT_CHANGED : REFUSED`. `SELF` (claim) is open to every lead-writer.
+  ENGINE leaves routing to `lv-on-lead-created`, so the history strategy is the
+  engine's own. An owner set at creation for someone else is notified through
+  the Day 4 intents and dispatcher (`notifyOwnerAssignedAtCapture`) — the
+  one place besides `lv-on-lead-updated` that tells a person they own a lead,
+  because creation-with-owner never passes through `lvLead.updated`.
+- The lead is created **as the caller**: a role without `lvLead` update
+  permission (Onboarding Expert) is refused by the platform (`NOT_PERMITTED`),
+  and CM-004 scopes the duplicate check, the import's CRM comparison and the
+  Lead 360 hand-off. The LV ID is allocated synchronously by the server.
+- **Duplicate gate on the server.** A create without a duplicate decision is
+  re-scanned; candidates → `DUPLICATE_UNDECIDED`, audited
+  `DUPLICATE_DETECTED : REFUSED`. The decision (CREATE_NEW / IGNORED) is
+  audited and stored as a Day 6 DUPLICATE insight with the pair fingerprint.
+  Merging stays on the existing lead's Intelligence tab under its owner's or an
+  admin's permissions — the capture screen never merges.
+- **Idempotency.** `lvLead.captureKey` is unique; a replayed create returns
+  the first lead (`replayed: true`) instead of a second row. Import rows use
+  `importKey:rowNumber`.
+- **Image and file bytes.** The sandboxed capture screen never sees file
+  bytes (CM-006): images and CSVs are uploaded through the platform uploader
+  (which requires the `UPLOAD_FILE` permission flag — granted to Experience
+  Hunter, Lead Coordinator and Operations, together with `DOWNLOAD_FILE`, so
+  the roles that capture leads can attach a card and open it later) into a
+  FILES field, and the routes read them back **only from this server's own
+  signed file URL** (`fetchOwnFile`: same origin as `TWENTY_API_URL`,
+  `/file/files-field/<id>`, token present). Any other URL is refused.
+- **Outbound fetches.** Page metadata is read from public http(s) hosts only
+  (`isFetchableUrl`: loopback, RFC-1918, link-local, `.local`/`.internal`,
+  bare hosts and non-http schemes refused; 6-second timeout; 512 KB cap).
+  Social platforms are never fetched; handles are parsed, not scraped.
+- **Model input.** OCR sends the image itself and the extraction prompt. Draft
+  classification sends the minimised draft (name, organisation, location,
+  source, website, handle, languages, *whether* email/phone exist). Raw
+  email/phone values, notes, `rawCaptureInput` and `captureProvenance` never
+  reach a provider; the Day 6 privacy test is unchanged.
+- **Data quality before creation** is advisory: hints (missing/invalid
+  fields) never block a create — the person decides — except that a lead with
+  nothing identifying (no name, organisation, website or profile) is refused
+  by the draft builder, as since Day 1.
+- Audit: the 17 capture actions listed in DATA-MODEL.md, each with the session
+  actor, written with the application role.
+- Proven live (`src/__tests__/lv-capture.integration-test.ts`,
+  `.notes/d8/d8-browser.mjs`): API-key refusal on every route; owner spoof
+  refused and audited, self-claim succeeds; Onboarding Expert refused;
+  unconfirmed image draft refused; private-address fetch refused; social handle
+  not scraped; undecided duplicate refused; replay idempotent; import re-commit
+  reports EXISTS.

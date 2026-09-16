@@ -142,6 +142,9 @@ export const LEAD_SOURCE_LABELS: Record<LeadSource, string> = {
 // How the record physically entered the CRM. Distinct from LeadSource, which is
 // where the *relationship* came from: a visiting card collected at an event is
 // captureMode VISITING_CARD with source EVENT.
+//
+// Day 8 widened the list to the full universal-capture menu. The first eight
+// values are the Day 1 set and keep their option ids; the rest are additive.
 export const LEAD_CAPTURE_MODES = [
   'MANUAL',
   'WEBSITE_URL',
@@ -151,6 +154,18 @@ export const LEAD_CAPTURE_MODES = [
   'REFERRAL',
   'IMPORT',
   'API',
+  'SCREENSHOT',
+  'INSTAGRAM_POST',
+  'LINKEDIN_PROFILE',
+  'SOCIAL_HANDLE',
+  'BROCHURE',
+  'FLYER',
+  'POSTER',
+  'EVENT',
+  'WALK_IN',
+  'PHONE',
+  'PARTNER_REFERRAL',
+  'OTHER',
 ] as const;
 
 export type LeadCaptureMode = (typeof LEAD_CAPTURE_MODES)[number];
@@ -158,12 +173,45 @@ export type LeadCaptureMode = (typeof LEAD_CAPTURE_MODES)[number];
 export const LEAD_CAPTURE_MODE_LABELS: Record<LeadCaptureMode, string> = {
   MANUAL: 'Manual entry',
   WEBSITE_URL: 'Website URL',
-  INSTAGRAM: 'Instagram',
+  INSTAGRAM: 'Instagram profile',
   IMAGE: 'Image',
   VISITING_CARD: 'Visiting card',
   REFERRAL: 'Referral',
   IMPORT: 'Import',
   API: 'API',
+  SCREENSHOT: 'Screenshot',
+  INSTAGRAM_POST: 'Instagram post',
+  LINKEDIN_PROFILE: 'LinkedIn profile',
+  SOCIAL_HANDLE: 'Social handle',
+  BROCHURE: 'Brochure',
+  FLYER: 'Flyer',
+  POSTER: 'Poster',
+  EVENT: 'Event',
+  WALK_IN: 'Walk-in',
+  PHONE: 'Phone',
+  PARTNER_REFERRAL: 'Partner referral',
+  OTHER: 'Other',
+};
+
+// Modes whose defining input is a picture: the fields come off the artefact
+// (by a person or by extraction) and must be confirmed before the lead is
+// real.
+export const IMAGE_CAPTURE_MODES: readonly LeadCaptureMode[] = ['IMAGE', 'VISITING_CARD', 'SCREENSHOT', 'BROCHURE', 'FLYER', 'POSTER'];
+
+// Modes whose defining input is a link or a handle on a social platform.
+export const SOCIAL_CAPTURE_MODES: readonly LeadCaptureMode[] = ['INSTAGRAM', 'INSTAGRAM_POST', 'LINKEDIN_PROFILE', 'SOCIAL_HANDLE'];
+
+export const SOCIAL_PLATFORMS = ['INSTAGRAM', 'LINKEDIN', 'FACEBOOK', 'YOUTUBE', 'X', 'OTHER'] as const;
+
+export type SocialPlatform = (typeof SOCIAL_PLATFORMS)[number];
+
+export const SOCIAL_PLATFORM_LABELS: Record<SocialPlatform, string> = {
+  INSTAGRAM: 'Instagram',
+  LINKEDIN: 'LinkedIn',
+  FACEBOOK: 'Facebook',
+  YOUTUBE: 'YouTube',
+  X: 'X (Twitter)',
+  OTHER: 'Other',
 };
 
 // CAPTURE-OCR.md "Provenance": every automated extraction must record whether a

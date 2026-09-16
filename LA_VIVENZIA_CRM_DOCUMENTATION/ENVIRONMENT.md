@@ -104,3 +104,37 @@ Administration.
 
 If `tokens.ts` changes, regenerate the stylesheet's token blocks with
 `node scripts/sync-lv-theme-css.mjs` (the unit test fails until you do).
+
+## Universal lead capture (Day 8)
+
+- **Rebuild the renderer after CM-006.** `packages/twenty-front-component-renderer`
+  changed (file handles for `uploadFile`); its `dist/` is what the front-end
+  imports, so on a fresh checkout — or after pulling Day 8 — run the build in
+  the Day 4A note above (plus the declaration step from `project.json` if you
+  need types: `npx tsgo -p tsconfig.lib.json --declaration --emitDeclarationOnly
+  --noEmit false --outDir dist --rootDir src && npx tsc-alias -p tsconfig.lib.json
+  --outDir dist`). Without it image and CSV capture fail with
+  "The upload did not complete (invalid-params)" and the screen offers "Type it
+  instead" — nothing else is affected.
+- **`TWENTY_API_URL` must be the server's own reachable origin** for the logic
+  functions: the capture routes read uploaded images and CSVs back from
+  `${TWENTY_API_URL}/file/files-field/<id>?token=…` and refuse any other origin.
+  In the dev setup this is `http://localhost:3000`; in production it is the
+  server's public URL (which must also be reachable from the server itself —
+  a split-horizon DNS that resolves the public name to nothing from inside the
+  container would break image capture with "The uploaded file could not be
+  read").
+- **Vision OCR and draft classification use the Day 6 provider** (`LV_AI_PROVIDER`
+  / `LV_AI_API_KEY`); the OpenAI and Anthropic dialects both carry images. With
+  no key configured the capture screen states "Unable to extract information
+  automatically" and continues by hand. The model chosen must accept images
+  (e.g. `gpt-4o-mini`, `claude-3-5-sonnet` or later) — a text-only model makes
+  extraction report FAILED with the provider's error, never a made-up result.
+- **Permission flags.** `apply` grants `UPLOAD_FILE` and `DOWNLOAD_FILE` to
+  Experience Hunter, Lead Coordinator and Operations. Workspaces that customised
+  those roles by hand need the two flags added in Settings → Roles for image
+  capture and CSV import to work for them.
+- Outbound: page-metadata extraction fetches public websites from the server
+  (6-second timeout, 512 KB). Nothing else leaves the server; social platforms
+  are never contacted.
+- No new server variables, no queue, no cron.

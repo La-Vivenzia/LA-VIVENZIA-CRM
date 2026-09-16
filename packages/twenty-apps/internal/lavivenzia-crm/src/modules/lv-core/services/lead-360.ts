@@ -1,5 +1,6 @@
 import { type CallerContext, type DashboardLens } from 'src/modules/lv-dashboard/services/caller-context';
 import { type LeadStatus, isLeadStatus } from 'src/modules/lv-core/constants/lead-lifecycle';
+import { LEAD_CAPTURE_MODE_LABELS, type LeadCaptureMode, SOCIAL_PLATFORM_LABELS, type SocialPlatform } from 'src/modules/lv-core/constants/lead-taxonomy';
 import { isClosedOrArchived, SETTABLE_STATUSES } from 'src/modules/lv-governance/services/governance';
 import { type DataQualityResult } from 'src/modules/lv-intelligence/engines/data-quality';
 import { type NextBestActionResult } from 'src/modules/lv-intelligence/engines/next-best-action';
@@ -33,6 +34,9 @@ export type Lead360Capabilities = {
   canWorkOnboarding: boolean;
   canReviewDocuments: boolean;
   canViewIntelligence: boolean;
+  // Day 8: may open Capture Lead (create permission on lvLead; the capture
+  // routes re-check on every write).
+  canCapture: boolean;
 };
 
 export type TaskSummary = {
@@ -175,6 +179,55 @@ export type Lead360Model = {
   assignment: { history: (AssignmentHistoryRow & { from: MemberSummary | null; to: MemberSummary | null })[] };
   members: MemberSummary[];
   attention: Lead360Attention;
+  // Day 8: how the lead entered the CRM. Null for leads created before
+  // capture provenance existed (or through the API / native importer).
+  capture: CaptureSummary | null;
+};
+
+export type CaptureSummary = {
+  method: string;
+  methodLabel: string;
+  platform: string | null;
+  platformLabel: string | null;
+  originalUrl: string | null;
+  originalHandle: string | null;
+  capturedAt: string | null;
+  capturedBy: MemberSummary | null;
+  extraction: { status: string; kind: string | null; fieldCount: number } | null;
+  classification: { status: string } | null;
+  duplicateDecision: { decision: string; candidateLeadIds: string[] } | null;
+  files: { fileId: string; label: string | null }[];
+};
+
+const str = (value: unknown): string | null => (typeof value === 'string' && value.length > 0 ? value : null);
+
+export const summariseCapture = (lead: Pick<LeadContext['lead'], 'captureProvenance' | 'captureFiles' | 'captureMode'>, member: (id: string | null | undefined) => MemberSummary | null): CaptureSummary | null => {
+  const raw = lead.captureProvenance;
+
+  if (!raw || typeof raw !== 'object') {
+    return null;
+  }
+
+  const method = str(raw.method) ?? lead.captureMode ?? 'MANUAL';
+  const platform = str(raw.platform);
+  const extraction = raw.extraction && typeof raw.extraction === 'object' ? (raw.extraction as Record<string, unknown>) : null;
+  const classification = raw.classification && typeof raw.classification === 'object' ? (raw.classification as Record<string, unknown>) : null;
+  const duplicate = raw.duplicateDecision && typeof raw.duplicateDecision === 'object' ? (raw.duplicateDecision as Record<string, unknown>) : null;
+
+  return {
+    method,
+    methodLabel: LEAD_CAPTURE_MODE_LABELS[method as LeadCaptureMode] ?? titleCase(method),
+    platform,
+    platformLabel: platform ? (SOCIAL_PLATFORM_LABELS[platform as SocialPlatform] ?? titleCase(platform)) : null,
+    originalUrl: str(raw.originalUrl),
+    originalHandle: str(raw.originalHandle),
+    capturedAt: str(raw.capturedAt),
+    capturedBy: member(str(raw.capturedById)),
+    extraction: extraction ? { status: str(extraction.status) ?? 'NOT_APPLICABLE', kind: str(extraction.kind), fieldCount: typeof extraction.fieldCount === 'number' ? extraction.fieldCount : 0 } : null,
+    classification: classification ? { status: str(classification.status) ?? 'NOT_RUN' } : null,
+    duplicateDecision: duplicate && str(duplicate.decision) && str(duplicate.decision) !== 'NONE' ? { decision: str(duplicate.decision)!, candidateLeadIds: Array.isArray(duplicate.candidateLeadIds) ? duplicate.candidateLeadIds.filter((id): id is string => typeof id === 'string') : [] } : null,
+    files: (lead.captureFiles ?? []).map((file) => ({ fileId: file.fileId, label: file.label ?? null })),
+  };
 };
 
 export const LEAD_360_LIMITS = { timeline: 30, tasks: 8, interactions: 10, members: 100 } as const;
@@ -238,6 +291,7 @@ export const deriveCapabilities = ({
     canWorkOnboarding,
     canReviewDocuments: canWorkOnboarding && (isReviewer || caller.isAdmin || onboarding?.reviewerId === null),
     canViewIntelligence: true,
+    canCapture: canEditLead,
   };
 };
 
@@ -261,7 +315,22 @@ export const buildTimeline = ({
   const entries: TimelineEntry[] = [];
   const { lead } = context;
 
-  entries.push({ id: `created-${lead.id}`, kind: 'LEAD_CREATED', at: lead.createdAt, title: 'Lead created', detail: lead.source ? `Source: ${titleCase(lead.source)}` : null, tone: 'neutral', target: null });
+  const capture = summariseCapture(lead, (id) => (id ? (memberById.get(id) ?? null) : null));
+  const captureDetail = capture
+    ? [
+        `Captured via ${capture.methodLabel}${capture.platformLabel ? ` (${capture.platformLabel})` : ''}`,
+        capture.capturedBy ? `by ${capture.capturedBy.displayName}` : null,
+        capture.originalHandle ? `@${capture.originalHandle}` : capture.originalUrl,
+        capture.extraction && capture.extraction.status === 'EXTRACTED' ? `${capture.extraction.fieldCount} field${capture.extraction.fieldCount === 1 ? '' : 's'} read automatically and confirmed` : capture.extraction && capture.extraction.status !== 'NOT_APPLICABLE' ? `automatic extraction ${capture.extraction.status.toLowerCase()}` : null,
+        capture.duplicateDecision ? `duplicate check: ${titleCase(capture.duplicateDecision.decision).toLowerCase()}` : null,
+      ]
+        .filter(Boolean)
+        .join(' · ')
+    : lead.source
+      ? `Source: ${titleCase(lead.source)}`
+      : null;
+
+  entries.push({ id: `created-${lead.id}`, kind: 'LEAD_CREATED', at: lead.createdAt, title: 'Lead created', detail: captureDetail, tone: 'neutral', target: null });
 
   for (const row of assignmentHistory) {
     if (!row.assignedAt) {
@@ -526,5 +595,6 @@ export const composeLead360 = ({
       missingDocuments: onboarding !== null && (onboarding.rejectedDocuments > 0 || onboarding.expiredDocuments > 0 || (onboarding.status !== 'NOT_STARTED' && onboarding.documents.length === 0)),
       noInteraction: context.interactions.length === 0,
     },
+    capture: summariseCapture(lead, member),
   };
 };

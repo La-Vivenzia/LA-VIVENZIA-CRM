@@ -61,7 +61,7 @@ const lead = (overrides: Partial<LeadContext['lead']> = {}): LeadContext['lead']
   nextFollowUpAt: null,
   onboardingStatus: null,
   rawCaptureInput: null,
-  duplicateKeys: [],
+  duplicateKeys: [], jobTitle: null, socialProfiles: null, captureProvenance: null, captureFiles: null,
   createdAt: ago(30),
   updatedAt: ago(1),
   ...overrides,

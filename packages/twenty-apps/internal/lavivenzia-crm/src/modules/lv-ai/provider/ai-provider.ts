@@ -32,7 +32,14 @@ export type AiRequest = {
   temperature?: number;
   // When true the provider asks for JSON and the caller parses/validates it.
   json?: boolean;
+  // Day 8: images the model should look at (visiting cards). Sent inline as
+  // base64; the caller has already bounded their size and type. A provider
+  // whose model cannot see images answers AI_INVALID_RESPONSE rather than
+  // guessing.
+  images?: readonly AiImageInput[];
 };
+
+export type AiImageInput = { mimeType: 'image/jpeg' | 'image/png' | 'image/webp'; base64: string };
 
 export type AiSuccess<T> = {
   ok: true;

@@ -574,3 +574,30 @@ export const NAV_OPPORTUNITIES_ID = 'bd5ec4ed-e2a7-45d0-b2a7-3e6c7b080b5f';
 export const NAV_DASHBOARDS_ID = 'fa7d0300-bfdb-4a59-b87a-ff8ecc176abc';
 export const NAV_WORKFLOW_RUNS_ID = '6116d102-38a3-4222-a340-2c2d936bdea5';
 export const NAV_WORKFLOW_VERSIONS_ID = '8f659941-2eeb-4574-bb2b-fb3bdf721ee7';
+
+// Day 8 — universal lead capture.
+export const LEAD_SOCIAL_PROFILES_FIELD_ID = '89f5b5ec-eb8b-4983-b00e-2dd94996a66d';
+export const LEAD_JOB_TITLE_FIELD_ID = '6b2d7ef2-a640-415c-aa65-c485a5f5f0b7';
+export const LEAD_CAPTURE_PROVENANCE_FIELD_ID = '24b5a87f-2467-4ca4-9a35-5c736715ec41';
+export const LEAD_CAPTURE_KEY_FIELD_ID = 'a9da5164-eae8-4a10-a993-88d363040001';
+export const LEAD_CAPTURE_FILES_FIELD_ID = 'cec05fc1-2cca-412f-af1c-9dccb9cf6fc6';
+export const FN_CAPTURE_EXTRACT_ID = 'f8731f7e-bc25-444a-a15b-ce8727b051dc';
+export const FN_CAPTURE_PREFLIGHT_ID = 'a36112d8-5afb-4e4a-93f7-caf256ef27c8';
+
+export const FN_CAPTURE_CREATE_ID = '413f8f3c-1685-44a7-bfef-33d32ece47bb';
+export const FN_CAPTURE_IMPORT_VALIDATE_ID = '761979cb-034d-4696-82c6-fa0f251b271b';
+export const FN_CAPTURE_IMPORT_COMMIT_ID = '4681690e-f87d-4322-b677-a6f6c18963ac';
+
+
+// Day 8 — CSV import batches (the uploaded file, its mapping, validation summary and report).
+export const IMPORT_BATCH_OBJECT_ID = 'd796d1f8-08e0-4702-a7f0-083321a3837c';
+export const IMPORT_BATCH_NAME_ID = '8baa5d9c-7358-4ffa-92ff-9475ea3e09e7';
+export const IMPORT_BATCH_KEY_ID = '50fb7a09-cad4-48f4-9ff8-7d0073a63d80';
+export const IMPORT_BATCH_FILE_ID = 'c3362583-b2fa-4576-aeed-b428118b1c1f';
+export const IMPORT_BATCH_STATUS_ID = '6c4fcca7-3984-4190-ae1d-40e89d7fcf95';
+export const IMPORT_BATCH_ROW_COUNT_ID = 'e964128d-3cff-4305-b094-a4b708408acc';
+export const IMPORT_BATCH_MAPPING_ID = '14ed1df8-60fb-4bdd-869f-8355a74ff71c';
+export const IMPORT_BATCH_SUMMARY_ID = 'd28008e1-2510-4472-8137-b56182c0eae9';
+export const IMPORT_BATCH_REPORT_ID = '3aee8d1a-b0f0-4122-8204-0a4ab0f051a2';
+export const IMPORT_BATCH_IMPORTED_BY_ID = '494c1b03-58cf-45a3-bbc7-69446eddb705';
+export const FN_CAPTURE_IMPORT_INSPECT_ID = '5e9916de-c297-4814-9726-ea1bd2c85f2e';

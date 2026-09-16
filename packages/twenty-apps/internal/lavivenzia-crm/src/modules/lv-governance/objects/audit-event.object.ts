@@ -54,6 +54,26 @@ export const GOVERNANCE_ACTIONS = [
   'TASK_COMPLETED',
   'TASK_RESCHEDULED',
   'NOTE_CREATED',
+  // Day 8 — universal capture and import. Every step a person takes between
+  // "I met someone" and "there is a lead with an owner and a next action".
+  'CAPTURE_STARTED',
+  'CAPTURE_EXTRACTED',
+  'CAPTURE_REVIEWED',
+  'CLASSIFICATION_ACCEPTED',
+  'CLASSIFICATION_EDITED',
+  'CLASSIFICATION_REJECTED',
+  'DUPLICATE_DETECTED',
+  'DUPLICATE_MERGED',
+  'DUPLICATE_IGNORED',
+  'DUPLICATE_CREATED_NEW',
+  'LEAD_CREATED',
+  'ASSIGNMENT_RECOMMENDED',
+  'ASSIGNMENT_ACCEPTED',
+  'ASSIGNMENT_CHANGED',
+  'ASSIGNMENT_FAILED',
+  'IMPORT_STARTED',
+  'IMPORT_COMPLETED',
+  'IMPORT_FAILED',
 ] as const;
 
 export type GovernanceAction = (typeof GOVERNANCE_ACTIONS)[number];
@@ -73,6 +93,24 @@ const ACTION_OPTIONS: SelectOption[] = [
   { id: 'a1b2c3d4-0001-4a00-8000-000000000012', value: 'TASK_COMPLETED', label: 'Task completed', position: 11, color: 'green' },
   { id: 'a1b2c3d4-0001-4a00-8000-000000000013', value: 'TASK_RESCHEDULED', label: 'Task rescheduled', position: 12, color: 'yellow' },
   { id: 'a1b2c3d4-0001-4a00-8000-000000000014', value: 'NOTE_CREATED', label: 'Note added', position: 13, color: 'gray' },
+  { id: 'a1b2c3d4-0001-4a00-8000-000000000015', value: 'CAPTURE_STARTED', label: 'Capture started', position: 14, color: 'blue' },
+  { id: 'a1b2c3d4-0001-4a00-8000-000000000016', value: 'CAPTURE_EXTRACTED', label: 'Capture extracted', position: 15, color: 'blue' },
+  { id: 'a1b2c3d4-0001-4a00-8000-000000000017', value: 'CAPTURE_REVIEWED', label: 'Capture reviewed', position: 16, color: 'blue' },
+  { id: 'a1b2c3d4-0001-4a00-8000-000000000018', value: 'CLASSIFICATION_ACCEPTED', label: 'Classification accepted', position: 17, color: 'green' },
+  { id: 'a1b2c3d4-0001-4a00-8000-000000000019', value: 'CLASSIFICATION_EDITED', label: 'Classification edited', position: 18, color: 'yellow' },
+  { id: 'a1b2c3d4-0001-4a00-8000-000000000020', value: 'CLASSIFICATION_REJECTED', label: 'Classification rejected', position: 19, color: 'gray' },
+  { id: 'a1b2c3d4-0001-4a00-8000-000000000021', value: 'DUPLICATE_DETECTED', label: 'Duplicate detected', position: 20, color: 'orange' },
+  { id: 'a1b2c3d4-0001-4a00-8000-000000000022', value: 'DUPLICATE_MERGED', label: 'Duplicate merged', position: 21, color: 'purple' },
+  { id: 'a1b2c3d4-0001-4a00-8000-000000000023', value: 'DUPLICATE_IGNORED', label: 'Duplicate ignored', position: 22, color: 'gray' },
+  { id: 'a1b2c3d4-0001-4a00-8000-000000000024', value: 'DUPLICATE_CREATED_NEW', label: 'Created despite duplicate', position: 23, color: 'yellow' },
+  { id: 'a1b2c3d4-0001-4a00-8000-000000000025', value: 'LEAD_CREATED', label: 'Lead created', position: 24, color: 'green' },
+  { id: 'a1b2c3d4-0001-4a00-8000-000000000026', value: 'ASSIGNMENT_RECOMMENDED', label: 'Assignment recommended', position: 25, color: 'sky' },
+  { id: 'a1b2c3d4-0001-4a00-8000-000000000027', value: 'ASSIGNMENT_ACCEPTED', label: 'Assignment accepted', position: 26, color: 'green' },
+  { id: 'a1b2c3d4-0001-4a00-8000-000000000028', value: 'ASSIGNMENT_CHANGED', label: 'Assignment changed', position: 27, color: 'purple' },
+  { id: 'a1b2c3d4-0001-4a00-8000-000000000029', value: 'ASSIGNMENT_FAILED', label: 'Assignment failed', position: 28, color: 'red' },
+  { id: 'a1b2c3d4-0001-4a00-8000-000000000030', value: 'IMPORT_STARTED', label: 'Import started', position: 29, color: 'blue' },
+  { id: 'a1b2c3d4-0001-4a00-8000-000000000031', value: 'IMPORT_COMPLETED', label: 'Import completed', position: 30, color: 'green' },
+  { id: 'a1b2c3d4-0001-4a00-8000-000000000032', value: 'IMPORT_FAILED', label: 'Import failed', position: 31, color: 'red' },
 ];
 
 const OUTCOME_OPTIONS: SelectOption[] = [

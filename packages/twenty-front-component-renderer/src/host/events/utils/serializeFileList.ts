@@ -1,5 +1,6 @@
 import { isNumber, isObject, isString } from '@sniptt/guards';
 
+import { registerSerializedFile } from '@/host/events/utils/serializedFileRegistry';
 import { type SerializedFileData } from '@/types/SerializedFileData';
 
 export const serializeFileList = (
@@ -33,6 +34,10 @@ export const serializeFileList = (
       size: fileRecord.size,
       type: fileRecord.type,
       lastModified: fileRecord.lastModified,
+      // CM-006: a handle the sandbox can pass back to uploadFile.
+      ...(file instanceof Blob
+        ? { handle: registerSerializedFile(file as File) }
+        : {}),
     });
   }
 

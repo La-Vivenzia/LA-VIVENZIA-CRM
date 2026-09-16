@@ -212,11 +212,16 @@ export class HttpChatProvider implements AiProvider {
   }
 
   private openaiRequest(request: AiRequest, maxOutputTokens: number, temperature: number): { url: string; init: RequestInit } {
+    const images = request.images ?? [];
+    const userContent =
+      images.length === 0
+        ? request.user
+        : [{ type: 'text', text: request.user }, ...images.map((image) => ({ type: 'image_url', image_url: { url: `data:${image.mimeType};base64,${image.base64}` } }))];
     const body: Record<string, unknown> = {
       model: this.model,
       messages: [
         { role: 'system', content: request.system },
-        { role: 'user', content: request.user },
+        { role: 'user', content: userContent },
       ],
       max_tokens: maxOutputTokens,
       temperature,
@@ -249,7 +254,15 @@ export class HttpChatProvider implements AiProvider {
         body: JSON.stringify({
           model: this.model,
           system: request.json ? `${request.system}\nRespond with a single JSON object and nothing else.` : request.system,
-          messages: [{ role: 'user', content: request.user }],
+          messages: [
+            {
+              role: 'user',
+              content:
+                (request.images ?? []).length === 0
+                  ? request.user
+                  : [...(request.images ?? []).map((image) => ({ type: 'image', source: { type: 'base64', media_type: image.mimeType, data: image.base64 } })), { type: 'text', text: request.user }],
+            },
+          ],
           max_tokens: maxOutputTokens,
           temperature,
         }),

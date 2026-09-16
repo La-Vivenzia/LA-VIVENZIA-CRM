@@ -515,3 +515,63 @@ Two more presentation-only touches, same rationale and rollback:
 | `modules/auth/components/Logo.tsx` | On a single-product install the workspace logo *replaces* the default product icon on the sign-in page rather than sitting on it as a badge (both are the La Vivenzia mark). Instances with a custom primary logo keep the badge. |
 | `modules/object-record/record-table/empty-state/utils/getEmptyStateSubTitle.ts` | Empty-list subtitle no longer says "Use our API or add … manually". |
 | `src/lv/lv-theme.css` | Twenty's blue empty-state illustrations are tinted toward pine with a CSS filter; the PNG assets are untouched. SELECT option chips (the `--t-tag-*` palette) are remapped to muted, brand-harmonious tints with AA text contrast in both schemes. |
+
+## CM-006 — Files picked inside a front component can reach `uploadFile`
+
+| | |
+|---|---|
+| **Date** | 2026-09-16 (Day 8) |
+| **Requested by** | Day 8 brief: image capture "PHOTO → OCR → REVIEW → CONFIRM", reusing the existing file infrastructure |
+| **Reviewer** | *pending* |
+| **Issue / PR** | *pending* |
+
+### Requirement
+
+Capturing a lead from a visiting card or screenshot means a person picks (or
+photographs) an image inside the Capture Lead front component, the image is
+stored on the lead (`captureFiles`, a FILES field) and the server reads it for
+extraction.
+
+### Why an app extension is insufficient
+
+Front components run in a sandboxed worker (`twenty-front-component-renderer`).
+When a person picks a file in the component's `<input type="file">`, the host
+serialises the change event and the worker receives **only metadata** —
+`{ name, size, type, lastModified }` (`serializeFileList.ts`). The bytes never
+leave the host document, there is no `FileReader` over them, and the worker
+lives in an opaque-origin iframe (`sandbox="allow-scripts"`), so a `blob:` URL
+would be unreachable too. The SDK's `uploadFile(file, …)` therefore failed
+with `invalid-params` for anything an application picked from a file input;
+the only Blob a component could ever upload was one it produced itself (the
+media-notes example records audio through the host's MediaRecorder polyfill).
+
+### What changed — a bounded host-side handle, no new permission
+
+| File | Change |
+|---|---|
+| `packages/twenty-front-component-renderer/src/host/events/utils/serializedFileRegistry.ts` (new) | The host keeps the real `File` objects from a file-input change event in a small registry (32 entries, 30-minute TTL) keyed by a random UUID **handle**. `resolveSerializedFile(candidate)` returns the File for a handle, or passes a real Blob through. |
+| `…/host/events/utils/serializeFileList.ts` | Each serialised file now carries its `handle`. |
+| `…/src/types/SerializedFileData.ts` | `handle?: string`. |
+| `…/src/index.ts` | Exports `resolveSerializedFile`. |
+| `packages/twenty-front/src/modules/front-components/hooks/useFrontComponentExecutionContext.ts` | `hostUploadFile` resolves the sandbox's argument through `resolveSerializedFile` before the existing checks (Blob, non-empty, FILES field target). The failure cause is now logged on the host (`[front-components] uploadFile failed`) — the sandbox still only gets the reason code. |
+
+Nothing else changes: the upload still goes through `useDirectFileUpload`
+into a FILES field, still requires the `UPLOAD_FILE` permission flag, and the
+sandbox still never sees bytes. A handle is unguessable, only ever refers to a
+file the person picked in that page, and expires.
+
+### Verification
+
+- Day 8 browser scenario 2 (`.notes/d8/d8-browser.mjs`): a PNG picked in the
+  Capture Lead component is uploaded into `lvLead.captureFiles`, the server
+  reads it back from its own signed file URL for extraction, and the lead is
+  created with the image attached (`captureFiles` length 1).
+- `twenty-front` typecheck: unchanged error count (pre-existing implicit-any
+  errors in the same hook are not from this change).
+
+### Rollback plan
+
+Revert the five files; rebuild the renderer package (`npx vite build` +
+declarations in `packages/twenty-front-component-renderer`). Image capture
+then degrades to "Type it instead" — the component already handles a failed
+upload honestly.

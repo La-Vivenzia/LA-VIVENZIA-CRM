@@ -5,7 +5,7 @@ import { FN_TASK_CREATE_ID } from 'src/constants/universal-identifiers';
 import { isLeadPriority, type LeadPriority } from 'src/modules/lv-core/constants/lead-lifecycle';
 import { readRouteInput } from 'src/modules/lv-core/utils/route-event';
 import { dueAtFor, quickAction } from 'src/modules/lv-followups/utils/quick-actions';
-import { writeAuditEvent } from 'src/modules/lv-governance/services/audit-log';
+import { createLeadTask } from 'src/modules/lv-followups/services/create-lead-task';
 
 // POST /tasks/create { leadId, title?, description?, dueAt?, priority?, assigneeId?, quickAction?, timezoneOffsetMinutes?, sourceInteractionId? }
 //
@@ -86,64 +86,13 @@ export const handler = async (event: unknown): Promise<Record<string, unknown>> 
   }
 
   const label = `${lead.lvLeadId ?? ''} ${lead.name ?? ''}`.trim() || lead.id;
-  let taskId: string | null = null;
+  const outcome = await createLeadTask(delegated, application, actorWorkspaceMemberId, { leadId: lead.id, leadLabel: label, title, description, dueAt, priority, assigneeId, sourceInteractionId, quickActionKey: preset?.key ?? null, origin: 'LEAD_360' }, now);
 
-  try {
-    const created = await delegated.mutation({
-      createTask: {
-        __args: {
-          data: {
-            title,
-            bodyV2: { markdown: description },
-            dueAt,
-            status: 'TODO',
-            assigneeId,
-            lvPriority: priority,
-            lvSourceInteractionId: sourceInteractionId,
-          },
-        },
-        id: true,
-      },
-    });
-
-    taskId = (created as { createTask?: { id?: string } }).createTask?.id ?? null;
-
-    if (taskId) {
-      await delegated.mutation({ createTaskTarget: { __args: { data: { taskId, targetLvLeadId: lead.id } }, id: true } });
-    }
-  } catch (error) {
-    await writeAuditEvent(application, {
-      action: 'TASK_CREATED',
-      outcome: 'REFUSED',
-      targetObject: 'lvLead',
-      targetRecordId: lead.id,
-      targetLabel: label,
-      actorWorkspaceMemberId,
-      at: now,
-      reason: null,
-      metadata: { title, error: 'permission', taskId },
-    });
-
-    return { ok: false, refusal: 'NOT_PERMITTED', error: 'Your role cannot create tasks on this lead.', detail: error instanceof Error ? error.message.slice(0, 160) : undefined };
+  if (!outcome.ok) {
+    return outcome.refusal === 'NOT_PERMITTED' ? { ok: false, refusal: 'NOT_PERMITTED', error: outcome.error, detail: outcome.detail } : { ok: false, error: outcome.error };
   }
 
-  if (taskId === null) {
-    return { ok: false, error: 'The task was not created.' };
-  }
-
-  const auditId = await writeAuditEvent(application, {
-    action: 'TASK_CREATED',
-    outcome: 'APPLIED',
-    targetObject: 'lvLead',
-    targetRecordId: lead.id,
-    targetLabel: label,
-    actorWorkspaceMemberId,
-    at: now,
-    reason: null,
-    metadata: { taskId, title, dueAt, priority, assigneeId, quickAction: preset?.key ?? null },
-  });
-
-  return { ok: true, taskId, title, dueAt, priority, assigneeId, auditId };
+  return { ok: true, taskId: outcome.taskId, title, dueAt, priority, assigneeId, auditId: outcome.auditId };
 };
 
 export default defineLogicFunction({

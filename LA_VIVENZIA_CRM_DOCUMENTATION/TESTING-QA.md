@@ -386,3 +386,55 @@ for human review); the widths 320 / 768 / 1024 / 1920 were checked by hand
 on the dashboard and Lead 360 only; screen-reader testing was not run —
 the accessibility work is structural (roles, labels, live regions, focus
 rings) and asserted by inspection.
+
+## Day 8 — universal lead capture: verified by real execution
+
+**Unit** `npx vitest run --project unit`: 48 files / 999 tests (36 new
+across `lv-capture/__tests__/universal-capture.test.ts` — capture
+methods, social profile parsing, draft modes and provenance, request parsing
+never reading identity, quality hints, image/URL extraction incl. the SSRF
+guard and page-metadata parser, RFC-4180 CSV parser, column auto-mapping, import
+validation with in-file duplicates — and `capture-state.test.ts` — the screen's
+state machine, the import state machine, the Lead 360 capture summary — and
+`ai-provider.test.ts` — image parts in the OpenAI and Anthropic request shapes).
+
+**Integration** `--project integration --no-file-parallelism` against the live
+server with real sessions: 7 files / 52 tests, 10 new in
+`lv-capture.integration-test.ts` (API-key refusal on every capture route;
+manual preflight → create → LV ID → task → provenance → audit → idempotent
+replay; owner spoof refused with POLICY and audited, self-claim succeeds as the
+session member; Onboarding Expert refused by the platform; unconfirmed image
+draft refused; image extraction honest about the provider (UNAVAILABLE without
+a key — the assertion accepts EXTRACTED with an audited run when a key exists);
+URL extraction of example.com, private address refused, Instagram handle kept
+but not scraped; duplicate detected before creation, undecided create refused,
+CREATE_NEW recorded as insight + audit; CSV validate (valid / warning / error /
+in-file duplicate / CRM duplicate) → commit creates only accepted rows → re-commit
+reports EXISTS; Lead 360 capture summary and timeline).
+
+**Browser** (`.notes/d8/d8-browser.mjs`, Playwright, real logins, real files,
+fixtures destroyed afterwards): nine scenarios — mobile manual capture at 390;
+visiting-card photo through the platform uploader (CM-006) with the honest
+"unable to extract" path and the image attached; URL capture; duplicate
+detection → open existing / ignore with the decision recorded; assignment
+recommendation with reasons → engine assignment → notification; admin manual
+assignment → notification; CSV import end to end (upload → map → validate →
+review → import → report with LV IDs); Hunter security (colleague assignment
+refused, self-claim allowed); responsive sweep at 320 / 390 / 768 / 1024 / 1440 /
+1920 with zero horizontal overflow and ≥ 44 px primary actions, Lead 360
+capture history, dashboard and Lead 360 entry points. Result and screenshots in
+`DAY_8_LEAD_CAPTURE.md` §5 and `.notes/d8/shots/`.
+
+**Regression:** Day 5 (`regress/d5-browser.mjs`), Day 6 (`d6/d6-browser.mjs`)
+and Day 7 (`d7/d7-browser.mjs`, its Quick Add scenario rewritten for the
+capture flow) re-run after the change; the Day 6 privacy test is unchanged and
+passing; `tsc` and `oxlint` clean in the application; front-end `tsc` unchanged
+(pre-existing errors only).
+
+**Provider-dependent, not mocked:** vision OCR and draft classification. In the
+dev workspace no `LV_AI_API_KEY` is configured, so those paths are verified for
+their honest UNAVAILABLE behaviour; the request shapes (image parts for the
+OpenAI and Anthropic dialects) are unit-tested, the live call is not.
+
+**Not covered:** PDF extraction (not implemented); voice capture (not
+implemented); Twenty's native importer (untouched).

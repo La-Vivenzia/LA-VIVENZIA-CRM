@@ -11,6 +11,8 @@ import {
   normalizeWebsiteUrl,
   nullIfBlank,
   parseInstagramHandle,
+  parseSocialProfile,
+  type SocialProfile,
   websiteDomain,
 } from 'src/modules/lv-capture/utils/normalize-input';
 import {
@@ -20,9 +22,13 @@ import {
   type LeadStatus,
 } from 'src/modules/lv-core/constants/lead-lifecycle';
 import {
+  IMAGE_CAPTURE_MODES,
+  isLeadCategory,
   isLeadSource,
+  LEAD_SUBCATEGORIES_BY_CATEGORY,
   type FieldProvenance,
   type LeadCaptureMode,
+  type LeadCategory,
   type LeadSource,
 } from 'src/modules/lv-core/constants/lead-taxonomy';
 import { buildDuplicateKeys } from 'src/modules/lv-core/utils/duplicate-detection';
@@ -34,10 +40,7 @@ import { buildDuplicateKeys } from 'src/modules/lv-core/utils/duplicate-detectio
 // Modes whose defining input is a machine-read artefact. CAPTURE-OCR.md
 // requires "Always show confirmation before creation", so a draft from these
 // modes is marked for human review regardless of how complete it looks.
-const MODES_REQUIRING_CONFIRMATION = new Set<LeadCaptureMode>([
-  'IMAGE',
-  'VISITING_CARD',
-]);
+const MODES_REQUIRING_CONFIRMATION = new Set<LeadCaptureMode>(IMAGE_CAPTURE_MODES);
 
 // Which source a mode implies when the caller does not state one. A hunter who
 // pastes an Instagram link is telling us the source; a hunter photographing a
@@ -51,7 +54,25 @@ const DEFAULT_SOURCE_BY_MODE: Record<LeadCaptureMode, LeadSource> = {
   REFERRAL: 'REFERRAL',
   IMPORT: 'IMPORTED',
   API: 'WEBSITE',
+  SCREENSHOT: 'OTHER',
+  INSTAGRAM_POST: 'INSTAGRAM',
+  LINKEDIN_PROFILE: 'LINKEDIN',
+  SOCIAL_HANDLE: 'OTHER',
+  BROCHURE: 'EVENT',
+  FLYER: 'EVENT',
+  POSTER: 'EVENT',
+  EVENT: 'EVENT',
+  WALK_IN: 'WALK_IN',
+  PHONE: 'PHONE',
+  PARTNER_REFERRAL: 'PARTNER_REFERRAL',
+  OTHER: 'OTHER',
 };
+
+// Which fields an extractor (OCR / page metadata) may have filled. Their
+// provenance is recorded as extracted rather than typed, so a reviewer knows
+// what to trust — unless the person changed the value, which makes it theirs.
+const extractedProvenance = (input: CaptureInput, field: string): FieldProvenance =>
+  input.extractedFields?.includes(field) ? (input.extractionKind === 'OCR' ? 'OCR_EXTRACTED' : 'DERIVED') : 'USER_ENTERED';
 
 // Fields that make a lead workable. Completeness is the share of these present
 // — a plain, explainable number, NOT an "AI score".
@@ -115,24 +136,39 @@ export const buildLeadDraft = (input: CaptureInput): CaptureResult => {
     }
   }
 
-  if (input.captureMode === 'INSTAGRAM' && instagramHandle === null) {
+  if ((input.captureMode === 'INSTAGRAM' || input.captureMode === 'INSTAGRAM_POST') && instagramHandle === null) {
     instagramHandle = parseInstagramHandle(rawInput);
 
     if (instagramHandle === null) {
       errors.push(
-        'A valid Instagram handle or profile URL is required. Post and reel links do not identify an account.',
+        input.captureMode === 'INSTAGRAM_POST'
+          ? 'A post or reel link does not identify an account. Add the profile handle (e.g. @name) so the lead can be found again.'
+          : 'A valid Instagram handle or profile URL is required. Post and reel links do not identify an account.',
       );
     }
   }
 
+  // Other social platforms: the profile is kept as a link plus handle.
+  let socialProfile: SocialProfile | null = parseSocialProfile(input.socialProfileUrl, input.socialPlatform ?? null);
+
+  if ((input.captureMode === 'LINKEDIN_PROFILE' || input.captureMode === 'SOCIAL_HANDLE') && socialProfile === null) {
+    socialProfile = parseSocialProfile(rawInput, input.captureMode === 'LINKEDIN_PROFILE' ? 'LINKEDIN' : (input.socialPlatform ?? null));
+
+    if (socialProfile === null) {
+      errors.push(input.captureMode === 'LINKEDIN_PROFILE' ? 'A LinkedIn profile or company page link is required.' : 'A profile link or handle is required.');
+    }
+  }
+
+  if (socialProfile !== null) {
+    provenance.socialProfile = input.socialProfileUrl ? extractedProvenance(input, 'socialProfileUrl') : 'DERIVED';
+  }
+
   if (websiteUrl !== null) {
-    provenance.websiteUrl = input.websiteUrl ? 'USER_ENTERED' : 'DERIVED';
+    provenance.websiteUrl = input.websiteUrl ? extractedProvenance(input, 'websiteUrl') : 'DERIVED';
   }
 
   if (instagramHandle !== null) {
-    provenance.instagramHandle = input.instagramHandle
-      ? 'USER_ENTERED'
-      : 'DERIVED';
+    provenance.instagramHandle = input.instagramHandle ? extractedProvenance(input, 'instagramHandle') : 'DERIVED';
   }
 
   // ---- contact ------------------------------------------------------------
@@ -144,7 +180,7 @@ export const buildLeadDraft = (input: CaptureInput): CaptureResult => {
   }
 
   if (email !== null) {
-    provenance.email = 'USER_ENTERED';
+    provenance.email = extractedProvenance(input, 'email');
   }
 
   const phone = normalizePhone(input.phone);
@@ -154,7 +190,7 @@ export const buildLeadDraft = (input: CaptureInput): CaptureResult => {
   }
 
   if (phone !== null) {
-    provenance.phone = 'USER_ENTERED';
+    provenance.phone = extractedProvenance(input, 'phone');
   }
 
   // ---- name ---------------------------------------------------------------
@@ -163,7 +199,7 @@ export const buildLeadDraft = (input: CaptureInput): CaptureResult => {
   let name = nullIfBlank(input.name);
 
   if (name !== null) {
-    provenance.name = 'USER_ENTERED';
+    provenance.name = extractedProvenance(input, 'name');
   } else if (organisationName !== null) {
     name = organisationName;
     provenance.name = 'DERIVED';
@@ -174,10 +210,13 @@ export const buildLeadDraft = (input: CaptureInput): CaptureResult => {
     const domain = websiteDomain(websiteUrl);
     name = domain === null ? null : nameFromDomain(domain);
     provenance.name = 'DERIVED';
+  } else if (socialProfile?.handle) {
+    name = socialProfile.handle;
+    provenance.name = 'DERIVED';
   }
 
   if (organisationName !== null) {
-    provenance.organisationName = 'USER_ENTERED';
+    provenance.organisationName = extractedProvenance(input, 'organisationName');
   }
 
   // A visiting card or image with nothing typed alongside it has no name yet.
@@ -245,14 +284,34 @@ export const buildLeadDraft = (input: CaptureInput): CaptureResult => {
   const location = normalizeLocation(input.location);
 
   if (location !== null) {
-    provenance.location = 'USER_ENTERED';
+    provenance.location = extractedProvenance(input, 'location');
   }
 
-  const category = nullIfBlank(input.category);
-  const subcategory = nullIfBlank(input.subcategory);
+  // Category and subcategory come from the dynamic taxonomy; anything else
+  // (a stale client, a hand-built request) is dropped with a warning rather
+  // than failing at the database with a message nobody can act on.
+  let category = nullIfBlank(input.category);
+  let subcategory = nullIfBlank(input.subcategory);
+
+  if (category !== null && !isLeadCategory(category)) {
+    warnings.push(`Category "${category}" is not one of the CRM categories and was dropped.`);
+    category = null;
+    subcategory = null;
+  }
+
+  if (subcategory !== null && (category === null || !(LEAD_SUBCATEGORIES_BY_CATEGORY[category as LeadCategory] as readonly string[]).includes(subcategory))) {
+    warnings.push(`Subcategory "${subcategory}" is not under ${category ?? 'a category'} and was dropped.`);
+    subcategory = null;
+  }
 
   if (category !== null) {
-    provenance.category = 'USER_ENTERED';
+    provenance.category = input.classificationOrigin === 'AI' ? 'AI_SUGGESTED' : 'USER_ENTERED';
+  }
+
+  const jobTitle = nullIfBlank(input.jobTitle);
+
+  if (jobTitle !== null) {
+    provenance.jobTitle = extractedProvenance(input, 'jobTitle');
   }
 
   const languages = (input.languages ?? [])
@@ -269,6 +328,8 @@ export const buildLeadDraft = (input: CaptureInput): CaptureResult => {
     // collide with every other one.
     websiteUrl,
     instagramHandle,
+    socialProfile,
+    jobTitle,
     location,
     category,
     subcategory,

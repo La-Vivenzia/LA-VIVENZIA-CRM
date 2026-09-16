@@ -6,6 +6,10 @@ Experience Hunters capture a lead in under 30 seconds.
 ## Modes
 Instagram, website, image, visiting card, manual, referral, voice and offline event.
 
+*Implemented on Day 8 as the Capture Lead experience — 19 methods, one workflow:
+see `docs/CRM-LEAD-CAPTURE.md` and `DAY_8_LEAD_CAPTURE.md`. Voice remains
+unimplemented (no recording or transcription is offered).*
+
 ## Visiting card
 Photo → OCR → Review → Confirm → Lead.
 

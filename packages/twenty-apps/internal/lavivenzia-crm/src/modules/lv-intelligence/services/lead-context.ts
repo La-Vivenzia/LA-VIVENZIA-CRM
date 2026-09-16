@@ -35,6 +35,13 @@ export type LeadRecord = {
   onboardingStatus: string | null;
   rawCaptureInput: string | null;
   duplicateKeys: string[] | null;
+  jobTitle: string | null;
+  socialProfiles: { primaryLinkUrl?: string | null; primaryLinkLabel?: string | null } | null;
+  // Day 8: how the lead entered the CRM (method, platform, original link,
+  // extraction / classification / duplicate decisions). Written once by
+  // capture; never sent to the model.
+  captureProvenance: Record<string, unknown> | null;
+  captureFiles: { fileId: string; label?: string | null }[] | null;
   createdAt: string;
   updatedAt: string;
 };
@@ -87,7 +94,7 @@ export type LeadContext = {
 };
 
 const LEAD_FIELDS =
-  'id lvLeadId name organisationName category subcategory location source captureMode status priority ownerId assignedAt emails { primaryEmail } phones { primaryPhoneNumber } website { primaryLinkUrl } instagram { primaryLinkUrl } languages opportunityScore dataCompleteness lastInteractionAt nextAction nextFollowUpAt onboardingStatus rawCaptureInput duplicateKeys createdAt updatedAt';
+  'id lvLeadId name organisationName category subcategory location source captureMode status priority ownerId assignedAt emails { primaryEmail } phones { primaryPhoneNumber } website { primaryLinkUrl } instagram { primaryLinkUrl } languages opportunityScore dataCompleteness lastInteractionAt nextAction nextFollowUpAt onboardingStatus rawCaptureInput duplicateKeys jobTitle socialProfiles { primaryLinkUrl primaryLinkLabel } captureProvenance captureFiles createdAt updatedAt';
 
 // `summary` is a RICH_TEXT field; only its markdown is read.
 const INTERACTION_FIELDS = 'id name channel direction occurredAt actorId purpose summary { markdown } sentiment outcome objections commitments nextAction nextFollowUpAt durationMinutes';

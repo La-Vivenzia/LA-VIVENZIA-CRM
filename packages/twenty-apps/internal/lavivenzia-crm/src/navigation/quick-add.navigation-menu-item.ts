@@ -4,8 +4,8 @@ import { NAV_FOLDER_WORK_ID, NAV_QUICK_ADD_ID, PL_QUICK_ADD_ID } from 'src/const
 
 export default defineNavigationMenuItem({
   universalIdentifier: NAV_QUICK_ADD_ID,
-  name: 'Quick add lead',
-  icon: 'IconUserPlus',
+  name: 'Capture lead',
+  icon: 'IconCameraPlus',
   color: 'green',
   position: 3,
   type: NavigationMenuItemType.PAGE_LAYOUT,

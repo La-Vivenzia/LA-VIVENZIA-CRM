@@ -1,4 +1,4 @@
-import { type AiProvider, type AiResult } from 'src/modules/lv-ai/provider/ai-provider';
+import { type AiImageInput, type AiProvider, type AiResult } from 'src/modules/lv-ai/provider/ai-provider';
 import { type PromptDefinition } from 'src/modules/lv-ai/prompts/prompt-registry';
 import { boundedJson, type GraphqlClient } from 'src/modules/lv-ai/runtime/clients';
 import { type AiRunStatus } from 'src/modules/lv-ai/objects/ai-run.object';
@@ -78,10 +78,12 @@ export const runPrompt = async <T>(
   prompt: PromptDefinition<T>,
   userMessage: string,
   context: RunContext,
+  // Day 8: images for vision prompts (capture extraction). Never logged.
+  images: readonly AiImageInput[] = [],
 ): Promise<RecordedRun<T>> => {
   const startedAt = new Date().toISOString();
   const result = await provider.structuredOutput<T>(
-    { purpose: prompt.id, system: prompt.system, user: userMessage, maxOutputTokens: prompt.maxOutputTokens, temperature: prompt.temperature, json: true },
+    { purpose: prompt.id, system: prompt.system, user: userMessage, maxOutputTokens: prompt.maxOutputTokens, temperature: prompt.temperature, json: true, images: images.length > 0 ? images : undefined },
     prompt.validate,
   );
 

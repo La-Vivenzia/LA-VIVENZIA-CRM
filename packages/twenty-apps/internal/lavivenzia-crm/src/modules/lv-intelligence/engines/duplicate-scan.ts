@@ -45,6 +45,9 @@ const REASON_LABEL: Record<DuplicateMatch['reasons'][number], string> = {
   NAME_SIMILAR_SAME_LOCATION: 'similar name in the same location',
 };
 
+// LIKE wildcards escaped with a backslash so a key can only match itself.
+export const escapeLike = (value: string): string => value.replace(/[\\%_]/g, (char) => `\\${char}`);
+
 const toCandidate = (lead: LeadRecord): DuplicateCandidateRecord => ({
   id: lead.id,
   name: lead.name,
@@ -66,8 +69,12 @@ export const scanDuplicates = async (delegated: GraphqlClient, lead: LeadRecord,
   const phone = lead.phones?.primaryPhoneNumber?.trim() ?? '';
   const or: Record<string, unknown>[] = [];
 
-  if (keys.length > 0) {
-    or.push({ duplicateKeys: { containsAny: keys } });
+  // ARRAY fields accept only `containsIlike` (one pattern each) on this
+  // platform version — `containsAny` is refused for them — so each key is
+  // its own exact-match clause. Keys are normalised at capture time, and the
+  // LIKE wildcards are escaped so a key can only match itself.
+  for (const key of keys.slice(0, 20)) {
+    or.push({ duplicateKeys: { containsIlike: escapeLike(key) } });
   }
 
   // Exact identifiers are matched directly too, so a lead created through
@@ -89,10 +96,16 @@ export const scanDuplicates = async (delegated: GraphqlClient, lead: LeadRecord,
     return { candidates: [], scanned: 0, rulesVersion: DUPLICATE_RULES_VERSION, generatedAt: now };
   }
 
-  const { data } = await delegated.query<{ lvLeads?: { edges: { node: { id: string; lvLeadId: string | null; name: string | null; organisationName: string | null; location: string | null; status: string | null; ownerId: string | null; createdAt: string; emails: { primaryEmail?: string | null } | null; phones: { primaryPhoneNumber?: string | null } | null; website: { primaryLinkUrl?: string | null } | null; instagram: { primaryLinkUrl?: string | null } | null } }[] } }>(
+  const { data, errors } = await delegated.query<{ lvLeads?: { edges: { node: { id: string; lvLeadId: string | null; name: string | null; organisationName: string | null; location: string | null; status: string | null; ownerId: string | null; createdAt: string; emails: { primaryEmail?: string | null } | null; phones: { primaryPhoneNumber?: string | null } | null; website: { primaryLinkUrl?: string | null } | null; instagram: { primaryLinkUrl?: string | null } | null } }[] } }>(
     `query($filter: LvLeadFilterInput) { lvLeads(first: 50, filter: $filter) { edges { node { id lvLeadId name organisationName location status ownerId createdAt emails { primaryEmail } phones { primaryPhoneNumber } website { primaryLinkUrl } instagram { primaryLinkUrl } } } } }`,
     { filter: { and: [{ id: { neq: lead.id } }, { or }] } },
   );
+
+  // A refused filter would otherwise read as "no duplicates" — the one
+  // answer this scan must never give by accident.
+  if (errors.length > 0) {
+    throw new Error(`Duplicate shortlist query failed: ${errors[0]?.message ?? 'unknown error'}`);
+  }
 
   const rows: CandidateRow[] = (data.lvLeads?.edges ?? []).map(({ node }) => ({
     id: node.id,

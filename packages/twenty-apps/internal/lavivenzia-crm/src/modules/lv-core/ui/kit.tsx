@@ -710,7 +710,9 @@ export const LvTable = <Row,>({
   onRowClick?: (row: Row) => void;
   emptyText?: string;
 }) => {
-  const id = useId();
+  // useId() yields ":r1:"-style ids; the sandboxed renderer has no `CSS`
+  // global to escape them, so the id used in the selector is made safe here.
+  const id = `lv-table-${useId().replace(/[^a-zA-Z0-9_-]/g, '')}`;
 
   if (rows.length === 0) {
     return <EmptyState theme={theme} text={emptyText} />;
@@ -719,13 +721,13 @@ export const LvTable = <Row,>({
   return (
     <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
       <style>{`
-        #${CSS.escape(id)} td::before { display: none; }
+        #${id} td::before { display: none; }
         @media (max-width: ${theme.breakpoint.md - 1}px) {
-          #${CSS.escape(id)} thead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
-          #${CSS.escape(id)} tr { display: block; border: 1px solid ${theme.color.border}; border-radius: ${theme.radius.md}px; margin-bottom: ${theme.space(2)}px; background: ${theme.color.surfaceRaised}; }
-          #${CSS.escape(id)} td { display: flex; justify-content: space-between; gap: 12px; border: none !important; padding: 6px 12px !important; }
-          #${CSS.escape(id)} td::before { display: block; content: attr(data-label); color: ${theme.color.textMuted}; font-size: 10.5px; letter-spacing: 0.1em; text-transform: uppercase; font-weight: 600; }
-          #${CSS.escape(id)} td.lv-hide-mobile { display: none; }
+          #${id} thead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+          #${id} tr { display: block; border: 1px solid ${theme.color.border}; border-radius: ${theme.radius.md}px; margin-bottom: ${theme.space(2)}px; background: ${theme.color.surfaceRaised}; }
+          #${id} td { display: flex; justify-content: space-between; gap: 12px; border: none !important; padding: 6px 12px !important; }
+          #${id} td::before { display: block; content: attr(data-label); color: ${theme.color.textMuted}; font-size: 10.5px; letter-spacing: 0.1em; text-transform: uppercase; font-weight: 600; }
+          #${id} td.lv-hide-mobile { display: none; }
         }
       `}</style>
       <table id={id} style={{ ...theme.type.body, color: theme.color.text }}>

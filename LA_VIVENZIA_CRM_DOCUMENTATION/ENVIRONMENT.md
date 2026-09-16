@@ -215,3 +215,21 @@ If `tokens.ts` changes, regenerate the stylesheet's token blocks with
   tier's per-minute limits when run once, and well under US$0.10 on any paid
   model. Every call is bounded (timeout 20 s, output cap, ≤ 2
   retries on transient errors only); no background job calls the model.
+
+## Repository CI (Day 10) — one workflow, ours
+
+The fork inherited 47 Twenty workflows (`cd-deploy-main`, Crowdin i18n push/pull,
+release drafting, docs / website, e2e and app-catalog jobs) that need twentyhq's
+own secrets and infrastructure; on a private fork they fail on every push and
+bury real results. They were removed together with `crowdin-*.yml`,
+`release-drafter.yml` and Twenty's `CODEOWNERS`. The composite
+`.github/actions/*` helpers are kept (`yarn-install` is reused).
+
+`.github/workflows/ci-lavivenzia.yaml` runs on push to `main`, on pull requests
+and on demand: **application** (install → build `twenty-shared`, `twenty-sdk`,
+`twenty-client-sdk` → LV app typecheck, lint, unit tests), **secrets** (a
+`git grep` for API-key and dev-password shapes plus a check that `.notes` stays
+ignored) and, only when dispatched with `build-image: true`, **image** (builds
+the production `twenty-server` Docker target without pushing). Integration and
+browser suites need a running workspace with the dev users and are run locally
+before each Day commit (TESTING-QA.md); they are not in CI.

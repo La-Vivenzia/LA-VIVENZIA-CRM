@@ -1,0 +1,102 @@
+# La Vivenzia CRM — the only pipeline this repository runs.
+#
+# The Twenty upstream workflows (deploy to Twenty cloud, Crowdin i18n, release
+# drafting, docs / website, e2e with twentyhq secrets) were removed on Day 10:
+# they can never pass on a private fork and hid real results. This workflow
+# checks what La Vivenzia ships — the application package — on every push and
+# pull request, and can build the production image on demand.
+
+name: CI La Vivenzia CRM
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+    inputs:
+      build-image:
+        description: 'Also build the production Docker image (slow, ~25 min)'
+        required: false
+        default: false
+        type: boolean
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
+
+env:
+  APP_DIR: packages/twenty-apps/internal/lavivenzia-crm
+
+jobs:
+  application:
+    name: Application — typecheck, lint, unit tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+
+      - name: Install dependencies
+        uses: ./.github/actions/yarn-install
+
+      - name: Build the SDKs the application compiles against
+        run: npx nx run-many -t build -p twenty-shared twenty-sdk twenty-client-sdk --skip-nx-cache
+
+      - name: Typecheck
+        working-directory: ${{ env.APP_DIR }}
+        run: npx tsc -p tsconfig.json --noEmit
+
+      - name: Lint
+        working-directory: ${{ env.APP_DIR }}
+        run: npx oxlint -c .oxlintrc.json .
+
+      - name: Unit tests
+        working-directory: ${{ env.APP_DIR }}
+        run: npx vitest run --project unit
+
+  secrets:
+    name: No secrets in the tree
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+
+      - name: Scan tracked files for API keys and dev passwords
+        run: |
+          set -euo pipefail
+          # OpenAI / Google AI Studio / Resend / Cloudflare token shapes and the local dev-user password prefix.
+          pattern='sk-proj-[A-Za-z0-9_-]{20,}|sk-[A-Za-z0-9]{32,}|AQ\.[A-Za-z0-9_-]{30,}|AIza[0-9A-Za-z_-]{35}|re_[A-Za-z0-9]{20,}|Lv![A-Za-z0-9_]{12,}'
+          if git grep -nE "$pattern" -- ':!yarn.lock' ':!**/*.lock' ':!.github/workflows/ci-lavivenzia.yaml'; then
+            echo '::error::A secret-like string is tracked in git. Remove it and rotate the credential.'
+            exit 1
+          fi
+          echo 'No secret-like strings found.'
+          # The developer credential files must stay ignored.
+          git check-ignore -q .notes/lv-dev-users.env || { echo '::error::.notes must be gitignored'; exit 1; }
+
+  image:
+    name: Production image (on demand)
+    if: github.event_name == 'workflow_dispatch' && inputs.build-image
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - name: Checkout
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@e468171a9de216ec08956ac3ada2f0791b6bd435 # v3.11.1
+
+      - name: Build (no push)
+        uses: docker/build-push-action@263435318d21b8e681c14492fe198d362a7d2c83 # v6.18.0
+        with:
+          context: .
+          file: ./packages/twenty-docker/twenty/Dockerfile
+          target: twenty-server
+          push: false
+          build-args: APP_VERSION=${{ github.sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max

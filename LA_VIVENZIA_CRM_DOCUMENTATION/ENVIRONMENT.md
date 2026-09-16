@@ -154,3 +154,64 @@ If `tokens.ts` changes, regenerate the stylesheet's token blocks with
   worker stopped an approval still succeeds but the partner appears only when the
   worker catches up. The Control Tower's "Approved, partner not yet active" tile
   shows the gap.
+
+## AI provider activation (Day 10) — Gemini is the primary provider
+
+- Business decision (Day 10): AI is a supporting layer, so the primary provider is
+  **Google Gemini** through the same `AiProvider` abstraction; OpenAI, Anthropic and
+  OpenAI-compatible gateways stay available by configuration only.
+- Set the application variables through the metadata API or Settings → **Apps**
+  (the item is labelled "Apps" in Twenty 2.39 and is visible to Main Admins only):
+  `LV_AI_PROVIDER=gemini` (also the default when only a key is set),
+  `LV_AI_API_KEY=<secret>`, `LV_AI_MODEL` (default `gemini-3.6-flash`; the
+  `gemini-2.5-*` models are closed to new Google projects), optional
+  `LV_AI_BASE_URL` (default `https://generativelanguage.googleapis.com/v1beta`).
+  Twenty stores the values encrypted (`enc:v2`) and injects them into logic
+  functions only; the browser receives `{available, provider, model}` and never
+  the key or base URL.
+- Gemini wire format (`http-provider.ts`, dialect `gemini`): `POST
+  /models/<model>:generateContent` with the key in `x-goog-api-key`, the prompt's
+  system text as `systemInstruction`, JSON mode through `responseMimeType`, images
+  as `inlineData` parts (visiting cards), thinking disabled (`thinkingBudget: 0`)
+  on the flash models so the output budget is the answer — the `*-lite` models
+  refuse that field, so it is omitted for them (and dropped once, then
+  remembered, if any other model refuses it). Errors map to the same codes as
+  every other dialect: 400 `API_KEY_INVALID` / 401 / 403 → `AI_REQUEST_REJECTED`
+  (with the vendor's sentence, never the key), 404 model → `AI_REQUEST_REJECTED`,
+  429 per-minute → `AI_RATE_LIMITED` (retried after the vendor's "retry in N s"
+  hint, capped at 12 s), 429 per-day → `AI_QUOTA_EXHAUSTED` (not retried), safety
+  block → `AI_REQUEST_REJECTED`, token-capped JSON → `AI_INVALID_RESPONSE`.
+- **Free-tier dependency — measured, not assumed.** The development project's
+  free tier is **20 requests per day per model** (`GenerateRequestsPerDayPerProjectPerModel-FreeTier`,
+  quotaValue 20) plus a per-minute limit; every provider attempt (retries
+  included) counts. That is enough for a demo, not for a team: one Lead 360
+  Intelligence session can use 5–8 requests. Production needs billing enabled on
+  the Google project (paid tier: hundreds of requests per minute, no daily cap,
+  and no training on prompts). Until then the CRM answers `AI_QUOTA_EXHAUSTED`
+  after the 20th call of the day and keeps working without the model.
+- **Data use.** Requests to the Gemini API are subject to Google's API terms; on
+  the free tier Google may use prompts to improve its products. The context
+  builder already sends only what the caller may see, with contact values as
+  presence only — but a production deployment that must not share partner data
+  with Google needs a paid tier (no training on data) or another provider.
+- **Verification status (2026-09-16):** two earlier keys belonged to a Google
+  project denied access to every model (`403 Your project has been denied
+  access`); the third key (a different project) works. REAL PROVIDER smoke test
+  12/12 on `gemini-3.6-flash` and again on `gemini-3.5-flash-lite`; the Day 10
+  AI matrix produced real output for all 13 features through the CRM routes
+  (spread over `gemini-3.6-flash`, `gemini-3.5-flash` and `gemini-3.5-flash-lite`
+  because of the 20/day/model cap). `gemini-3.7-flash` was overloaded (503) at
+  the time and is not recommended today.
+- With OpenAI the account must have **credits**: an exhausted balance arrives as
+  `429 insufficient_quota` and is reported as `AI_QUOTA_EXHAUSTED` without
+  retrying; every route answers with that code, the run is audited FAILED, and the
+  CRM keeps working without the model.
+- The REAL PROVIDER smoke test (`src/__tests__/lv-ai-real-provider.integration-test.ts`)
+  reads `LV_AI_API_KEY` from the process environment only; for local runs put it
+  in the gitignored `.notes/lv-dev-users.env` and source that file. Without the
+  variable the test is skipped.
+- Expected development usage: the full Day 10 matrix (`lv-ai-day10` + the smoke
+  test) makes ~25 calls with ≤ 900 output tokens each — within the Gemini free
+  tier's per-minute limits when run once, and well under US$0.10 on any paid
+  model. Every call is bounded (timeout 20 s, output cap, ≤ 2
+  retries on transient errors only); no background job calls the model.

@@ -39,7 +39,12 @@ export const callRoute = async (
     // permission problem from a validation one.
     const detail = typeof parsed.detail === 'string' && parsed.detail.length > 0 ? ` (${parsed.detail})` : '';
 
-    throw new Error(`${String(parsed.error ?? 'The server refused that action.')}${detail}`);
+    // AI operations refuse with { code, message } (e.g. AI_QUOTA_EXHAUSTED);
+    // show the real reason rather than a generic refusal.
+    const reason = parsed.error ?? parsed.message ?? 'The server refused that action.';
+    const code = typeof parsed.code === 'string' && parsed.code.startsWith('AI_') ? `${parsed.code}: ` : '';
+
+    throw new Error(`${code}${String(reason)}${detail}`);
   }
 
   if (!response.ok) {

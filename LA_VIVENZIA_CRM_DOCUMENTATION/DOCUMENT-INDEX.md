@@ -27,3 +27,4 @@
 - DAY_7B_DESIGN_SYSTEM.md — Day 7B design system and UI/UX transformation
 - DAY_8_LEAD_CAPTURE.md — Day 8 universal lead capture, acquisition and assignment operations (full description in docs/CRM-LEAD-CAPTURE.md)
 - DAY_9_ECOSYSTEM.md — Day 9 partners, experiences, properties, onboarding completion and activation (full description in docs/CRM-ECOSYSTEM.md)
+- DAY_10_PRODUCTION_READINESS.md — Day 10 final V1 gap audit, AI provider activation (Gemini primary through the lv-ai abstraction) and test matrix, integrations classification, production readiness (audit and final report under .notes/d10/)

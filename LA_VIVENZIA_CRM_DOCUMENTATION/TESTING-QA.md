@@ -483,3 +483,75 @@ datetime helper now sets the input value directly — typing `PM` into the
 12-hour field was dropped by the sandbox in afternoon runs); Day 8
 `d8/d8-browser.mjs` 9/9 (S3 re-run after one sandbox keystroke drop). Unit,
 integration, `tsc --noEmit` and `oxlint` clean. Zero core files changed.
+
+## Day 10 — final V1 verification, real AI provider, production readiness
+
+**REAL PROVIDER vs MOCK.** `lv-ai/__tests__/ai-provider.test.ts` (22 unit tests)
+drives the provider with a fake transport. `src/__tests__/lv-ai-real-provider.integration-test.ts`
+calls OpenAI for real when `LV_AI_API_KEY` is in the environment (12 steps). Result
+on 2026-09-16: initialisation, authentication (wrong key → 401 →
+`AI_REQUEST_REJECTED`, one attempt, key absent from the message), unsupported
+model, network failure, unconfigured provider — **5 PASS**; text generation,
+structured output, classification, summarisation, timeout and invalid-response —
+**7 BLOCKED**: the OpenAI account answers `429 insufficient_quota`
+(`credit_balance_exhausted`). The steps are reported as skipped with the code,
+never as passed.
+
+**AI matrix (live routes, real sessions)** `src/__tests__/lv-ai-day10.integration-test.ts`
+(14 tests): PRIVACY ×3 (a Hunter cannot make any AI route reach a lead CM-004
+hides; spoofed ownerId / actorWorkspaceMemberId / isAdmin ignored; API keys
+refused), COPILOT security (forbidden record, cross-user rows, delete / merge /
+approve / reject / price / send / reassign refused with the human path, SQL / key /
+escalation requests answered UNSUPPORTED or REFUSED without leakage, empty result),
+K data quality, C/D/G rules score / health / NBA — **6 PASS**; A classification,
+B summary, F conversation summary, H draft, I onboarding assistant, J briefing,
+L Copilot model fallback, M visiting-card OCR — **8 BLOCKED** (same quota).
+
+**Provider fix found by the real test:** an exhausted balance was retried as a
+rate limit and reported `AI_RETRY_EXHAUSTED`. New code `AI_QUOTA_EXHAUSTED`
+(no retry, clear message); unit test added (1013 unit tests).
+
+**Regression** (after the Day 10 changes, same day): unit 49 files / 1013 passed;
+integration 10 files / 87 tests — 72 passed, 0 failed, 15 blocked (OpenAI
+credits); browser Day 5 38/38, Day 6 32/32 (three checks made provider-aware),
+Day 7 34/34, Day 8 29/29, Day 9 31/31; `tsc --noEmit` and `oxlint` clean.
+
+### Day 10 addendum — provider migration to Gemini
+
+The primary provider became Google Gemini (`LV_AI_PROVIDER=gemini`, model
+`gemini-2.5-flash`) through the unchanged `AiProvider` contract; the Gemini
+dialect lives beside the OpenAI and Anthropic ones in `HttpChatProvider`. Mock
+unit tests (`ai-provider.test.ts`, 31): wire format (model in the path, key in
+`x-goog-api-key`, system instruction, JSON mime type, thinking off, images as
+`inlineData`), invalid key → `AI_REQUEST_REJECTED` without retry, per-minute 429 →
+retry → success, per-day 429 → `AI_QUOTA_EXHAUSTED`, safety block / token cap /
+empty candidate, schema validation and label allowlist identical to other
+dialects. Unit total: 49 files / 1022.
+
+REAL PROVIDER (`lv-ai-real-provider.integration-test.ts`, 13 steps, Gemini key
+from the environment) — **12 PASS + 1 skipped-by-design** on `gemini-3.6-flash`
+and again on `gemini-3.5-flash-lite`: init · authentication (a wrong key is
+refused as invalid credentials, the real key is not) · text (65 chars, 21/13
+tokens) · structured JSON `{city: Goa, count: 3}` · classify STAY 0.95 ·
+summarise · invalid key → `AI_REQUEST_REJECTED` in one attempt · unsupported
+model · real timeout → `AI_TIMEOUT` at 2 s · validator refusal →
+`AI_INVALID_RESPONSE` · network → `AI_UNAVAILABLE` · unconfigured. (Two earlier
+keys from a project Google had denied were refused with 403 on every model —
+recorded, not a CRM defect.)
+
+Day 10 AI matrix under Gemini (`lv-ai-day10`, 14 tests): all 14 have passed with
+**REAL OUTPUT**, spread over three runs because the free tier allows 20
+requests per day per model — A classification (STAY / FARM_STAY, confidence 1,
+accepted → lead written → single-shot), B summary (240 chars, 4 citations all
+from context, 0 dropped, run row SUCCESS with tokens and no contact values),
+F conversation (MIXED, commitments, PRICING objection → applied to the
+interaction; note-less interaction → `INSUFFICIENT_DATA` before any call),
+H draft (subject + 450-char body, nothing sent), I onboarding assistant
+(rewrite, "maintained all original facts", missing-information list, written
+only on Accept), J briefing (`MODEL`, grounded refs), L Copilot model intent
+(`QUERY_MODEL`, 0 rows leaked; ambiguous / unsupported → REFUSED), M OCR (all
+ten card fields read with confidence 1, no lead created; blank image → no
+invented value), plus PRIVACY ×3, COPILOT security, K, C/D/G. Day 6 live suite
+7/7, capture suite 10/10. Typecheck and lint clean. Browser: the Day 6 suite
+(the only one naming the provider header) 32/32; the Intelligence tab shows a
+real AI GENERATED summary labelled `gemini · gemini-3.5-flash-lite`.

@@ -92,7 +92,7 @@ export default defineApplication({
     LV_AI_PROVIDER: {
       universalIdentifier: APPVAR_AI_PROVIDER_ID,
       label: 'AI provider',
-      description: '"openai" (default when a key is set), "anthropic", "openai-compatible" (any /chat/completions gateway; needs base URL and model) or "none".',
+      description: '"gemini" (default when a key is set), "openai", "anthropic", "openai-compatible" (any /chat/completions gateway; needs base URL and model) or "none".',
       value: '',
       isSecret: false,
     },

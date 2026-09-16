@@ -12,6 +12,9 @@ export const AI_FAILURE_CODES = [
   'AI_UNAVAILABLE',
   'AI_TIMEOUT',
   'AI_RATE_LIMITED',
+  // Day 10: the account behind the key has no credits / quota left. Not a
+  // transient condition — never retried, surfaced as a configuration problem.
+  'AI_QUOTA_EXHAUSTED',
   'AI_INVALID_RESPONSE',
   'AI_EMPTY_RESPONSE',
   'AI_RETRY_EXHAUSTED',

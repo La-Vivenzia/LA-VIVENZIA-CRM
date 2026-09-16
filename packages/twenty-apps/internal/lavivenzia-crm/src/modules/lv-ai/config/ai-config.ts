@@ -6,7 +6,8 @@
 // With no key the CRM runs exactly as before; every AI operation answers
 // AI_UNAVAILABLE and nothing pretends otherwise.
 
-export const AI_PROVIDER_KINDS = ['openai', 'openai-compatible', 'anthropic', 'none'] as const;
+// Day 10: `gemini` (Google Generative Language API) is the primary provider.
+export const AI_PROVIDER_KINDS = ['gemini', 'openai', 'openai-compatible', 'anthropic', 'none'] as const;
 
 export type AiProviderKind = (typeof AI_PROVIDER_KINDS)[number];
 
@@ -22,8 +23,8 @@ export type AiConfig = {
 };
 
 export const AI_DEFAULTS = {
-  model: { openai: 'gpt-4o-mini', 'openai-compatible': '', anthropic: 'claude-3-5-haiku-latest', none: '' },
-  baseUrl: { openai: 'https://api.openai.com/v1', 'openai-compatible': '', anthropic: 'https://api.anthropic.com/v1', none: '' },
+  model: { gemini: 'gemini-3.6-flash', openai: 'gpt-4o-mini', 'openai-compatible': '', anthropic: 'claude-3-5-haiku-latest', none: '' },
+  baseUrl: { gemini: 'https://generativelanguage.googleapis.com/v1beta', openai: 'https://api.openai.com/v1', 'openai-compatible': '', anthropic: 'https://api.anthropic.com/v1', none: '' },
   timeoutMs: 20_000,
   maxOutputTokens: 900,
   maxRetries: 2,
@@ -52,7 +53,8 @@ const isKind = (value: string): value is AiProviderKind => (AI_PROVIDER_KINDS as
 export const readAiConfig = (env: Record<string, string | undefined> = process.env): AiConfig => {
   const requested = (env.LV_AI_PROVIDER ?? '').trim().toLowerCase();
   const apiKey = (env.LV_AI_API_KEY ?? '').trim() || null;
-  const provider: AiProviderKind = requested === '' ? (apiKey ? 'openai' : 'none') : isKind(requested) ? requested : 'none';
+  // A key with no provider named means Gemini (the primary provider since Day 10).
+  const provider: AiProviderKind = requested === '' ? (apiKey ? 'gemini' : 'none') : isKind(requested) ? requested : 'none';
   const baseUrl = ((env.LV_AI_BASE_URL ?? '').trim() || AI_DEFAULTS.baseUrl[provider]).replace(/\/+$/, '');
   const model = (env.LV_AI_MODEL ?? '').trim() || AI_DEFAULTS.model[provider];
 

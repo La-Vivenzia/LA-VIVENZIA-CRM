@@ -163,8 +163,14 @@ describeIfLive('La Vivenzia AI intelligence & Copilot — live', () => {
     const insights = (await route('/ai/lead/insights', { leadId }, hunter)) as Insights;
 
     expect(insights.ok).toBe(true);
-    expect(insights.ai).toMatchObject({ available: false });
-    expect(insights.ai?.reason).toMatch(/LV_AI_PROVIDER/);
+    // Day 10: the dev workspace may or may not carry a provider key. Either
+    // way the availability report is honest and the rules engines run.
+    const providerConfigured = insights.ai?.available === true;
+
+    if (!providerConfigured) {
+      expect(insights.ai?.reason).toMatch(/LV_AI_PROVIDER/);
+    }
+
     expect(insights.opportunity?.available).toBe(true);
     expect(insights.opportunity?.positive?.map((factor) => factor.factor)).toEqual(expect.arrayContaining(['Funnel stage', 'Responsiveness', 'Recency']));
     expect(insights.health?.state).toBe('HEALTHY');
@@ -193,12 +199,20 @@ describeIfLive('La Vivenzia AI intelligence & Copilot — live', () => {
 
     expect(again.persisted).toEqual([]);
 
-    // Model operations: unavailable, no output, audited.
+    // Model operations: without a provider → unavailable, no output, audited.
+    // With one (Day 10) → either a real output or a typed provider failure;
+    // never a fabricated result. The real-provider matrix lives in
+    // lv-ai-day10.integration-test.ts.
     for (const type of ['LEAD_SUMMARY', 'CLASSIFICATION', 'DRAFT']) {
       const result = await route('/ai/lead/generate', { leadId, type, kind: 'FOLLOW_UP_EMAIL' }, hunter);
 
-      expect(result).toMatchObject({ ok: false, code: 'AI_UNAVAILABLE' });
-      expect(result.output).toBeUndefined();
+      if (!providerConfigured) {
+        expect(result).toMatchObject({ ok: false, code: 'AI_UNAVAILABLE' });
+        expect(result.output).toBeUndefined();
+      } else if (result.ok !== true) {
+        expect(String(result.code)).toMatch(/^AI_/);
+        expect(result.output ?? null).toBeNull();
+      }
     }
 
     const runs = await gql<{ lvAiRuns: { edges: { node: { operation: string; status: string; errorCode: string | null; actorId: string | null } }[] } }>(`query($filter: LvAiRunFilterInput) { lvAiRuns(first: 50, filter: $filter) { edges { node { operation status errorCode actorId } } } }`, admin, { filter: { targetRecordId: { eq: leadId } } });
@@ -209,7 +223,12 @@ describeIfLive('La Vivenzia AI intelligence & Copilot — live', () => {
     // either way it is attributed to a real person, never to the body.
     expect(byOperation.OPPORTUNITY_SCORE?.status).toBe('SUCCESS');
     expect([hunterId, adminId]).toContain(byOperation.OPPORTUNITY_SCORE?.actorId);
-    expect(byOperation.LEAD_SUMMARY).toMatchObject({ status: 'UNAVAILABLE', errorCode: 'AI_UNAVAILABLE', actorId: hunterId });
+    if (!providerConfigured) {
+      expect(byOperation.LEAD_SUMMARY).toMatchObject({ status: 'UNAVAILABLE', errorCode: 'AI_UNAVAILABLE', actorId: hunterId });
+    } else {
+      expect(['SUCCESS', 'FAILED']).toContain(byOperation.LEAD_SUMMARY?.status);
+      expect(byOperation.LEAD_SUMMARY?.actorId).toBe(hunterId);
+    }
   }, 120_000);
 
   it('AI objects are private to the routes: team roles cannot read them directly, the Main Admin can audit them, API keys are refused', async () => {
@@ -350,12 +369,19 @@ describeIfLive('La Vivenzia AI intelligence & Copilot — live', () => {
     expect(task.task.assigneeId).toBe(hunterId);
   }, 90_000);
 
-  it('the briefing is deterministic facts first, with a fixed ranking while no model is configured', async () => {
+  it('the briefing is deterministic facts first, with a fixed ranking while no model is configured (or the model fails)', async () => {
     const briefing = (await route('/ai/briefing', { timeZoneOffsetMinutes: 330 }, hunter)) as { ok: boolean; narrative: { status: string }; today: { count: number; label: string }[]; topActions: { title: string; why: string; ref: { target: { object: string; recordId: string } } | null; origin: string }[] };
 
     expect(briefing.ok).toBe(true);
-    expect(briefing.narrative.status).toBe('RULES');
+    // RULES without a provider; MODEL with one; UNAVAILABLE when the provider
+    // fails — the facts and the deep links are rules-built in every case.
+    expect(['RULES', 'MODEL', 'UNAVAILABLE']).toContain(briefing.narrative.status);
     expect(briefing.today.every((line) => typeof line.count === 'number' && line.count > 0)).toBe(true);
-    expect(briefing.topActions.every((action) => action.origin === 'RULES' && action.ref?.target.recordId)).toBe(true);
+    if (briefing.narrative.status === 'MODEL') {
+      // A model action either deep-links to a fact it was given or names no record at all — never an invented reference.
+      expect(briefing.topActions.every((action) => action.origin === 'MODEL' && (action.ref?.target.recordId || !/[A-Z]{2}-\d{6}|#/.test(action.title)))).toBe(true);
+    } else {
+      expect(briefing.topActions.every((action) => action.origin === 'RULES' && action.ref?.target.recordId)).toBe(true);
+    }
   }, 60_000);
 });

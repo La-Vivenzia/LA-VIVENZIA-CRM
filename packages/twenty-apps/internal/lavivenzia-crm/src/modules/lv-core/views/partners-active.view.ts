@@ -1,0 +1,67 @@
+import { defineView, ViewFilterOperand, ViewSortDirection } from 'twenty-sdk/define';
+
+import {
+  PARTNER_ACTIVATED_AT_FIELD_ID,
+  PARTNER_APPROVED_AT_FIELD_ID,
+  PARTNER_CATEGORY_FIELD_ID,
+  PARTNER_CODE_FIELD_ID,
+  PARTNER_CONTACT_FIELD_ID,
+  PARTNER_EMAILS_FIELD_ID,
+  PARTNER_GEOGRAPHY_FIELD_ID,
+  PARTNER_INSTAGRAM_FIELD_ID,
+  PARTNER_LANGUAGES_FIELD_ID,
+  PARTNER_LEAD_FIELD_ID,
+  PARTNER_LOCATION_FIELD_ID,
+  PARTNER_NAME_FIELD_ID,
+  PARTNER_OBJECT_ID,
+  PARTNER_ONBOARDING_FIELD_ID,
+  PARTNER_ORGANISATION_FIELD_ID,
+  PARTNER_OWNER_FIELD_ID,
+  PARTNER_PHONES_FIELD_ID,
+  PARTNER_SOURCE_KEY_FIELD_ID,
+  PARTNER_STATUS_FIELD_ID,
+  PARTNER_STATUS_REASON_FIELD_ID,
+  PARTNER_SUBCATEGORY_FIELD_ID,
+  PARTNER_TYPE_FIELD_ID,
+  PARTNER_WEBSITE_FIELD_ID,
+} from 'src/constants/universal-identifiers';
+
+// Day 9 — partner view "Active". Filtered on status; every field stays reachable through the column picker.
+
+export default defineView({
+  universalIdentifier: 'e8d60793-0a99-52cc-ba09-144b40a86b00',
+  name: 'Active',
+  objectUniversalIdentifier: PARTNER_OBJECT_ID,
+  icon: 'IconHeartHandshake',
+  position: 3,
+  fields: [
+    { universalIdentifier: '26326100-f8e4-57e0-9152-3145b5d44c47', fieldMetadataUniversalIdentifier: PARTNER_NAME_FIELD_ID, position: 0, isVisible: true, size: 200 },
+    { universalIdentifier: '6535f831-fdf7-53be-b2b5-cc39b2f421dc', fieldMetadataUniversalIdentifier: PARTNER_CODE_FIELD_ID, position: 1, isVisible: true, size: 120 },
+    { universalIdentifier: '35b9065d-c55e-56cd-916d-eaaf286ca28e', fieldMetadataUniversalIdentifier: PARTNER_STATUS_FIELD_ID, position: 2, isVisible: true, size: 140 },
+    { universalIdentifier: 'de7d0c7d-86bf-5dcd-806e-875cbdfd7adb', fieldMetadataUniversalIdentifier: PARTNER_CATEGORY_FIELD_ID, position: 3, isVisible: true, size: 150 },
+    { universalIdentifier: '2e21be5c-7a92-5c25-aa99-78d8f56ae5ab', fieldMetadataUniversalIdentifier: PARTNER_SUBCATEGORY_FIELD_ID, position: 4, isVisible: true, size: 150 },
+    { universalIdentifier: 'be2a8c43-984b-5770-9a96-bef2102ad15a', fieldMetadataUniversalIdentifier: PARTNER_LOCATION_FIELD_ID, position: 5, isVisible: true, size: 140 },
+    { universalIdentifier: 'ee442721-e1a0-5f46-9b83-c386108a1618', fieldMetadataUniversalIdentifier: PARTNER_OWNER_FIELD_ID, position: 6, isVisible: true, size: 150 },
+    { universalIdentifier: '02d444b1-354f-51a2-900a-e7b6bbcbf69b', fieldMetadataUniversalIdentifier: PARTNER_TYPE_FIELD_ID, position: 7, isVisible: true, size: 130 },
+    { universalIdentifier: '11bff7f5-cb70-5e51-a4e4-36d2844721fa', fieldMetadataUniversalIdentifier: PARTNER_APPROVED_AT_FIELD_ID, position: 8, isVisible: true, size: 150 },
+    { universalIdentifier: '93190ff8-a206-53cd-b600-795bc7911025', fieldMetadataUniversalIdentifier: PARTNER_ACTIVATED_AT_FIELD_ID, position: 9, isVisible: true, size: 150 },
+    { universalIdentifier: '945d5461-d50b-5769-ba17-48af06d76fc7', fieldMetadataUniversalIdentifier: PARTNER_LEAD_FIELD_ID, position: 10, isVisible: true, size: 160 },
+    { universalIdentifier: '8b05a1b2-23fd-5835-9518-0cf9b513ac65', fieldMetadataUniversalIdentifier: PARTNER_ONBOARDING_FIELD_ID, position: 11, isVisible: true, size: 160 },
+    { universalIdentifier: '1134289b-00ce-57e9-b247-914a6d77fbb5', fieldMetadataUniversalIdentifier: PARTNER_GEOGRAPHY_FIELD_ID, position: 12, isVisible: false, size: 160 },
+    { universalIdentifier: 'b74f250d-a8c4-58ac-994c-23a91ef3a172', fieldMetadataUniversalIdentifier: PARTNER_EMAILS_FIELD_ID, position: 13, isVisible: false, size: 160 },
+    { universalIdentifier: 'ac654c4e-37a7-5723-b3c6-cd3601318e00', fieldMetadataUniversalIdentifier: PARTNER_PHONES_FIELD_ID, position: 14, isVisible: false, size: 160 },
+    { universalIdentifier: '7f559d3f-6e75-5e11-8406-486c01161838', fieldMetadataUniversalIdentifier: PARTNER_WEBSITE_FIELD_ID, position: 15, isVisible: false, size: 160 },
+    { universalIdentifier: '72a0e456-b367-53cd-be90-cde1252a85b7', fieldMetadataUniversalIdentifier: PARTNER_INSTAGRAM_FIELD_ID, position: 16, isVisible: false, size: 160 },
+    { universalIdentifier: '234f5439-cc6a-5763-928a-ba7d3e097540', fieldMetadataUniversalIdentifier: PARTNER_CONTACT_FIELD_ID, position: 17, isVisible: false, size: 160 },
+    { universalIdentifier: '86ef1225-94be-5e8a-8790-de98a12b78aa', fieldMetadataUniversalIdentifier: PARTNER_ORGANISATION_FIELD_ID, position: 18, isVisible: false, size: 160 },
+    { universalIdentifier: '93d89a3d-23ce-581b-9079-e42086887d3a', fieldMetadataUniversalIdentifier: PARTNER_LANGUAGES_FIELD_ID, position: 19, isVisible: false, size: 160 },
+    { universalIdentifier: '0946c874-adf2-5aab-b8f2-d5a9a55ba997', fieldMetadataUniversalIdentifier: PARTNER_STATUS_REASON_FIELD_ID, position: 20, isVisible: false, size: 160 },
+    { universalIdentifier: '3e898cca-6483-5562-ac46-28495d9180a5', fieldMetadataUniversalIdentifier: PARTNER_SOURCE_KEY_FIELD_ID, position: 21, isVisible: false, size: 160 },
+  ],
+  filters: [
+    { universalIdentifier: '571a82d4-4f0c-5c91-9fc3-a988a4d11ef9', fieldMetadataUniversalIdentifier: PARTNER_STATUS_FIELD_ID, operand: ViewFilterOperand.IS, value: ['ACTIVE'] },
+  ],
+  sorts: [
+    { universalIdentifier: '83c980a8-80ae-50ed-ae2e-3b58a2d8d9bb', fieldMetadataUniversalIdentifier: PARTNER_NAME_FIELD_ID, direction: ViewSortDirection.ASC },
+  ],
+});

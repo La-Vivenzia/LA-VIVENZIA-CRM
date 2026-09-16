@@ -27,6 +27,7 @@ import {
 } from 'src/modules/lv-core/ui/kit';
 import { badgeToneOf, describeStatus, type StatusKind } from 'src/modules/lv-core/ui/status';
 import { themeFor } from 'src/modules/lv-core/ui/theme';
+import { pluralOf } from 'src/modules/lv-core/utils/object-plural';
 import { openCapturePage } from 'src/modules/lv-core/utils/open-capture';
 import { callRoute } from 'src/modules/lv-core/utils/call-route';
 import { type DashboardLens } from 'src/modules/lv-dashboard/services/caller-context';
@@ -224,7 +225,7 @@ export const MyDashboard = () => {
                 emptyText={kpi.emptyText}
                 unavailableReason={kpi.unavailableReason}
                 tone={kpi.tone}
-                onClick={kpi.link ? () => void navigate(AppPath.RecordIndexPage, { objectNamePlural: `${kpi.link!.object}s` }) : undefined}
+                onClick={kpi.link ? () => void navigate(AppPath.RecordIndexPage, { objectNamePlural: pluralOf(kpi.link!.object) }) : undefined}
               />
             ))}
           </div>
@@ -316,6 +317,15 @@ export const MyDashboard = () => {
                   ))}
                 </div>
               </Section>
+              {summary.ecosystem && summary.ecosystem.length > 0 && (
+                <Section theme={theme} title="Ecosystem" hint="partners · experiences · properties · onboarding">
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: theme.space(2) }}>
+                    {summary.ecosystem.map((kpi) => (
+                      <KpiTile key={kpi.key} theme={theme} label={kpi.label} value={kpi.value} emptyText={kpi.emptyText} unavailableReason={kpi.unavailableReason} tone={kpi.tone} onClick={kpi.link ? () => void navigate(AppPath.RecordIndexPage, { objectNamePlural: pluralOf(kpi.link!.object) }) : undefined} />
+                    ))}
+                  </div>
+                </Section>
+              )}
               <Section theme={theme} title="Recent activity" hint="last 14 days">
                 {summary.activity.length === 0 ? (
                   <EmptyState theme={theme} text="Nothing has happened in the last 14 days on the records you can see." />

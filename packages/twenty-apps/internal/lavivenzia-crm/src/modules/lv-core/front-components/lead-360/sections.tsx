@@ -12,7 +12,7 @@ import {
 import { type Lead360Model, type TaskSummary, type TimelineEntry } from 'src/modules/lv-core/services/lead-360';
 import { type LvTheme } from 'src/modules/lv-core/ui/theme';
 import { openCapturePage } from 'src/modules/lv-core/utils/open-capture';
-import { EmptyState, Eyebrow, Facts, InversePanel, LvBadge, LvButton, LvStatusBadge, Provenance, Section, formatWhen } from 'src/modules/lv-core/ui/kit';
+import { EmptyState, Eyebrow, Facts, InversePanel, LvBadge, LvButton, LvStatusBadge, Provenance, RecordList, RecordRow, Section, formatWhen } from 'src/modules/lv-core/ui/kit';
 import { badgeToneOf, describeStatus } from 'src/modules/lv-core/ui/status';
 
 // The read-only building blocks of Lead 360. Each renders one slice of the
@@ -501,6 +501,48 @@ export const SlaSection = ({ theme, model, onOpen }: { theme: LvTheme; model: Le
 };
 
 // ------------------------------------------------------------- onboarding
+// ------------------------------------------------------------ ecosystem (Day 9)
+// What the lead became. Real relations only: a lead with no partner says so.
+export const EcosystemSection = ({ theme, model, onOpen }: { theme: LvTheme; model: Lead360Model; onOpen: (target: { object: string; recordId: string }) => void }) => {
+  const { ecosystem } = model;
+  const partner = ecosystem.partner;
+  const rows = [...ecosystem.experiences.map((row) => ({ ...row, object: 'lvExperience', kind: 'Experience' })), ...ecosystem.properties.map((row) => ({ ...row, object: 'lvProperty', kind: 'Property' }))];
+
+  return (
+    <Section theme={theme} title="Ecosystem progression" hint={partner ? undefined : 'no partner yet'} actions={partner ? <LvButton theme={theme} size="sm" variant="secondary" onClick={() => onOpen({ object: 'lvPartner', recordId: partner.id })}>Open Partner 360</LvButton> : undefined}>
+      {!partner ? (
+        <EmptyState theme={theme} text={model.onboarding ? `The partner record is created when the onboarding is approved (currently ${humanize(model.onboarding.status ?? 'not started').toLowerCase()}).` : 'A partner record is created when this lead completes onboarding and is approved.'} />
+      ) : (
+        <>
+          <Facts
+            theme={theme}
+            columns={3}
+            items={[
+              { label: 'Partner', value: <button type="button" onClick={() => onOpen({ object: 'lvPartner', recordId: partner.id })} style={{ background: 'none', border: 0, padding: 0, color: theme.color.brand, cursor: 'pointer', font: 'inherit', textDecoration: 'underline' }}>{partner.partnerCode ?? 'Code pending'} · {partner.name ?? 'Partner'}</button> },
+              { label: 'Partner status', value: <LvStatusBadge theme={theme} kind="partner" value={partner.status} /> },
+              { label: 'Activation', value: <span style={{ display: 'inline-flex', gap: 6, alignItems: 'center', flexWrap: 'wrap' }}><LvStatusBadge theme={theme} kind="readiness" value={partner.readiness.status} />{partner.readiness.status !== 'READY' && <span style={{ ...theme.type.caption, color: theme.color.textMuted }}>{partner.readiness.reasons.length} missing</span>}</span> },
+              { label: 'Onboarding', value: model.onboarding ? `${model.onboarding.progressPercentage}% · ${humanize(model.onboarding.status ?? '')}` : <span style={{ color: theme.color.textSubtle }}>Not recorded</span> },
+              { label: 'Approved', value: partner.approvedAt ? partner.approvedAt.slice(0, 10) : <span style={{ color: theme.color.textSubtle }}>—</span> },
+              { label: 'Activated', value: partner.activatedAt ? partner.activatedAt.slice(0, 10) : <span style={{ color: theme.color.textSubtle }}>—</span> },
+            ]}
+          />
+          <div style={{ marginTop: theme.space(3) }}>
+            {rows.length === 0 ? (
+              <p style={{ ...theme.type.bodySmall, color: theme.color.textMuted, margin: 0 }}>No experience or property is linked to the partner yet.</p>
+            ) : (
+              <RecordList>
+                {rows.map((row) => (
+                  <RecordRow key={row.id} theme={theme} primary={`${row.kind} · ${row.name ?? 'Unnamed'}`} secondary={row.code} meta={row.readiness.status === 'READY' ? 'Ready' : `${row.readiness.reasons.length} missing`} badge={<LvStatusBadge theme={theme} kind="listing" value={row.status} />} onClick={() => onOpen({ object: row.object, recordId: row.id })} />
+                ))}
+              </RecordList>
+            )}
+          </div>
+        </>
+      )}
+    </Section>
+  );
+};
+
 export const OnboardingSection = ({ theme, model, onOpenOnboarding, onStart, busy }: { theme: LvTheme; model: Lead360Model; onOpenOnboarding: () => void; onStart: () => void; busy: boolean }) => {
   const onboarding = model.onboarding;
 

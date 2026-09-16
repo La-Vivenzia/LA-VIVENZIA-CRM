@@ -77,6 +77,34 @@ const ONBOARDING: Record<string, StatusDescriptor> = {
   ACTIVATED: { label: 'Activated', tone: 'positive' },
 };
 
+// Day 9 — ecosystem entities.
+const PARTNER: Record<string, StatusDescriptor> = {
+  PROSPECTIVE: { label: 'Prospective', tone: 'neutral' },
+  ONBOARDING: { label: 'Onboarding', tone: 'progress' },
+  APPROVED: { label: 'Approved', tone: 'progress' },
+  ACTIVE: { label: 'Active', tone: 'positive' },
+  PAUSED: { label: 'Paused', tone: 'caution' },
+  SUSPENDED: { label: 'Suspended', tone: 'critical' },
+  INACTIVE: { label: 'Inactive', tone: 'caution' },
+  OFFBOARDED: { label: 'Offboarded', tone: 'neutral' },
+};
+
+const LISTING: Record<string, StatusDescriptor> = {
+  DRAFT: { label: 'Draft', tone: 'neutral' },
+  IN_REVIEW: { label: 'In review', tone: 'caution' },
+  CHANGES_REQUIRED: { label: 'Changes required', tone: 'caution' },
+  READY: { label: 'Approved', tone: 'progress' },
+  LIVE: { label: 'Active', tone: 'positive' },
+  PAUSED: { label: 'Paused', tone: 'caution' },
+  SUSPENDED: { label: 'Suspended', tone: 'critical' },
+  RETIRED: { label: 'Archived', tone: 'neutral' },
+};
+
+const READINESS: Record<string, StatusDescriptor> = {
+  READY: { label: 'Ready', tone: 'positive' },
+  NOT_READY: { label: 'Not ready', tone: 'caution' },
+};
+
 const DOCUMENT: Record<string, StatusDescriptor> = {
   PENDING: { label: 'Pending', tone: 'neutral' },
   UNDER_REVIEW: { label: 'Under review', tone: 'progress' },
@@ -122,7 +150,7 @@ const SEVERITY: Record<string, StatusDescriptor> = {
   LOW: { label: 'Low', tone: 'neutral' },
 };
 
-export type StatusKind = 'lead' | 'priority' | 'sla' | 'onboarding' | 'document' | 'task' | 'health' | 'insight' | 'problem' | 'severity';
+export type StatusKind = 'lead' | 'priority' | 'sla' | 'onboarding' | 'document' | 'task' | 'health' | 'insight' | 'problem' | 'severity' | 'partner' | 'listing' | 'readiness';
 
 const humanise = (value: string): string => value.toLowerCase().replace(/_/g, ' ').replace(/^\w/, (c) => c.toUpperCase());
 
@@ -155,6 +183,12 @@ export const describeStatus = (kind: StatusKind, value: string | null | undefine
       return PROBLEM_STATUS[value] ?? { label: humanise(value), tone: 'neutral' };
     case 'severity':
       return SEVERITY[value] ?? { label: humanise(value), tone: 'neutral' };
+    case 'partner':
+      return PARTNER[value] ?? { label: humanise(value), tone: 'neutral' };
+    case 'listing':
+      return LISTING[value] ?? { label: humanise(value), tone: 'neutral' };
+    case 'readiness':
+      return READINESS[value] ?? { label: humanise(value), tone: 'neutral' };
   }
 };
 

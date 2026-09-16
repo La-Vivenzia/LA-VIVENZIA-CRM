@@ -138,3 +138,19 @@ If `tokens.ts` changes, regenerate the stylesheet's token blocks with
   (6-second timeout, 512 KB). Nothing else leaves the server; social platforms
   are never contacted.
 - No new server variables, no queue, no cron.
+
+## Ecosystem entities (Day 9) — nothing new to configure
+
+- `apply --no-delete` creates the new fields on `lvPartner` / `lvExperience` /
+  `lvProperty`, twelve reverse relations (on workspace member, person, company and
+  onboarding), the 360 page layouts, sixteen views and the six routes. No server
+  variable, no cron, no queue, no core change.
+- Twenty reserves the field name `address`; the property's street address is
+  `streetAddress` (label "Address").
+- The roles grant Experience Team write on experiences and Operations write on all
+  three objects; workspaces that customised roles by hand need the same grants in
+  Settings → Roles for those teams to operate the records.
+- The approval → partner chain runs in the worker (`lvOnboarding.updated`); with the
+  worker stopped an approval still succeeds but the partner appears only when the
+  worker catches up. The Control Tower's "Approved, partner not yet active" tile
+  shows the gap.

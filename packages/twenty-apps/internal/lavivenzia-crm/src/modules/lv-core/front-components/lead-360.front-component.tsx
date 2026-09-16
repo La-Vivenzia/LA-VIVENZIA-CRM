@@ -19,6 +19,7 @@ import {
   ActionBar,
   AssignmentSection,
   DocumentsSection,
+  EcosystemSection,
   Header,
   IntelligenceSummary,
   LifecycleSection,
@@ -307,7 +308,12 @@ export const Lead360 = () => {
         case 'SLA':
           return <SlaSection key={key} theme={theme} model={model} onOpen={openRecord} />;
         case 'ONBOARDING':
-          return <OnboardingSection key={key} theme={theme} model={model} busy={busy} onOpenOnboarding={() => model.onboarding && openRecord({ object: 'lvOnboarding', recordId: model.onboarding.id })} onStart={() => void startOnboarding(model)} />;
+          return (
+            <div key={key} style={{ display: 'grid', gap: theme.space(3) }}>
+              <OnboardingSection theme={theme} model={model} busy={busy} onOpenOnboarding={() => model.onboarding && openRecord({ object: 'lvOnboarding', recordId: model.onboarding.id })} onStart={() => void startOnboarding(model)} />
+              <EcosystemSection theme={theme} model={model} onOpen={openRecord} />
+            </div>
+          );
         case 'DOCUMENTS':
           return <DocumentsSection key={key} theme={theme} model={model} viewing={viewing} onView={(id) => void viewDocument(id)} onReview={() => model.onboarding && openRecord({ object: 'lvOnboarding', recordId: model.onboarding.id })} />;
         case 'NOTES':

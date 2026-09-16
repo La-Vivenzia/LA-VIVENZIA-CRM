@@ -26,3 +26,4 @@
 - DAY_6_AI_INTELLIGENCE.md — Day 6 AI intelligence and Copilot
 - DAY_7B_DESIGN_SYSTEM.md — Day 7B design system and UI/UX transformation
 - DAY_8_LEAD_CAPTURE.md — Day 8 universal lead capture, acquisition and assignment operations (full description in docs/CRM-LEAD-CAPTURE.md)
+- DAY_9_ECOSYSTEM.md — Day 9 partners, experiences, properties, onboarding completion and activation (full description in docs/CRM-ECOSYSTEM.md)

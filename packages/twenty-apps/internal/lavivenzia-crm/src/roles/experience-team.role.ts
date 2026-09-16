@@ -1,6 +1,7 @@
 import { defineRole, STANDARD_OBJECT_UNIVERSAL_IDENTIFIERS } from 'twenty-sdk/define';
 
 import {
+  EXPERIENCE_OBJECT_ID,
   ROLE_EXPERIENCE_TEAM_ID,
 } from 'src/constants/universal-identifiers';
 import { AI_PRIVATE_OBJECT_PERMISSIONS } from 'src/roles/ai-private-objects';
@@ -25,6 +26,14 @@ export default defineRole({
   canBeAssignedToApiKeys: true,
   objectPermissions: [
     ...AI_PRIVATE_OBJECT_PERMISSIONS,
+    {
+      // Day 9 — ecosystem entity this role operates.
+      objectUniversalIdentifier: EXPERIENCE_OBJECT_ID,
+      canReadObjectRecords: true,
+      canUpdateObjectRecords: true,
+      canSoftDeleteObjectRecords: false,
+      canDestroyObjectRecords: false,
+    },
     {
       objectUniversalIdentifier: STANDARD_OBJECT_UNIVERSAL_IDENTIFIERS.task.universalIdentifier,
       canReadObjectRecords: true,

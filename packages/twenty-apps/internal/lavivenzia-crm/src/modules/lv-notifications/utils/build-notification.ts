@@ -25,6 +25,11 @@ export const NOTIFICATION_TYPES = [
   // SLA clock states before a breach (Day 4B). In-app only.
   'SLA_DUE_SOON',
   'SLA_DUE',
+  // Day 9 — ecosystem entities.
+  'EXPERIENCE_APPROVAL_REQUIRED',
+  'PROPERTY_APPROVAL_REQUIRED',
+  'ACTIVATION_READY',
+  'PARTNER_CREATED',
 ] as const;
 
 export type NotificationType = (typeof NOTIFICATION_TYPES)[number];
@@ -39,7 +44,10 @@ export type NotificationTargetObject =
   | 'lvOnboarding'
   | 'lvOnboardingDocument'
   | 'task'
-  | 'note';
+  | 'note'
+  | 'lvPartner'
+  | 'lvExperience'
+  | 'lvProperty';
 
 export type NotificationTarget = {
   object: NotificationTargetObject;
@@ -583,3 +591,68 @@ export const buildEscalationNotification = ({
   email: shouldEmail('ESCALATION', 'CRITICAL'),
   metadata: { slaRecordId, ruleLabel, dueAt, ownerName },
 });
+
+// ---------------------------------------------------------------------------
+// Ecosystem (Day 9)
+// ---------------------------------------------------------------------------
+
+// A partner exists (from an approved onboarding) → its owner is told, and
+// told whether it is ready to activate. An experience or property submitted
+// for review → the partner's owner and the record's reviewer (if already
+// named) are told; the submitter is never notified about their own action.
+// Recipients are people who can open the target: partners / listings are
+// workspace-visible for reading, so no CM-004 concern arises.
+export const notificationsForEcosystem = ({
+  event,
+  recordId,
+  recordName,
+  recordCode,
+  object,
+  partnerId,
+  leadId,
+  recipients,
+  actorWorkspaceMemberId,
+  changedAt,
+  readinessReasons,
+}: {
+  event: 'EXPERIENCE_APPROVAL_REQUIRED' | 'PROPERTY_APPROVAL_REQUIRED' | 'ACTIVATION_READY' | 'PARTNER_CREATED';
+  recordId: string;
+  recordName: string;
+  recordCode: string | null;
+  object: 'lvPartner' | 'lvExperience' | 'lvProperty';
+  partnerId: string | null;
+  leadId: string | null;
+  recipients: (string | null)[];
+  actorWorkspaceMemberId: string | null;
+  changedAt: string;
+  readinessReasons?: number;
+}): readonly NotificationIntent[] => {
+  const label = `${recordName}${recordCode ? ` (${recordCode})` : ''}`;
+  const titles: Record<typeof event, string> = {
+    EXPERIENCE_APPROVAL_REQUIRED: `Experience awaiting approval: ${label}`,
+    PROPERTY_APPROVAL_REQUIRED: `Property awaiting approval: ${label}`,
+    ACTIVATION_READY: `Ready to activate: ${label}`,
+    PARTNER_CREATED: `Partner created: ${label}`,
+  };
+  const bodies: Record<typeof event, string> = {
+    EXPERIENCE_APPROVAL_REQUIRED: 'Submitted for review. Approve it, or ask for changes, from Experience 360.',
+    PROPERTY_APPROVAL_REQUIRED: 'Submitted for review. Approve it, or ask for changes, from Property 360.',
+    ACTIVATION_READY: 'Every activation requirement is met. Activation is a decision — take it from the 360 page.',
+    PARTNER_CREATED: readinessReasons && readinessReasons > 0 ? `Created from the approved onboarding. ${readinessReasons} activation requirement${readinessReasons === 1 ? '' : 's'} still missing.` : 'Created from the approved onboarding.',
+  };
+  const priority: LeadPriority = event === 'ACTIVATION_READY' ? 'HIGH' : 'MEDIUM';
+  const unique = [...new Set(recipients.filter((id): id is string => typeof id === 'string' && id.length > 0 && id !== actorWorkspaceMemberId))];
+
+  return unique.map((recipient) => ({
+    type: event,
+    recipientWorkspaceMemberId: recipient,
+    title: titles[event],
+    body: bodies[event],
+    priority,
+    target: { object, recordId },
+    leadId,
+    dedupeKey: `${event}:${recordId}:${recipient}:${eventStamp(changedAt)}`,
+    email: false,
+    metadata: { partnerId, object, event },
+  }));
+};

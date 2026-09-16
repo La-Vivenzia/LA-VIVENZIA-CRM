@@ -438,3 +438,48 @@ OpenAI and Anthropic dialects) are unit-tested, the live call is not.
 
 **Not covered:** PDF extraction (not implemented); voice capture (not
 implemented); Twenty's native importer (untouched).
+
+## Day 9 — partners, experiences, properties, activation: verified by real execution
+
+**Unit** `npx vitest run --project unit`: 49 files / 1012 tests (13 new in
+`lv-core/__tests__/ecosystem.test.ts` — entity codes and parsing, the code
+allocator under collision, contention and the 999999 ceiling, both lifecycle
+tables incl. human-only / reason-required / same-status refusals, partner and
+listing readiness with exact missing requirements, onboarding → partner /
+listing mapping, idempotent creation on replay, reuse without downgrading an
+ACTIVE partner, race → the loser reads the winner; the dashboard request-budget
+test raised by the three GROUP BY documents the ecosystem summary adds).
+
+**Integration** `--project integration --no-file-parallelism` against the live
+server with real sessions: 8 files / 61 tests, 9 new in
+`lv-ecosystem.integration-test.ts` (API-key refusal on all six routes; reviewer
+approval → partner LVP code, APPROVED, contact person + organisation linked,
+lead ↔ partner, DRAFT property with the onboarding's data, lead status mirror,
+audit with the reviewer as actor; replayed approval creates no second partner;
+Partner 360 as admin and as Hunter + Lead 360 ecosystem panel; ten security
+refusals — actor spoof, guessed id, unauthorised status change / approval /
+owner change / listing creation, DRAFT → LIVE bypass, activation NOT_READY,
+second activation SAME_STATUS, suspension without reason; property lifecycle
+IN_REVIEW → READY → LIVE with a real uploaded image and the readiness gate;
+partner activation → lead LIVE_ACTIVE and onboarding ACTIVATED; manual
+experience with the duplicate decision; soft-deleted records NOT_FOUND).
+
+**Browser** (`.notes/d9/d9-browser.mjs`, Playwright, real logins, fixtures
+destroyed afterwards): 18 scenarios / 32 checks, ALL PASS — partner list and the
+five views; manual partner with the duplicate decision; Partner 360 header,
+readiness, onboarding, documents, relations, timeline, audit; experience list
+and views; experience created from Partner 360; Experience 360 with submit →
+approve from the page; property list and views; property created; Property
+360; onboarding record state; approval in the browser as the Onboarding Expert
+→ partner appears; Lead 360 ecosystem panel; partner → listing relations;
+readiness NOT_READY → READY → Activate → lead LIVE_ACTIVE; Onboarding Expert and
+Hunter restrictions incl. a spoofed actor refused and audited; six widths with
+zero horizontal overflow; dark mode. Screenshots in `.notes/d9/shots/`. Filtered
+console output: only Twenty's own Apollo "Missing field … provider" warning.
+
+**Regression after the change** (2026-09-16): Day 5 `regress/d5-browser.mjs`
+38/38; Day 6 `d6/d6-browser.mjs` 32/32; Day 7 `d7/d7-browser.mjs` 34/34 (its
+datetime helper now sets the input value directly — typing `PM` into the
+12-hour field was dropped by the sandbox in afternoon runs); Day 8
+`d8/d8-browser.mjs` 9/9 (S3 re-run after one sandbox keystroke drop). Unit,
+integration, `tsc --noEmit` and `oxlint` clean. Zero core files changed.

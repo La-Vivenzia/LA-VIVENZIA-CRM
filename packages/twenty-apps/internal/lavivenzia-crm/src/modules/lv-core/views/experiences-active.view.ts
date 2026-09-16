@@ -1,0 +1,65 @@
+import { defineView, ViewFilterOperand, ViewSortDirection } from 'twenty-sdk/define';
+
+import {
+  EXPERIENCE_ACTIVATED_AT_FIELD_ID,
+  EXPERIENCE_APPROVED_AT_FIELD_ID,
+  EXPERIENCE_BASE_PRICE_FIELD_ID,
+  EXPERIENCE_CAPACITY_FIELD_ID,
+  EXPERIENCE_CATEGORY_FIELD_ID,
+  EXPERIENCE_CODE_FIELD_ID,
+  EXPERIENCE_DESTINATION_FIELD_ID,
+  EXPERIENCE_DIFFICULTY_FIELD_ID,
+  EXPERIENCE_DURATION_FIELD_ID,
+  EXPERIENCE_HOST_FIELD_ID,
+  EXPERIENCE_LANGUAGES_FIELD_ID,
+  EXPERIENCE_LOCATION_FIELD_ID,
+  EXPERIENCE_NAME_FIELD_ID,
+  EXPERIENCE_OBJECT_ID,
+  EXPERIENCE_ONBOARDING_FIELD_ID,
+  EXPERIENCE_OWNER_FIELD_ID,
+  EXPERIENCE_PARTNER_FIELD_ID,
+  EXPERIENCE_REVIEWER_FIELD_ID,
+  EXPERIENCE_STATUS_FIELD_ID,
+  EXPERIENCE_STATUS_REASON_FIELD_ID,
+  EXPERIENCE_SUBCATEGORY_FIELD_ID,
+  EXPERIENCE_SUBMITTED_AT_FIELD_ID,
+} from 'src/constants/universal-identifiers';
+
+// Day 9 — experience view "Active". Filtered on status; every field stays reachable through the column picker.
+
+export default defineView({
+  universalIdentifier: '890a9b1c-944b-57c9-bce4-67828d0daba1',
+  name: 'Active',
+  objectUniversalIdentifier: EXPERIENCE_OBJECT_ID,
+  icon: 'IconCompass',
+  position: 4,
+  fields: [
+    { universalIdentifier: 'c5db8c6b-b1bf-5d59-8ca8-51fd9fd71941', fieldMetadataUniversalIdentifier: EXPERIENCE_NAME_FIELD_ID, position: 0, isVisible: true, size: 200 },
+    { universalIdentifier: 'a4c1bed2-12b6-517b-a03c-d1fce676225e', fieldMetadataUniversalIdentifier: EXPERIENCE_CODE_FIELD_ID, position: 1, isVisible: true, size: 120 },
+    { universalIdentifier: '125d57af-87b8-595b-8daa-e1aca80825c4', fieldMetadataUniversalIdentifier: EXPERIENCE_STATUS_FIELD_ID, position: 2, isVisible: true, size: 150 },
+    { universalIdentifier: '2fa86ce9-4ef3-5b1e-a8d7-ffa963fd9ca1', fieldMetadataUniversalIdentifier: EXPERIENCE_PARTNER_FIELD_ID, position: 3, isVisible: true, size: 170 },
+    { universalIdentifier: '4ade01fa-59b4-5ffe-bafd-5c8aef1b1333', fieldMetadataUniversalIdentifier: EXPERIENCE_CATEGORY_FIELD_ID, position: 4, isVisible: true, size: 150 },
+    { universalIdentifier: 'cabb2d02-1a34-5873-98df-6a5e629cc4a5', fieldMetadataUniversalIdentifier: EXPERIENCE_LOCATION_FIELD_ID, position: 5, isVisible: true, size: 140 },
+    { universalIdentifier: '63f0ba1c-bde4-587e-b008-959fea7afb22', fieldMetadataUniversalIdentifier: EXPERIENCE_OWNER_FIELD_ID, position: 6, isVisible: true, size: 150 },
+    { universalIdentifier: 'b8297de2-c3bf-5afd-9535-9fa25daccd01', fieldMetadataUniversalIdentifier: EXPERIENCE_CAPACITY_FIELD_ID, position: 7, isVisible: true, size: 110 },
+    { universalIdentifier: '7a34df6e-65ba-5d1e-b501-350608846215', fieldMetadataUniversalIdentifier: EXPERIENCE_BASE_PRICE_FIELD_ID, position: 8, isVisible: true, size: 130 },
+    { universalIdentifier: '2c0ef436-04d0-5893-b748-f78a43a1d57c', fieldMetadataUniversalIdentifier: EXPERIENCE_SUBMITTED_AT_FIELD_ID, position: 9, isVisible: true, size: 150 },
+    { universalIdentifier: 'e3ae48cb-c755-5bdc-a178-cadc46e59cc6', fieldMetadataUniversalIdentifier: EXPERIENCE_APPROVED_AT_FIELD_ID, position: 10, isVisible: true, size: 150 },
+    { universalIdentifier: '123d935d-d180-5843-bb11-469da9fa7e33', fieldMetadataUniversalIdentifier: EXPERIENCE_ACTIVATED_AT_FIELD_ID, position: 11, isVisible: true, size: 150 },
+    { universalIdentifier: '106ab972-a93d-5554-b91e-f341050c88d2', fieldMetadataUniversalIdentifier: EXPERIENCE_SUBCATEGORY_FIELD_ID, position: 12, isVisible: false, size: 160 },
+    { universalIdentifier: '518b5831-f6c9-5b8a-9efd-3f32ee6eb348', fieldMetadataUniversalIdentifier: EXPERIENCE_DESTINATION_FIELD_ID, position: 13, isVisible: false, size: 160 },
+    { universalIdentifier: '7c2fbb84-6700-54c8-a3ab-578237c52686', fieldMetadataUniversalIdentifier: EXPERIENCE_DURATION_FIELD_ID, position: 14, isVisible: false, size: 160 },
+    { universalIdentifier: '1036a673-acad-5556-a062-e485281e41a9', fieldMetadataUniversalIdentifier: EXPERIENCE_REVIEWER_FIELD_ID, position: 15, isVisible: false, size: 160 },
+    { universalIdentifier: 'cd76ff71-3e7e-5344-83f3-610e684c6f72', fieldMetadataUniversalIdentifier: EXPERIENCE_HOST_FIELD_ID, position: 16, isVisible: false, size: 160 },
+    { universalIdentifier: '4e56a967-276a-5b5a-b7a2-aec7ce05ecb1', fieldMetadataUniversalIdentifier: EXPERIENCE_DIFFICULTY_FIELD_ID, position: 17, isVisible: false, size: 160 },
+    { universalIdentifier: 'a6f1dd17-669c-5159-9322-004807dfb824', fieldMetadataUniversalIdentifier: EXPERIENCE_LANGUAGES_FIELD_ID, position: 18, isVisible: false, size: 160 },
+    { universalIdentifier: '5e8a29b0-1e66-590f-aefe-fd5cc125601f', fieldMetadataUniversalIdentifier: EXPERIENCE_STATUS_REASON_FIELD_ID, position: 19, isVisible: false, size: 160 },
+    { universalIdentifier: 'c2b3ed10-aa4a-518a-a1fd-ced9db553072', fieldMetadataUniversalIdentifier: EXPERIENCE_ONBOARDING_FIELD_ID, position: 20, isVisible: false, size: 160 },
+  ],
+  filters: [
+    { universalIdentifier: '6a3ec2c4-28a1-5460-93fd-3c37b9b03359', fieldMetadataUniversalIdentifier: EXPERIENCE_STATUS_FIELD_ID, operand: ViewFilterOperand.IS, value: ['LIVE'] },
+  ],
+  sorts: [
+    { universalIdentifier: 'c3ab5279-84f2-5239-942a-1c1170e9f2fd', fieldMetadataUniversalIdentifier: EXPERIENCE_NAME_FIELD_ID, direction: ViewSortDirection.ASC },
+  ],
+});

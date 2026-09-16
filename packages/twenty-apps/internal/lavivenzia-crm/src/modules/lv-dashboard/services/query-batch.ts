@@ -28,6 +28,10 @@ export const OBJECTS = {
   auditEvent: { plural: 'lvAuditEvents', type: 'LvAuditEvent' },
   problem: { plural: 'lvProblems', type: 'LvProblem' },
   aiRun: { plural: 'lvAiRuns', type: 'LvAiRun' },
+  // Day 9 — ecosystem entities.
+  partner: { plural: 'lvPartners', type: 'LvPartner' },
+  experience: { plural: 'lvExperiences', type: 'LvExperience' },
+  property: { plural: 'lvProperties', type: 'LvProperty' },
 } as const;
 
 export type GroupRow = { groupByDimensionValues: (string | null)[]; totalCount: number };

@@ -29,6 +29,7 @@ import {
   type SlaRow,
   type TaskRow,
 } from 'src/modules/lv-dashboard/services/dashboard-summary';
+import { buildEcosystemSummary, type EcosystemSummary } from 'src/modules/lv-dashboard/services/ecosystem-summary';
 
 // The Admin Control Tower: one operational view of the whole pipeline.
 //
@@ -72,6 +73,8 @@ export type ControlTowerSummary = {
   members: { id: string; name: string }[];
   notes: string[];
   partial: string[];
+  // Day 9 — partners, experiences, properties and the onboarding pipeline.
+  ecosystem: EcosystemSummary;
 };
 
 type MemberRow = { id: string; name?: { firstName?: string | null; lastName?: string | null } | null };
@@ -226,8 +229,10 @@ export const buildControlTowerSummary = async ({
     at: { gte: new Date(Date.parse(now) - 7 * 86_400_000).toISOString() },
   });
 
-  const { data, errors } = await batch.run(client);
+  const [{ data, errors }, ecosystem] = await Promise.all([batch.run(client), buildEcosystemSummary(client, now)]);
   const partial = errors.length > 0 ? ['Some sections could not be loaded.'] : [];
+
+  partial.push(...ecosystem.partial);
 
   // Members for owner filter + naming (bounded).
   const members = new Map<string, MemberRow>();
@@ -391,6 +396,7 @@ export const buildControlTowerSummary = async ({
     'Duplicates: leads a human marked DUPLICATE, and leads the capture step flagged with duplicate keys. Cross-record matching is not run here.',
     'Team filter = a set of owners; the data model has no team object.',
     'Uptime and infrastructure metrics are not shown — nothing in the CRM records them.',
+    'Ecosystem: "not active" counts records by status; per-record activation readiness (documents, pricing, availability, approval) is computed on each 360 page, not estimated here.',
   ];
 
   return {
@@ -412,5 +418,6 @@ export const buildControlTowerSummary = async ({
     members: [...members.values()].map((member) => ({ id: member.id, name: memberName(member) })).sort((a, b) => a.name.localeCompare(b.name)),
     notes,
     partial,
+    ecosystem,
   };
 };

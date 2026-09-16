@@ -27,6 +27,8 @@ Lead sources: website, Instagram, Facebook, LinkedIn, WhatsApp, referral, phone,
 ## Dynamic categories
 Admin can create a category, define fields, define workflow, define responsible role and activate it without developer intervention.
 
+*Cross-check (Day 9): not yet implemented — categories are code constants plus generated SELECT options; the design for a taxonomy object is recorded in DAY_9_ECOSYSTEM.md §3.*
+
 ## Universal lead profile
 Name, organisation, LV Lead ID, category/subcategory, location, source, owner, status, priority, opportunity score, last interaction, next action, next follow-up, onboarding status, relationship health, AI recommendation and custom fields.
 
@@ -57,6 +59,8 @@ Onboarding Expert: new onboardings, pending documents, incomplete forms, verific
 Admin: funnel, team performance, control tower, SLA breaches, duplicates, unowned leads, incomplete records and management intelligence.
 
 ## Partner onboarding
+*Cross-check (Day 9): implemented end to end — approval creates / links the Partner (LVP code), the Experience or Property for its category, links Person and Organisation, mirrors the lead lifecycle and gates activation on a deterministic readiness check; see docs/CRM-ECOSYSTEM.md.*
+
 Ten steps: Basic Information → About You → Experience → Location → Pricing → Availability → Images → Documents → Policies → Final Review. Include progress, save/resume, missing information, verification, reviewer, internal notes and approval/rejection reasons.
 
 AI can explain fields, improve wording, extract document data and detect missing information/inconsistency, but never fabricate partner facts.

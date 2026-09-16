@@ -9,6 +9,7 @@ import {
   type MemberSummary,
   composeLead360,
 } from 'src/modules/lv-core/services/lead-360';
+import { loadEcosystemForLead } from 'src/modules/lv-core/services/lead-ecosystem';
 import { resolveCaller } from 'src/modules/lv-dashboard/services/caller-context';
 import { assessDataQuality } from 'src/modules/lv-intelligence/engines/data-quality';
 import { deriveLeadFacts } from 'src/modules/lv-intelligence/engines/lead-facts';
@@ -94,8 +95,10 @@ export const handler = async (event: unknown): Promise<Record<string, unknown>> 
 
     const facts = deriveLeadFacts(context, now);
     const onboardingProgress = context.onboarding ? stepProgress((context.onboarding.answers ?? {}) as OnboardingData) : [];
+    const ecosystem = await loadEcosystemForLead(delegated, leadId, now);
 
     return composeLead360({
+      ecosystem,
       context,
       caller: { ...caller, workspaceMemberId: caller.workspaceMemberId },
       now,

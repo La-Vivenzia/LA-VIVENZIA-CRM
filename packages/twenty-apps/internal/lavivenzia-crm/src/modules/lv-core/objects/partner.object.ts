@@ -1,33 +1,56 @@
-import {
-  defineObject,
-  FieldType,
-  OnDeleteAction,
-  RelationType,
-} from 'twenty-sdk/define';
+import { defineObject, FieldType, OnDeleteAction, RelationType, STANDARD_OBJECT_UNIVERSAL_IDENTIFIERS } from 'twenty-sdk/define';
 
 import {
+  LEAD_OBJECT_ID,
+  ONBOARDING_OBJECT_ID,
+  PARTNER_ACTIVATED_AT_FIELD_ID,
+  PARTNER_APPROVED_AT_FIELD_ID,
+  PARTNER_AVAILABILITY_FIELD_ID,
+  PARTNER_CATEGORY_FIELD_ID,
   PARTNER_CODE_FIELD_ID,
+  PARTNER_CONTACT_FIELD_ID,
+  PARTNER_DESCRIPTION_FIELD_ID,
+  PARTNER_EMAILS_FIELD_ID,
+  PARTNER_GEOGRAPHY_FIELD_ID,
+  PARTNER_INSTAGRAM_FIELD_ID,
+  PARTNER_LANGUAGES_FIELD_ID,
   PARTNER_LEAD_FIELD_ID,
   PARTNER_LOCATION_FIELD_ID,
   PARTNER_NAME_FIELD_ID,
   PARTNER_OBJECT_ID,
+  PARTNER_ONBOARDING_FIELD_ID,
   PARTNER_ON_LEAD_FIELD_ID,
+  PARTNER_ON_ONBOARDING_FIELD_ID,
+  PARTNER_ORGANISATION_FIELD_ID,
+  PARTNER_OWNER_FIELD_ID,
+  PARTNER_PHONES_FIELD_ID,
+  PARTNER_POLICIES_FIELD_ID,
+  PARTNER_PRICING_FIELD_ID,
+  PARTNER_PROVENANCE_FIELD_ID,
+  PARTNER_SOURCE_KEY_FIELD_ID,
   PARTNER_STATUS_FIELD_ID,
+  PARTNER_STATUS_REASON_FIELD_ID,
+  PARTNER_SUBCATEGORY_FIELD_ID,
   PARTNER_TYPE_FIELD_ID,
-  LEAD_OBJECT_ID,
+  PARTNER_WEBSITE_FIELD_ID,
+  PARTNERS_ON_COMPANY_FIELD_ID,
+  PARTNERS_ON_PERSON_FIELD_ID,
+  PARTNERS_ON_WORKSPACE_MEMBER_FIELD_ID,
 } from 'src/constants/universal-identifiers';
-import {
-  PARTNER_STATUS_OPTIONS,
-  PARTNER_TYPE_OPTIONS,
-} from 'src/modules/lv-core/constants/partner-options';
+import { PARTNER_STATUS_OPTIONS, PARTNER_TYPE_OPTIONS } from 'src/modules/lv-core/constants/partner-options';
+import { LEAD_CATEGORY_OPTIONS, LEAD_SUBCATEGORY_OPTIONS } from 'src/modules/lv-core/constants/select-options.generated';
 
 // A partner is what a lead becomes once onboarding is approved: the host,
 // business or professional La Vivenzia actually works with.
 //
-// Deliberately small. DATA-MODEL.md lists far more against the Organisation
-// entry, but pricing, availability, quality signals and demand belong to the
-// later phases that will use them. Adding empty columns now would be inventing
-// a schema rather than building a foundation.
+// Day 9 makes it operational. What lives here is what the partner needs after
+// the lead is history — identity, contact, category, geography, owner,
+// lifecycle dates and the commercial facts the onboarding collected (pricing,
+// availability, policies as the partner stated them). What stays on the lead
+// (the acquisition story: source, capture, interactions) is reached through
+// the lead relation; what stays on the onboarding (answers, documents,
+// reviewer, decision) through the onboarding relation. Nothing is copied that
+// can be read.
 //
 // The lead relation is what preserves provenance: every partner can be traced
 // back to the enquiry it came from.
@@ -38,21 +61,13 @@ export default defineObject({
   namePlural: 'lvPartners',
   labelSingular: 'Partner',
   labelPlural: 'Partners',
-  description:
-    'An approved La Vivenzia partner: the host, business or professional behind experiences and properties.',
+  description: 'An approved La Vivenzia partner: the host, business or professional behind experiences and properties.',
   icon: 'IconHeartHandshake',
   labelIdentifierFieldMetadataUniversalIdentifier: PARTNER_NAME_FIELD_ID,
   fields: [
+    { universalIdentifier: PARTNER_NAME_FIELD_ID, type: FieldType.TEXT, name: 'name', label: 'Name', icon: 'IconAbc', defaultValue: "''" },
     {
-      universalIdentifier: PARTNER_NAME_FIELD_ID,
-      type: FieldType.TEXT,
-      name: 'name',
-      label: 'Name',
-      icon: 'IconAbc',
-      defaultValue: "''",
-    },
-    {
-      // Human-readable business key, allocated the same way an LV Lead ID is.
+      // Human-readable business key, allocated server-side exactly as the LV Lead ID is.
       universalIdentifier: PARTNER_CODE_FIELD_ID,
       type: FieldType.TEXT,
       name: 'partnerCode',
@@ -63,30 +78,70 @@ export default defineObject({
       isUnique: true,
     },
     {
-      universalIdentifier: PARTNER_STATUS_FIELD_ID,
-      type: FieldType.SELECT,
-      name: 'status',
-      label: 'Status',
-      icon: 'IconProgressCheck',
-      isNullable: true,
-      options: PARTNER_STATUS_OPTIONS,
-    },
-    {
-      universalIdentifier: PARTNER_TYPE_FIELD_ID,
-      type: FieldType.SELECT,
-      name: 'partnerType',
-      label: 'Partner type',
-      icon: 'IconCategory',
-      isNullable: true,
-      options: PARTNER_TYPE_OPTIONS,
-    },
-    {
-      universalIdentifier: PARTNER_LOCATION_FIELD_ID,
+      // Idempotency: which approval created this partner. Unique, so a replayed
+      // approval event or two racing workers cannot produce a second record.
+      universalIdentifier: PARTNER_SOURCE_KEY_FIELD_ID,
       type: FieldType.TEXT,
-      name: 'location',
-      label: 'Location',
-      icon: 'IconMapPin',
+      name: 'sourceKey',
+      label: 'Source key',
+      description: 'onboarding:<id> for partners created by an approved onboarding; manual:<uuid> otherwise',
+      icon: 'IconKey',
       isNullable: true,
+      isUnique: true,
+    },
+    { universalIdentifier: PARTNER_STATUS_FIELD_ID, type: FieldType.SELECT, name: 'status', label: 'Status', icon: 'IconProgressCheck', isNullable: true, options: PARTNER_STATUS_OPTIONS },
+    { universalIdentifier: PARTNER_STATUS_REASON_FIELD_ID, type: FieldType.TEXT, name: 'statusReason', label: 'Status reason', description: 'Why the partner was paused, suspended or offboarded', icon: 'IconMessage', isNullable: true },
+    { universalIdentifier: PARTNER_TYPE_FIELD_ID, type: FieldType.SELECT, name: 'partnerType', label: 'Partner type', icon: 'IconCategory', isNullable: true, options: PARTNER_TYPE_OPTIONS },
+    { universalIdentifier: PARTNER_CATEGORY_FIELD_ID, type: FieldType.SELECT, name: 'category', label: 'Category', icon: 'IconCategory', isNullable: true, options: LEAD_CATEGORY_OPTIONS },
+    { universalIdentifier: PARTNER_SUBCATEGORY_FIELD_ID, type: FieldType.SELECT, name: 'subcategory', label: 'Subcategory', icon: 'IconCategory2', isNullable: true, options: LEAD_SUBCATEGORY_OPTIONS },
+    { universalIdentifier: PARTNER_DESCRIPTION_FIELD_ID, type: FieldType.TEXT, name: 'description', label: 'About', description: "The partner's own description (from onboarding: About you)", icon: 'IconAlignLeft', isNullable: true },
+    { universalIdentifier: PARTNER_EMAILS_FIELD_ID, type: FieldType.EMAILS, name: 'emails', label: 'Email', icon: 'IconMail', isNullable: true },
+    { universalIdentifier: PARTNER_PHONES_FIELD_ID, type: FieldType.PHONES, name: 'phones', label: 'Phone', icon: 'IconPhone', isNullable: true },
+    { universalIdentifier: PARTNER_WEBSITE_FIELD_ID, type: FieldType.LINKS, name: 'website', label: 'Website', icon: 'IconWorld', isNullable: true },
+    { universalIdentifier: PARTNER_INSTAGRAM_FIELD_ID, type: FieldType.LINKS, name: 'instagram', label: 'Instagram', icon: 'IconBrandInstagram', isNullable: true },
+    { universalIdentifier: PARTNER_LOCATION_FIELD_ID, type: FieldType.TEXT, name: 'location', label: 'Location', description: 'City / area', icon: 'IconMapPin', isNullable: true },
+    { universalIdentifier: PARTNER_GEOGRAPHY_FIELD_ID, type: FieldType.TEXT, name: 'geography', label: 'Geography', description: 'State, country', icon: 'IconMap2', isNullable: true },
+    { universalIdentifier: PARTNER_LANGUAGES_FIELD_ID, type: FieldType.ARRAY, name: 'languages', label: 'Languages', icon: 'IconLanguage', isNullable: true },
+    { universalIdentifier: PARTNER_PRICING_FIELD_ID, type: FieldType.RAW_JSON, name: 'pricing', label: 'Pricing', description: 'As stated in onboarding: base price, unit, minimum guests, additional charges', icon: 'IconCurrencyRupee', isNullable: true },
+    { universalIdentifier: PARTNER_AVAILABILITY_FIELD_ID, type: FieldType.RAW_JSON, name: 'availability', label: 'Availability', description: 'As stated in onboarding: available days, notice period, seasonal notes', icon: 'IconCalendarTime', isNullable: true },
+    { universalIdentifier: PARTNER_POLICIES_FIELD_ID, type: FieldType.RAW_JSON, name: 'policies', label: 'Policies', description: 'As stated in onboarding: cancellation, house rules, safety, terms accepted', icon: 'IconGavel', isNullable: true },
+    { universalIdentifier: PARTNER_APPROVED_AT_FIELD_ID, type: FieldType.DATE_TIME, name: 'approvedAt', label: 'Approved at', icon: 'IconCircleCheck', isNullable: true },
+    { universalIdentifier: PARTNER_ACTIVATED_AT_FIELD_ID, type: FieldType.DATE_TIME, name: 'activatedAt', label: 'Activated at', icon: 'IconRocket', isNullable: true },
+    { universalIdentifier: PARTNER_PROVENANCE_FIELD_ID, type: FieldType.RAW_JSON, name: 'provenance', label: 'Provenance', description: 'How this partner record came to be: onboarding, lead, actor, linked entities', icon: 'IconFingerprint', isNullable: true },
+    {
+      universalIdentifier: PARTNER_OWNER_FIELD_ID,
+      type: FieldType.RELATION,
+      name: 'owner',
+      label: 'Owner',
+      description: 'The team member who looks after this partner',
+      icon: 'IconUserCircle',
+      isNullable: true,
+      relationTargetObjectMetadataUniversalIdentifier: STANDARD_OBJECT_UNIVERSAL_IDENTIFIERS.workspaceMember.universalIdentifier,
+      relationTargetFieldMetadataUniversalIdentifier: PARTNERS_ON_WORKSPACE_MEMBER_FIELD_ID,
+      universalSettings: { relationType: RelationType.MANY_TO_ONE, onDelete: OnDeleteAction.SET_NULL, joinColumnName: 'ownerId' },
+    },
+    {
+      universalIdentifier: PARTNER_CONTACT_FIELD_ID,
+      type: FieldType.RELATION,
+      name: 'contact',
+      label: 'Contact',
+      description: 'The person La Vivenzia deals with',
+      icon: 'IconUser',
+      isNullable: true,
+      relationTargetObjectMetadataUniversalIdentifier: STANDARD_OBJECT_UNIVERSAL_IDENTIFIERS.person.universalIdentifier,
+      relationTargetFieldMetadataUniversalIdentifier: PARTNERS_ON_PERSON_FIELD_ID,
+      universalSettings: { relationType: RelationType.MANY_TO_ONE, onDelete: OnDeleteAction.SET_NULL, joinColumnName: 'contactId' },
+    },
+    {
+      universalIdentifier: PARTNER_ORGANISATION_FIELD_ID,
+      type: FieldType.RELATION,
+      name: 'organisation',
+      label: 'Organisation',
+      icon: 'IconBuilding',
+      isNullable: true,
+      relationTargetObjectMetadataUniversalIdentifier: STANDARD_OBJECT_UNIVERSAL_IDENTIFIERS.company.universalIdentifier,
+      relationTargetFieldMetadataUniversalIdentifier: PARTNERS_ON_COMPANY_FIELD_ID,
+      universalSettings: { relationType: RelationType.MANY_TO_ONE, onDelete: OnDeleteAction.SET_NULL, joinColumnName: 'organisationId' },
     },
     {
       // Provenance: which enquiry became this partner.
@@ -98,11 +153,19 @@ export default defineObject({
       isNullable: true,
       relationTargetObjectMetadataUniversalIdentifier: LEAD_OBJECT_ID,
       relationTargetFieldMetadataUniversalIdentifier: PARTNER_ON_LEAD_FIELD_ID,
-      universalSettings: {
-        relationType: RelationType.MANY_TO_ONE,
-        onDelete: OnDeleteAction.SET_NULL,
-        joinColumnName: 'leadId',
-      },
+      universalSettings: { relationType: RelationType.MANY_TO_ONE, onDelete: OnDeleteAction.SET_NULL, joinColumnName: 'leadId' },
+    },
+    {
+      // Which onboarding approved this partner — its answers, documents and reviewer.
+      universalIdentifier: PARTNER_ONBOARDING_FIELD_ID,
+      type: FieldType.RELATION,
+      name: 'onboarding',
+      label: 'Onboarding',
+      icon: 'IconRoute',
+      isNullable: true,
+      relationTargetObjectMetadataUniversalIdentifier: ONBOARDING_OBJECT_ID,
+      relationTargetFieldMetadataUniversalIdentifier: PARTNER_ON_ONBOARDING_FIELD_ID,
+      universalSettings: { relationType: RelationType.MANY_TO_ONE, onDelete: OnDeleteAction.SET_NULL, joinColumnName: 'onboardingId' },
     },
   ],
 });

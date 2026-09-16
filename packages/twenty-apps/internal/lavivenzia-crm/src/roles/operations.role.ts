@@ -1,10 +1,13 @@
 import { defineRole, STANDARD_OBJECT_UNIVERSAL_IDENTIFIERS, SystemPermissionFlag } from 'twenty-sdk/define';
 
 import {
-  ROLE_OPERATIONS_ID,
-  LEAD_OBJECT_ID,
+  EXPERIENCE_OBJECT_ID,
   INTERACTION_OBJECT_ID,
+  LEAD_OBJECT_ID,
   ONBOARDING_OBJECT_ID,
+  PARTNER_OBJECT_ID,
+  PROPERTY_OBJECT_ID,
+  ROLE_OPERATIONS_ID,
 } from 'src/constants/universal-identifiers';
 import { AI_PRIVATE_OBJECT_PERMISSIONS } from 'src/roles/ai-private-objects';
 
@@ -31,6 +34,30 @@ export default defineRole({
   permissionFlagUniversalIdentifiers: [SystemPermissionFlag.UPLOAD_FILE, SystemPermissionFlag.DOWNLOAD_FILE],
   objectPermissions: [
     ...AI_PRIVATE_OBJECT_PERMISSIONS,
+    {
+      // Day 9 — ecosystem entity this role operates.
+      objectUniversalIdentifier: PARTNER_OBJECT_ID,
+      canReadObjectRecords: true,
+      canUpdateObjectRecords: true,
+      canSoftDeleteObjectRecords: false,
+      canDestroyObjectRecords: false,
+    },
+    {
+      // Day 9 — ecosystem entity this role operates.
+      objectUniversalIdentifier: EXPERIENCE_OBJECT_ID,
+      canReadObjectRecords: true,
+      canUpdateObjectRecords: true,
+      canSoftDeleteObjectRecords: false,
+      canDestroyObjectRecords: false,
+    },
+    {
+      // Day 9 — ecosystem entity this role operates.
+      objectUniversalIdentifier: PROPERTY_OBJECT_ID,
+      canReadObjectRecords: true,
+      canUpdateObjectRecords: true,
+      canSoftDeleteObjectRecords: false,
+      canDestroyObjectRecords: false,
+    },
     {
       objectUniversalIdentifier: LEAD_OBJECT_ID,
       canReadObjectRecords: true,

@@ -32,9 +32,13 @@ const forOwnerChange = (
   });
 
 describe('catalogue', () => {
-  it('covers the twelve event types in the brief, plus the two SLA clock states', () => {
+  it('covers the twelve event types in the brief, the two SLA clock states and the four Day 9 ecosystem events', () => {
     expect([...NOTIFICATION_TYPES].sort()).toEqual(
       [
+        'EXPERIENCE_APPROVAL_REQUIRED',
+        'PROPERTY_APPROVAL_REQUIRED',
+        'ACTIVATION_READY',
+        'PARTNER_CREATED',
         'SLA_DUE_SOON',
         'SLA_DUE',
         'LEAD_ASSIGNED',

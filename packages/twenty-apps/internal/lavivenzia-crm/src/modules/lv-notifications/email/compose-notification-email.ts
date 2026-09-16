@@ -38,6 +38,10 @@ const TYPE_LABEL: Record<NotificationType, string> = {
   ESCALATION: 'Escalation',
   SLA_DUE_SOON: 'SLA due soon',
   SLA_DUE: 'SLA due',
+  EXPERIENCE_APPROVAL_REQUIRED: 'Experience approval required',
+  PROPERTY_APPROVAL_REQUIRED: 'Property approval required',
+  ACTIVATION_READY: 'Ready to activate',
+  PARTNER_CREATED: 'Partner created',
 };
 
 const PRIORITY_COLOUR: Record<LeadPriority, string> = {

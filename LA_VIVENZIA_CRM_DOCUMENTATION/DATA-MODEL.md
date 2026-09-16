@@ -30,15 +30,20 @@ reviewable afterwards.
 
 ## Person
 Name, phone, email, location, languages, social profiles, roles, consent, relationship health.
+Twenty's `person`. Since Day 9 a partner links to its contact person (`lvPartner.contact`), an experience to its host (`lvExperience.host`) and a property to its manager (`lvProperty.manager`); approval links an existing person by email or creates one from the onboarding answers.
 
 ## Organisation
 Name, type, location, website, social profiles, description, people, experiences, properties, status.
+Twenty's `company`; `lvPartner.organisation` links to it (existing by name, else created from the onboarding).
 
-## Experience
-Name, category, description, location, capacity, pricing, availability, languages, images, quality signals, operational readiness, partner.
+## Partner (`lvPartner`, Day 9)
+name, partnerCode (`LVP-000042`, unique, server-allocated), sourceKey (unique idempotency key — `onboarding:<id>` / `manual:<uuid>`), status (PROSPECTIVE, ONBOARDING, APPROVED, ACTIVE, PAUSED, SUSPENDED, INACTIVE, OFFBOARDED), statusReason, partnerType, category, subcategory, description, emails, phones, website, instagram, location, geography, languages, pricing / availability / policies (RAW_JSON as stated in onboarding), approvedAt, activatedAt, provenance; relations owner (member), contact (person), organisation (company), lead, onboarding; reverse experiences, properties. Lifecycle, readiness and approval chain: `docs/CRM-ECOSYSTEM.md`.
 
-## Property
-Type, location, capacity, pricing, availability, images, documents, owner/manager, partner.
+## Experience (`lvExperience`, Day 9)
+name, experienceCode (`LVE-`), sourceKey, status (DRAFT, IN_REVIEW, CHANGES_REQUIRED, READY = approved, LIVE = active, PAUSED, SUSPENDED, RETIRED = archived), statusReason, category, subcategory, shortDescription, description, hostName, location, destination, meetingPoint, durationMinutes, minParticipants, capacity, basePrice (CURRENCY), priceUnit, availability, languages, ageRequirement, difficulty, accessibility, included, excluded, requirements, safetyInformation, cancellationPolicy, images (FILES), documents (FILES), submittedAt, approvedAt, activatedAt; relations partner, host (person), owner, reviewer, onboarding.
+
+## Property (`lvProperty`, Day 9)
+name, propertyCode (`LVR-`), sourceKey, status (same machine as experience), statusReason, propertyType (Villa, Homestay, Boutique stay, Resort, Hotel, Farm stay, Heritage property, Luxury stay, Unique stay, Glamping property, Hostel, Retreat centre, Property manager, Property owner, Venue, Other), description, location, streetAddress, destination, capacity (sleeps), rooms, amenities, basePrice, priceUnit, availability, checkIn, checkOut, cancellationPolicy, houseRules, images, documents, submittedAt, approvedAt, activatedAt; relations partner, manager (person), owner, reviewer, onboarding.
 
 ## Onboarding
 Lead/partner, current step, progress, health score, missing information, documents, verification state, reviewer, approval state.
@@ -70,7 +75,11 @@ CAPTURE_REVIEWED, CLASSIFICATION_ACCEPTED / EDITED / REJECTED,
 DUPLICATE_DETECTED / MERGED / IGNORED / CREATED_NEW, LEAD_CREATED,
 ASSIGNMENT_RECOMMENDED / ACCEPTED / CHANGED / FAILED, IMPORT_STARTED /
 COMPLETED / FAILED (target `lvCapture`/captureKey or `lvImport`/importKey before
-a lead exists, `lvLead`/id after).
+a lead exists, `lvLead`/id after). Since Day 9 also the ecosystem: PARTNER_CREATED,
+PARTNER_LINKED, PARTNER_STATUS_CHANGE, PARTNER_OWNER_CHANGE, EXPERIENCE_CREATED,
+EXPERIENCE_STATUS_CHANGE, PROPERTY_CREATED, PROPERTY_STATUS_CHANGE,
+ACTIVATION_READINESS (REFUSED when activation is attempted NOT_READY),
+ENTITY_OWNER_CHANGE — every refused transition is a row too.
 Every row is written with the application role from the session-derived actor;
 `metadata` carries the before/after (status from/to, owner from/to, task id,
 interaction id). Assignment decisions are additionally recorded in
@@ -91,6 +100,9 @@ action, data quality), the assignment history and (Day 8) the capture summary
 derived from `captureProvenance` (method, platform, captured by/at, original
 link or handle, extraction and classification outcome, duplicate decision,
 attached files). All of it is read under the caller's token, so CM-004 and
-object permissions decide what appears.
+object permissions decide what appears. Since Day 9 it also carries `ecosystem`: the
+partner the lead became (code, status, readiness) and its experiences / properties.
+Partner 360 (`POST /partners/360`), Experience 360 and Property 360 are composed the
+same way — see `docs/CRM-ECOSYSTEM.md`.
 
 Use a stable human-readable LV Lead ID while preserving Twenty internal IDs as technical identifiers.

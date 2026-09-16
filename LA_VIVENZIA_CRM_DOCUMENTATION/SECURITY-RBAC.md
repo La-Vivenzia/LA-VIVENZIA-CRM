@@ -484,3 +484,44 @@ a direct database update does not.
   unconfirmed image draft refused; private-address fetch refused; social handle
   not scraped; undecided duplicate refused; replay idempotent; import re-commit
   reports EXISTS.
+
+## Ecosystem operations (Day 9)
+
+- **Session-only routes.** `/partners/360`, `/experiences/360`, `/properties/360`,
+  `/ecosystem/transition`, `/ecosystem/create`, `/ecosystem/readiness` refuse API
+  keys (`NOT_AUTHENTICATED`). The actor is the session member; `actorWorkspaceMemberId`
+  / `workspaceMemberId` / `ownerId` in a body are never read as identity. Proven live:
+  a Hunter's body naming the admin as actor is refused `NOT_PERMITTED` and audited.
+- **Records read as the caller.** A partner / experience / property the caller's
+  object permissions do not allow comes back `NOT_FOUND`; so does a guessed id and a
+  soft-deleted record. The lead, onboarding and documents a 360 page reaches into are
+  read as the caller too, so CM-004 still decides what appears. CM-004 itself is
+  unchanged: ecosystem records are workspace-readable (a Hunter must see existing
+  partners to avoid creating a duplicate); every write is governed.
+- **Write permission by role** (object permissions, enforced by the platform on the
+  write and re-checked by the routes): Main Admin all; Operations lvPartner,
+  lvExperience, lvProperty; Experience Team lvExperience; everyone else read only.
+- **Governance decisions** — approve (READY), request changes, activate (ACTIVE /
+  LIVE), suspend, archive / offboard — additionally require that the caller is an
+  administrator or a writer who does **not** own the record (`capabilitiesFor`); the
+  owner of an experience cannot approve their own experience. Human-only transitions
+  refuse an actor-less caller; reason-required ones refuse an empty reason.
+- **Activation is readiness-gated.** ACTIVE / LIVE call the deterministic readiness
+  check and fail closed with `NOT_READY` + coded reasons; the attempt is audited
+  `ACTIVATION_READINESS : REFUSED`. No score, no model, no override.
+- **Approval → partner runs with the application role** from the `lvOnboarding.updated`
+  event (the reviewer approving does not hold partner write permission), records the
+  reviewer as the actor on every audit row, and is idempotent by the unique
+  `sourceKey` — a replayed event or a racing worker cannot create a second partner.
+- **Duplicate protection before the write**: partner by lead / onboarding / similar
+  name; experience or property by partner + similar name / same location — refused
+  `DUPLICATE_UNDECIDED` until the person chooses CREATE_NEW (recorded in the audit).
+- **Destructive policy unchanged**: no role gained soft-delete or destroy on the new
+  objects; Main Admin's permanent-delete rules are as on Day 5.
+- Proven live (`src/__tests__/lv-ecosystem.integration-test.ts`, `.notes/d9/d9-browser.mjs`):
+  API-key refusal on every route; Hunter cannot change partner status even with a
+  spoofed actor; Hunter cannot submit a property; Onboarding Expert cannot create
+  listings; Coordinator cannot change owners; guessed id → NOT_FOUND; DRAFT → LIVE
+  bypass → NOT_ALLOWED; activation NOT_READY until the record is complete; second
+  activation → SAME_STATUS; suspension without reason → REASON_REQUIRED; soft-deleted
+  record → NOT_FOUND for compose and transition; refusals audited.

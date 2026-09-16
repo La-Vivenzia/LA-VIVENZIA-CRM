@@ -74,6 +74,17 @@ export const GOVERNANCE_ACTIONS = [
   'IMPORT_STARTED',
   'IMPORT_COMPLETED',
   'IMPORT_FAILED',
+  // Day 9 — ecosystem entities
+  'PARTNER_CREATED',
+  'PARTNER_LINKED',
+  'PARTNER_STATUS_CHANGE',
+  'PARTNER_OWNER_CHANGE',
+  'EXPERIENCE_CREATED',
+  'EXPERIENCE_STATUS_CHANGE',
+  'PROPERTY_CREATED',
+  'PROPERTY_STATUS_CHANGE',
+  'ACTIVATION_READINESS',
+  'ENTITY_OWNER_CHANGE',
 ] as const;
 
 export type GovernanceAction = (typeof GOVERNANCE_ACTIONS)[number];
@@ -111,6 +122,16 @@ const ACTION_OPTIONS: SelectOption[] = [
   { id: 'a1b2c3d4-0001-4a00-8000-000000000030', value: 'IMPORT_STARTED', label: 'Import started', position: 29, color: 'blue' },
   { id: 'a1b2c3d4-0001-4a00-8000-000000000031', value: 'IMPORT_COMPLETED', label: 'Import completed', position: 30, color: 'green' },
   { id: 'a1b2c3d4-0001-4a00-8000-000000000032', value: 'IMPORT_FAILED', label: 'Import failed', position: 31, color: 'red' },
+  { id: 'a1b2c3d4-0001-4a00-8000-000000000033', value: 'PARTNER_CREATED', label: 'Partner created', position: 32, color: 'green' },
+  { id: 'a1b2c3d4-0001-4a00-8000-000000000034', value: 'PARTNER_LINKED', label: 'Partner linked', position: 33, color: 'blue' },
+  { id: 'a1b2c3d4-0001-4a00-8000-000000000035', value: 'PARTNER_STATUS_CHANGE', label: 'Partner status change', position: 34, color: 'blue' },
+  { id: 'a1b2c3d4-0001-4a00-8000-000000000036', value: 'PARTNER_OWNER_CHANGE', label: 'Partner owner change', position: 35, color: 'purple' },
+  { id: 'a1b2c3d4-0001-4a00-8000-000000000037', value: 'EXPERIENCE_CREATED', label: 'Experience created', position: 36, color: 'green' },
+  { id: 'a1b2c3d4-0001-4a00-8000-000000000038', value: 'EXPERIENCE_STATUS_CHANGE', label: 'Experience status change', position: 37, color: 'blue' },
+  { id: 'a1b2c3d4-0001-4a00-8000-000000000039', value: 'PROPERTY_CREATED', label: 'Property created', position: 38, color: 'green' },
+  { id: 'a1b2c3d4-0001-4a00-8000-000000000040', value: 'PROPERTY_STATUS_CHANGE', label: 'Property status change', position: 39, color: 'blue' },
+  { id: 'a1b2c3d4-0001-4a00-8000-000000000041', value: 'ACTIVATION_READINESS', label: 'Activation readiness', position: 40, color: 'turquoise' },
+  { id: 'a1b2c3d4-0001-4a00-8000-000000000042', value: 'ENTITY_OWNER_CHANGE', label: 'Entity owner change', position: 41, color: 'purple' },
 ];
 
 const OUTCOME_OPTIONS: SelectOption[] = [

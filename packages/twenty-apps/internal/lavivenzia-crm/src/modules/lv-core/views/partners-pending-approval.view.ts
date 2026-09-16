@@ -1,0 +1,67 @@
+import { defineView, ViewFilterOperand, ViewSortDirection } from 'twenty-sdk/define';
+
+import {
+  PARTNER_ACTIVATED_AT_FIELD_ID,
+  PARTNER_APPROVED_AT_FIELD_ID,
+  PARTNER_CATEGORY_FIELD_ID,
+  PARTNER_CODE_FIELD_ID,
+  PARTNER_CONTACT_FIELD_ID,
+  PARTNER_EMAILS_FIELD_ID,
+  PARTNER_GEOGRAPHY_FIELD_ID,
+  PARTNER_INSTAGRAM_FIELD_ID,
+  PARTNER_LANGUAGES_FIELD_ID,
+  PARTNER_LEAD_FIELD_ID,
+  PARTNER_LOCATION_FIELD_ID,
+  PARTNER_NAME_FIELD_ID,
+  PARTNER_OBJECT_ID,
+  PARTNER_ONBOARDING_FIELD_ID,
+  PARTNER_ORGANISATION_FIELD_ID,
+  PARTNER_OWNER_FIELD_ID,
+  PARTNER_PHONES_FIELD_ID,
+  PARTNER_SOURCE_KEY_FIELD_ID,
+  PARTNER_STATUS_FIELD_ID,
+  PARTNER_STATUS_REASON_FIELD_ID,
+  PARTNER_SUBCATEGORY_FIELD_ID,
+  PARTNER_TYPE_FIELD_ID,
+  PARTNER_WEBSITE_FIELD_ID,
+} from 'src/constants/universal-identifiers';
+
+// Day 9 — partner view "Pending approval" (Approved onboarding, not yet active). Filtered on status; every field stays reachable through the column picker.
+
+export default defineView({
+  universalIdentifier: 'ef12e60d-9532-5836-93f7-e69e7091e404',
+  name: 'Pending approval',
+  objectUniversalIdentifier: PARTNER_OBJECT_ID,
+  icon: 'IconHeartHandshake',
+  position: 2,
+  fields: [
+    { universalIdentifier: '5dd3d167-fe6b-5c22-a2ea-abd18741415b', fieldMetadataUniversalIdentifier: PARTNER_NAME_FIELD_ID, position: 0, isVisible: true, size: 200 },
+    { universalIdentifier: 'f181a228-6aa1-5bc7-886e-32cae20d963b', fieldMetadataUniversalIdentifier: PARTNER_CODE_FIELD_ID, position: 1, isVisible: true, size: 120 },
+    { universalIdentifier: '7ad1f18d-975a-5f2e-8b09-15544c224ce8', fieldMetadataUniversalIdentifier: PARTNER_STATUS_FIELD_ID, position: 2, isVisible: true, size: 140 },
+    { universalIdentifier: 'a8a411f7-920d-599e-b582-420c564a4fa3', fieldMetadataUniversalIdentifier: PARTNER_CATEGORY_FIELD_ID, position: 3, isVisible: true, size: 150 },
+    { universalIdentifier: '8e52bc6c-b965-562d-a2c2-c149952c087c', fieldMetadataUniversalIdentifier: PARTNER_SUBCATEGORY_FIELD_ID, position: 4, isVisible: true, size: 150 },
+    { universalIdentifier: 'a569998b-b572-5aa4-bc43-66edb61e1a90', fieldMetadataUniversalIdentifier: PARTNER_LOCATION_FIELD_ID, position: 5, isVisible: true, size: 140 },
+    { universalIdentifier: 'f631777a-7e12-5612-8029-ecee62b0db65', fieldMetadataUniversalIdentifier: PARTNER_OWNER_FIELD_ID, position: 6, isVisible: true, size: 150 },
+    { universalIdentifier: 'a659d295-0d1b-56dd-94e3-d97a1dd217d4', fieldMetadataUniversalIdentifier: PARTNER_TYPE_FIELD_ID, position: 7, isVisible: true, size: 130 },
+    { universalIdentifier: 'f1fae17d-3bdb-5d98-9732-a028b0d2eb5a', fieldMetadataUniversalIdentifier: PARTNER_APPROVED_AT_FIELD_ID, position: 8, isVisible: true, size: 150 },
+    { universalIdentifier: 'ef1252c0-74cc-5a2f-ac18-7486b61e599e', fieldMetadataUniversalIdentifier: PARTNER_ACTIVATED_AT_FIELD_ID, position: 9, isVisible: true, size: 150 },
+    { universalIdentifier: '5d7953b5-c685-5313-8ecf-b486face5b30', fieldMetadataUniversalIdentifier: PARTNER_LEAD_FIELD_ID, position: 10, isVisible: true, size: 160 },
+    { universalIdentifier: 'bd2d81c7-13ad-500f-befd-b21b97a82217', fieldMetadataUniversalIdentifier: PARTNER_ONBOARDING_FIELD_ID, position: 11, isVisible: true, size: 160 },
+    { universalIdentifier: '1b625726-806e-57c1-a782-a297c765cde5', fieldMetadataUniversalIdentifier: PARTNER_GEOGRAPHY_FIELD_ID, position: 12, isVisible: false, size: 160 },
+    { universalIdentifier: '7ead79b1-2fed-5b53-b369-d4d00762f26e', fieldMetadataUniversalIdentifier: PARTNER_EMAILS_FIELD_ID, position: 13, isVisible: false, size: 160 },
+    { universalIdentifier: 'eac23ee5-8397-59de-b8a2-d2630b6f1f69', fieldMetadataUniversalIdentifier: PARTNER_PHONES_FIELD_ID, position: 14, isVisible: false, size: 160 },
+    { universalIdentifier: '5eff9440-b685-5c8d-83f0-c4e8d890133d', fieldMetadataUniversalIdentifier: PARTNER_WEBSITE_FIELD_ID, position: 15, isVisible: false, size: 160 },
+    { universalIdentifier: '2f5063a2-74cd-5653-a7de-ab42a7bbcff6', fieldMetadataUniversalIdentifier: PARTNER_INSTAGRAM_FIELD_ID, position: 16, isVisible: false, size: 160 },
+    { universalIdentifier: '4ebd8260-8233-581b-a84f-35ba3bb56166', fieldMetadataUniversalIdentifier: PARTNER_CONTACT_FIELD_ID, position: 17, isVisible: false, size: 160 },
+    { universalIdentifier: 'b3686ed3-fc79-503a-8f70-f56b8705568c', fieldMetadataUniversalIdentifier: PARTNER_ORGANISATION_FIELD_ID, position: 18, isVisible: false, size: 160 },
+    { universalIdentifier: '37dd3aa3-e75f-5999-9a2f-79cc75982816', fieldMetadataUniversalIdentifier: PARTNER_LANGUAGES_FIELD_ID, position: 19, isVisible: false, size: 160 },
+    { universalIdentifier: 'd0af0904-f7b2-52bf-98a9-9f12876343de', fieldMetadataUniversalIdentifier: PARTNER_STATUS_REASON_FIELD_ID, position: 20, isVisible: false, size: 160 },
+    { universalIdentifier: '4cbd3c44-c354-5b47-b2f1-50ce1b12ce02', fieldMetadataUniversalIdentifier: PARTNER_SOURCE_KEY_FIELD_ID, position: 21, isVisible: false, size: 160 },
+  ],
+  filters: [
+    { universalIdentifier: '08ff397d-78bf-5959-a063-a2959c33a679', fieldMetadataUniversalIdentifier: PARTNER_STATUS_FIELD_ID, operand: ViewFilterOperand.IS, value: ['APPROVED'] },
+  ],
+  sorts: [
+    { universalIdentifier: '45143fc7-caac-5d81-9ef6-a9b6fc7e4e37', fieldMetadataUniversalIdentifier: PARTNER_NAME_FIELD_ID, direction: ViewSortDirection.ASC },
+  ],
+});

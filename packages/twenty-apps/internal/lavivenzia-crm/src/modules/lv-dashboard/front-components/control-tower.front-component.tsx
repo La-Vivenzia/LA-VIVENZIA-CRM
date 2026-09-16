@@ -31,6 +31,7 @@ import {
 } from 'src/modules/lv-core/ui/kit';
 import { badgeToneOf, describeStatus, type StatusKind } from 'src/modules/lv-core/ui/status';
 import { themeFor } from 'src/modules/lv-core/ui/theme';
+import { pluralOf } from 'src/modules/lv-core/utils/object-plural';
 import { callRoute } from 'src/modules/lv-core/utils/call-route';
 import { type ControlTowerSummary } from 'src/modules/lv-dashboard/services/control-tower-summary';
 import { ONBOARDING_STATUSES, ONBOARDING_STATUS_LABELS } from 'src/modules/lv-onboarding/constants/onboarding-status';
@@ -83,12 +84,14 @@ export const CONTROL_TOWER_GROUPS: { key: string; title: string; eyebrow: string
   { key: 'attention', title: 'Needs attention', eyebrow: 'This week', tone: 'warning', sections: ['hot', 'stuck', 'stuckOnboardings', 'approvals'] },
   { key: 'flow', title: 'Operational flow', eyebrow: 'Keep moving', tone: 'info', sections: ['backlog'] },
   { key: 'quality', title: 'Quality', eyebrow: 'Data hygiene', tone: 'neutral', sections: ['noContact', 'markedDuplicates', 'flaggedDuplicates'] },
+  // Day 9 — the ecosystem backlog: approvals, activations, expired papers, unowned partners.
+  { key: 'ecosystem', title: 'Ecosystem', eyebrow: 'Partners · experiences · properties', tone: 'info', sections: ['partnerApprovalBacklog', 'experienceApprovalBacklog', 'propertyApprovalBacklog', 'expiredDocuments', 'unownedPartners'] },
 ];
 
 const toBadgeTone = (tone: Tone) => badgeToneOf(tone === 'danger' ? 'critical' : tone === 'warning' ? 'caution' : tone === 'info' ? 'progress' : tone === 'success' ? 'positive' : 'neutral');
 
 const kindForSection = (key: string): StatusKind =>
-  /breached|sla/i.test(key) ? 'sla' : /overdue/i.test(key) ? 'task' : /backlog|document/i.test(key) ? 'document' : /onboarding|approvals/i.test(key) ? 'onboarding' : 'lead';
+  /partner/i.test(key) ? 'partner' : /experience|property/i.test(key) ? 'listing' : /breached|sla/i.test(key) ? 'sla' : /overdue/i.test(key) ? 'task' : /backlog|document/i.test(key) ? 'document' : /onboarding|approvals/i.test(key) ? 'onboarding' : 'lead';
 
 const open = (target: { object: string; recordId: string } | null | undefined) => {
   if (target) {
@@ -155,7 +158,7 @@ export const ControlTower = () => {
 
   const now = summary?.generatedAt ?? new Date().toISOString();
   const activeFilterCount = Object.entries(applied).filter(([, value]) => (Array.isArray(value) ? value.length > 0 : Boolean(value))).length;
-  const sectionsByKey = useMemo(() => new Map<string, SummarySection>((summary?.sections ?? []).map((section) => [section.key, section])), [summary]);
+  const sectionsByKey = useMemo(() => new Map<string, SummarySection>([...(summary?.sections ?? []), ...(summary?.ecosystem?.sections ?? [])].map((section) => [section.key, section])), [summary]);
   const groups = useMemo(
     () =>
       CONTROL_TOWER_GROUPS.map((group) => {
@@ -429,7 +432,7 @@ export const ControlTower = () => {
 
           <div className="lv-kpi-grid">
             {summary.kpis.map((kpi) => (
-              <KpiTile key={kpi.key} theme={theme} label={kpi.label} value={kpi.value} emptyText={kpi.emptyText} tone={kpi.tone} onClick={kpi.link ? () => void navigate(AppPath.RecordIndexPage, { objectNamePlural: `${kpi.link!.object}s` }) : undefined} />
+              <KpiTile key={kpi.key} theme={theme} label={kpi.label} value={kpi.value} emptyText={kpi.emptyText} tone={kpi.tone} onClick={kpi.link ? () => void navigate(AppPath.RecordIndexPage, { objectNamePlural: pluralOf(kpi.link!.object) }) : undefined} />
             ))}
           </div>
 
@@ -468,6 +471,18 @@ export const ControlTower = () => {
               </Section>
               <Section theme={theme} title="Contact data" hint="informational">
                 {kpiRow(summary.contactBreakdown)}
+              </Section>
+              <Section theme={theme} title="Ecosystem · partners" hint="real counts">
+                {kpiRow(summary.ecosystem.partners)}
+              </Section>
+              <Section theme={theme} title="Ecosystem · experiences">
+                {kpiRow(summary.ecosystem.experiences)}
+              </Section>
+              <Section theme={theme} title="Ecosystem · properties">
+                {kpiRow(summary.ecosystem.properties)}
+              </Section>
+              <Section theme={theme} title="Ecosystem · onboarding pipeline">
+                {kpiRow(summary.ecosystem.onboarding)}
               </Section>
               <Section theme={theme} title="11 · Notification health">
                 {kpiRow(summary.notificationHealth)}

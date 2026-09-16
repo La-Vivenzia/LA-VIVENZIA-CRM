@@ -6,6 +6,7 @@ import { type DataQualityResult } from 'src/modules/lv-intelligence/engines/data
 import { type NextBestActionResult } from 'src/modules/lv-intelligence/engines/next-best-action';
 import { type OpportunityScoreResult } from 'src/modules/lv-intelligence/engines/opportunity-score';
 import { type RelationshipHealthResult } from 'src/modules/lv-intelligence/engines/relationship-health';
+import { type LeadEcosystem } from 'src/modules/lv-core/services/lead-ecosystem';
 import { type LeadContext, type TaskRecord } from 'src/modules/lv-intelligence/services/lead-context';
 import { ONBOARDING_STEP_LABELS, type OnboardingStep } from 'src/modules/lv-onboarding/constants/onboarding-steps';
 import { type StepProgress } from 'src/modules/lv-onboarding/utils/onboarding-progress';
@@ -182,6 +183,8 @@ export type Lead360Model = {
   // Day 8: how the lead entered the CRM. Null for leads created before
   // capture provenance existed (or through the API / native importer).
   capture: CaptureSummary | null;
+  // Day 9: what the lead became — partner, experiences, properties, readiness.
+  ecosystem: LeadEcosystem;
 };
 
 export type CaptureSummary = {
@@ -538,7 +541,9 @@ export const composeLead360 = ({
   insightDecisions,
   onboardingProgress,
   intelligence,
+  ecosystem = { partner: null, experiences: [], properties: [] },
 }: {
+  ecosystem?: LeadEcosystem;
   context: LeadContext;
   caller: CallerContext & { workspaceMemberId: string };
   now: string;
@@ -596,5 +601,6 @@ export const composeLead360 = ({
       noInteraction: context.interactions.length === 0,
     },
     capture: summariseCapture(lead, member),
+    ecosystem,
   };
 };

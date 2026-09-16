@@ -2,6 +2,7 @@ import { LEAD_STATUS_LABELS, type LeadStatus } from 'src/modules/lv-core/constan
 import { INTERACTION_CHANNELS } from 'src/modules/lv-interactions/constants/interaction-vocabulary';
 import { type CallerContext, type DashboardLens } from 'src/modules/lv-dashboard/services/caller-context';
 import { type DelegatedGraphqlClient } from 'src/modules/lv-dashboard/services/graphql-client';
+import { buildEcosystemSummary } from 'src/modules/lv-dashboard/services/ecosystem-summary';
 import { OBJECTS, QueryBatch } from 'src/modules/lv-dashboard/services/query-batch';
 import {
   CONVERSION_STATUSES,
@@ -149,6 +150,9 @@ export type DashboardSummary = {
   // Definitions shown in the UI's "what does this mean" affordance.
   notes: string[];
   partial: string[];
+  // Day 9 — ecosystem counts for the lenses that oversee the pipeline
+  // (ADMIN, OVERSIGHT, ONBOARDING); empty for personal lenses.
+  ecosystem: Kpi[];
 };
 
 const statusRows = (
@@ -790,7 +794,26 @@ export const buildDashboardSummary = async ({
 
   activity.sort((a, b) => b.at.localeCompare(a.at));
 
+  let ecosystem: Kpi[] = [];
+
+  if (lens === 'ADMIN' || lens === 'OVERSIGHT' || lens === 'ONBOARDING') {
+    try {
+      const summary = await buildEcosystemSummary(client, now);
+
+      ecosystem = [
+        ...summary.partners.filter((kpi) => ['partnersTotal', 'partnersPending', 'partnersActive', 'partnersAttention'].includes(kpi.key)),
+        ...summary.experiences.filter((kpi) => ['experiencesTotal', 'experiencesVerification', 'experiencesActive'].includes(kpi.key)),
+        ...summary.properties.filter((kpi) => ['propertiesTotal', 'propertiesVerification', 'propertiesActive'].includes(kpi.key)),
+        ...summary.onboarding.filter((kpi) => ['onbAwaiting', 'onbBlocked', 'docsExpired'].includes(kpi.key)),
+      ];
+      partial.push(...summary.partial);
+    } catch {
+      partial.push('Ecosystem counts could not be loaded.');
+    }
+  }
+
   return {
+    ecosystem,
     lens,
     availableLenses: caller.availableLenses,
     generatedAt: now,

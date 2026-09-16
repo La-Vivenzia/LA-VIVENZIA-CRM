@@ -77,6 +77,10 @@ const TYPE_OPTIONS: SelectOption[] = [
   { id: '1c2d3e4f-5a6b-4c2c-9ced-2d3e4f5a6b7b', value: 'ESCALATION', label: 'Escalation', position: 11, color: 'red' },
   { id: '2d3e4f5a-6b7c-4d3d-8dfe-3e4f5a6b7c8c', value: 'SLA_DUE_SOON', label: 'SLA due soon', position: 12, color: 'yellow' },
   { id: '3e4f5a6b-7c8d-4e4e-9eaf-4f5a6b7c8d9d', value: 'SLA_DUE', label: 'SLA due', position: 13, color: 'orange' },
+  { id: '4f5a6b7c-8d9e-4f5f-8fb0-5a6b7c8d9eae', value: 'EXPERIENCE_APPROVAL_REQUIRED', label: 'Experience approval required', position: 14, color: 'orange' },
+  { id: '5a6b7c8d-9eaf-4a6a-9ac1-6b7c8d9eafbf', value: 'PROPERTY_APPROVAL_REQUIRED', label: 'Property approval required', position: 15, color: 'orange' },
+  { id: '6b7c8d9e-afb0-4b7b-8bd2-7c8d9eafb0c0', value: 'ACTIVATION_READY', label: 'Activation ready', position: 16, color: 'green' },
+  { id: '7c8d9eaf-b0c1-4c8c-9ce3-8d9eafb0c1d1', value: 'PARTNER_CREATED', label: 'Partner created', position: 17, color: 'green' },
 ];
 
 export default defineObject({

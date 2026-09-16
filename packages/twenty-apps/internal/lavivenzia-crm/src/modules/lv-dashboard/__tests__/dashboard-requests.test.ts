@@ -44,6 +44,11 @@ const caller = (lens: DashboardLens, isAdmin = false): CallerContext => ({
 
 const NOW = '2026-09-11T12:00:00.000Z';
 const REQUEST_BUDGET = 14;
+// Day 9: the Control Tower gained the ecosystem section (partners, experiences,
+// properties, onboarding pipeline, expired documents) — one GROUP BY per object
+// plus five bounded lists, packed by root into three more documents. Still a
+// fixed number of requests regardless of data volume (no N+1).
+const CONTROL_TOWER_BUDGET = REQUEST_BUDGET + 3;
 
 describe('request budget (no N+1)', () => {
   it.each<DashboardLens>(['HUNTER', 'COORDINATOR', 'ONBOARDING', 'ADMIN', 'OVERSIGHT'])('%s dashboard is a handful of packed documents', async (lens) => {
@@ -71,7 +76,9 @@ describe('request budget (no N+1)', () => {
       const { client, documents } = fakeClient();
       const summary = await buildControlTowerSummary({ client, filters: parseControlTowerFilters(raw), now: NOW });
 
-      expect(documents.length).toBeLessThanOrEqual(REQUEST_BUDGET);
+      expect(documents.length).toBeLessThanOrEqual(CONTROL_TOWER_BUDGET);
+      expect(summary.ecosystem.partners.length + summary.ecosystem.experiences.length + summary.ecosystem.properties.length + summary.ecosystem.onboarding.length).toBeGreaterThan(0);
+      expect(summary.ecosystem.sections).toHaveLength(5);
       expect(summary.sections.length).toBeGreaterThanOrEqual(12);
       expect(summary.sections.every((section) => section.rows.length === 0 && section.emptyText.length > 0)).toBe(true);
     }

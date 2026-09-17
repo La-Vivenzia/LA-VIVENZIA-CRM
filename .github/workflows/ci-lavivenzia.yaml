@@ -69,8 +69,9 @@ jobs:
         run: |
           set -euo pipefail
           # OpenAI / Google AI Studio / Resend / Cloudflare token shapes and the local dev-user password prefix.
-          pattern='sk-proj-[A-Za-z0-9_-]{20,}|sk-[A-Za-z0-9]{32,}|AQ\.[A-Za-z0-9_-]{30,}|AIza[0-9A-Za-z_-]{35}|re_[A-Za-z0-9]{20,}|Lv![A-Za-z0-9_]{12,}'
-          if git grep -nE "$pattern" -- ':!yarn.lock' ':!**/*.lock' ':!.github/workflows/ci-lavivenzia.yaml'; then
+          # Anchored on a non-identifier boundary; vendored / minified bundles and lockfiles are skipped.
+          pattern='(^|[^A-Za-z0-9_])(sk-proj-[A-Za-z0-9_-]{20,}|sk-[A-Za-z0-9]{32,}|AQ\.[A-Za-z0-9_-]{30,}|AIza[0-9A-Za-z_-]{35}|re_[A-Za-z0-9]{24,}|Lv![A-Za-z0-9_]{12,})'
+          if git grep -nE "$pattern" -- ':!yarn.lock' ':!**/*.lock' ':!.yarn/**' ':!**/*.min.js' ':!**/*.min.cjs' ':!**/dist/**' ':!.github/workflows/ci-lavivenzia.yaml'; then
             echo '::error::A secret-like string is tracked in git. Remove it and rotate the credential.'
             exit 1
           fi

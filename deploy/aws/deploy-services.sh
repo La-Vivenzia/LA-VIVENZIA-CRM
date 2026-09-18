@@ -4,6 +4,7 @@
 # instead of duplicated. Refuses to run while any R2 placeholder is left in the task definitions
 # (local storage is never used in production). Stops BEFORE the first sign-up / twenty-sdk apply.
 # usage: bash deploy/aws/deploy-services.sh          (authenticated AWS CLI session)
+#        VERIFY_ONLY=1 bash deploy/aws/deploy-services.sh   (steps 8–10 only: no registration, no rollout)
 set -euo pipefail
 export MSYS_NO_PATHCONV=1 AWS_PAGER=""
 R=ap-south-1; CLUSTER=lv-crm-prod
@@ -16,6 +17,7 @@ if grep -qE '<R2_|<CF_ACCOUNT_ID>' deploy/aws/task-web.json deploy/aws/task-work
 grep -q '"STORAGE_TYPE"' deploy/aws/task-web.json && ! grep -qE '"value": "local"' deploy/aws/task-web.json || { echo "STORAGE_TYPE must be S3"; exit 2; }
 aws sts get-caller-identity --query 'Arn' --output text
 
+if [ "${VERIFY_ONLY:-0}" != 1 ]; then
 echo "== 4. task definitions"
 WEB_TD=$(aws ecs register-task-definition --cli-input-json file://deploy/aws/task-web.json --query 'taskDefinition.taskDefinitionArn' --output text); echo "web    $WEB_TD"
 WORKER_TD=$(aws ecs register-task-definition --cli-input-json file://deploy/aws/task-worker.json --query 'taskDefinition.taskDefinitionArn' --output text); echo "worker $WORKER_TD"
@@ -49,29 +51,32 @@ else
     --enable-execute-command --propagate-tags SERVICE --tags key=Project,value=lv-crm key=Environment,value=prod --query 'service.serviceName' --output text
 fi
 aws ecs wait services-stable --cluster $CLUSTER --services lv-crm-prod-worker
+fi
 
 echo "== 8. web → RDS / Valkey / R2 (from the logs; no secrets)"
 web_task=$(aws ecs list-tasks --cluster $CLUSTER --service-name lv-crm-prod-web --query 'taskArns[0]' --output text); web_id=${web_task##*/}
 worker_task=$(aws ecs list-tasks --cluster $CLUSTER --service-name lv-crm-prod-worker --query 'taskArns[0]' --output text); worker_id=${worker_task##*/}
 sleep 20
-web_log=$(aws logs get-log-events --log-group-name /ecs/lv-crm-prod/web --log-stream-name "web/web/$web_id" --limit 400 --query 'events[].message' --output text | tr '\t' '\n')
-echo "$web_log" | grep -qE "Successfully migrated DB|Database setup and migrations are disabled" && echo "   RDS: migrations ran / schema ready" || echo "   RDS: migration line not found yet (check the stream)"
-echo "$web_log" | grep -q "Successfully registered CronTrigger cron job" && echo "   Valkey/BullMQ: cron jobs registered (queue reachable)" || echo "   Valkey: cron registration line not found yet"
-echo "$web_log" | grep -qiE "error.*(redis|ECONNREFUSED|ENOTFOUND|ssl|certificate)" && { echo "   ERRORS in web log:"; echo "$web_log" | grep -iE "error" | tail -5; } || echo "   web log: no connection errors"
-worker_log=$(aws logs get-log-events --log-group-name /ecs/lv-crm-prod/worker --log-stream-name "worker/worker/$worker_id" --limit 200 --query 'events[].message' --output text | tr '\t' '\n')
-echo "$worker_log" | grep -q "QueueWorkerModule dependencies initialized" && echo "   worker: queue worker up" || echo "   worker: not up yet"
-echo "   R2: STORAGE_TYPE=S3 with the R2 endpoint is verified at the first upload (Twenty opens the bucket lazily); r2-provision.mjs already proved the credential with ListObjects"
+web_log=$(aws logs get-log-events --log-group-name /ecs/lv-crm-prod/web --log-stream-name "web/web/$web_id" --start-from-head --limit 6000 --query 'events[].message' --output text | tr '\t' '\n')
+grep -aqE "Successfully migrated DB|Database setup and migrations are disabled" <<<"$web_log" && echo "   RDS: migrations ran / schema ready" || echo "   RDS: migration line not found yet (check the stream)"
+grep -aq "Successfully registered CronTrigger cron job" <<<"$web_log" && echo "   Valkey/BullMQ: cron jobs registered (queue reachable)" || echo "   Valkey: cron registration line not found yet"
+grep -aqiE "error.*(redis|ECONNREFUSED|ENOTFOUND|ssl|certificate)" <<<"$web_log" && { echo "   ERRORS in web log:"; grep -aiE "error" <<<"$web_log" | tail -5; } || echo "   web log: no connection errors"
+worker_log=$(aws logs get-log-events --log-group-name /ecs/lv-crm-prod/worker --log-stream-name "worker/worker/$worker_id" --start-from-head --limit 2000 --query 'events[].message' --output text | tr '\t' '\n')
+grep -aq "QueueWorkerModule dependencies initialized" <<<"$worker_log" && echo "   worker: queue worker up" || echo "   worker: not up yet"
+echo "   R2 data path (PUT/LIST/GET/DELETE with the production credential):"; node deploy/aws/r2-verify.mjs | sed "s/^/   /"
 
 echo "== 9. https://crm.lavivenzia.com end-to-end"
-for i in $(seq 1 10); do code=$(curl -s -o /dev/null -w '%{http_code}' --max-time 20 https://crm.lavivenzia.com/healthz); [ "$code" = 200 ] && break; sleep 10; done
+code=000; for i in 1 2 3 4 5 6 7 8 9 10; do code=$(curl -s -o lv-null.tmp -w '%{http_code}' --max-time 20 https://crm.lavivenzia.com/healthz || true); if [ "$code" = 200 ]; then break; fi; sleep 10; done
 echo "   /healthz -> $code"; [ "$code" = 200 ]
 curl -s --max-time 20 https://crm.lavivenzia.com/healthz; echo
-curl -s -o /dev/null -w '   / -> %{http_code} %{content_type}\n' --max-time 20 https://crm.lavivenzia.com/
-curl -s --max-time 20 https://crm.lavivenzia.com/ | grep -o '<title>[^<]*</title>'
-curl -s -o /dev/null -w '   http:// -> %{http_code} %{redirect_url}\n' --max-time 20 http://crm.lavivenzia.com/
+curl -s -o lv-null.tmp -w '   / -> %{http_code} %{content_type}\n' --max-time 20 https://crm.lavivenzia.com/
+curl -s --max-time 20 -o lv-index.tmp.html https://crm.lavivenzia.com/ && grep -ao '<title>[^<]*</title>' lv-index.tmp.html; rm -f lv-index.tmp.html
+curl -s -o lv-null.tmp -w '   http:// -> %{http_code} %{redirect_url}\n' --max-time 20 http://crm.lavivenzia.com/
 
+rm -f lv-null.tmp
 echo "== 10. smoke: API up, no workspace yet, sign-up page served"
 curl -s --max-time 20 -X POST https://crm.lavivenzia.com/graphql -H 'Content-Type: application/json' -d '{"query":"{ __typename }"}' | head -c 200; echo
 curl -s --max-time 20 https://crm.lavivenzia.com/client-config 2>/dev/null | head -c 300; echo
 echo
+rm -f lv-null.tmp
 echo "STOP: production is up. Next (manual, per the plan §12.11–12): first sign-up at https://crm.lavivenzia.com → Main Admin → API key → twenty-sdk apply → branding → app variables."

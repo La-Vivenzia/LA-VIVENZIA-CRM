@@ -71,3 +71,7 @@ screenshots/
 /.diag*.mjs
 /.compare*.mjs
 /.narrow*.mjs
+
+# deploy/aws script scratch files
+lv-null.tmp
+lv-index.tmp.html

@@ -262,3 +262,17 @@ Decision taken with approval: the application connects as the dedicated `laviven
 1. ~~preflight / 443 listener~~ done.
 2. R2 (Founder enables R2 on Cloudflare account `de0f88c6…`, then a token with *Workers R2 Storage: Edit* + *Account API Tokens: Edit*) → `node deploy/aws/r2-provision.mjs` creates the private bucket `lavivenzia-crm-prod`, a bucket-scoped Object Read & Write credential, the two secrets, and fills the task definitions.
 3. `bash deploy/aws/deploy-services.sh` → task definitions → `lv-crm-prod-web` (grace 600 s, circuit breaker) → healthy target → `lv-crm-prod-worker` → log / HTTPS / smoke verification → **stop before first sign-up / `twenty-sdk apply`**.
+
+### 2026-09-18 — services live (stopped before first sign-up)
+
+| Step | Result |
+|---|---|
+| R2 | account `de0f88c6…`; bucket **`lavivenzia-crm-prod`** created (private, Standard, location hint APAC) through the S3 API; secrets `lv-crm-prod/r2-access-key-id` / `r2-secret-access-key` created; PUT / LIST / GET / DELETE verified with the production credential (`deploy/aws/r2-verify.mjs`) |
+| Task definitions | `lv-crm-prod-web`, `lv-crm-prod-worker` registered (placeholders filled from R2; `STORAGE_TYPE=S3`, `EMAIL_DRIVER=LOGGER`, `SERVER_URL=https://crm.lavivenzia.com`) |
+| Web service | `lv-crm-prod-web` desired 1, grace 600 s, circuit breaker + rollback, private subnets, no public IP; first boot: `database:init:prod` → `Successfully migrated DB!` → `cron:register:all` incl. `CronTrigger` → `Nest application successfully started`; ALB target **healthy** |
+| Worker service | `lv-crm-prod-worker` desired 1; migrations/cron skipped; `QueueWorkerModule` initialised; no errors |
+| Public | `https://crm.lavivenzia.com/healthz` 200 · `/` 200 "La Vivenzia CRM" · `/client-config` 200 · GraphQL `{__typename: Query}` · `http://` → 301 |
+| Deviation (documented) | The R2 credential in Secrets Manager is derived from the Founder's **account-level** R2 token (it could create buckets). Follow-up: create a bucket-scoped *Object Read & Write* token in R2 → Manage API tokens, then `R2_ACCESS_KEY_ID=… R2_SECRET_ACCESS_KEY=… node deploy/aws/r2-provision.mjs` (updates the two secrets) and `bash deploy/aws/deploy-services.sh` (rolls the services); revoke the broad token afterwards. |
+| Note | `deploy-services.sh` re-registers the task definitions on every run (a new identical revision + a rolling deployment); use `VERIFY_ONLY=1` for checks. A local network blip aborted the first run between steps 6 and 7; the second run completed. |
+
+**Remaining (manual, per §12 steps 11–14):** first sign-up at `https://crm.lavivenzia.com` (creates the workspace + Main Admin) → `IS_SIGN_UP_DISABLED=true` on the web service → admin API key → `twenty remote:add` + `twenty apply -r lvprod --no-delete` → `scripts/brand-workspace.mjs` → remove Twenty's own sidebar entries → application variables (`LV_AI_*`, `LV_APP_BASE_URL`, `LV_ESCALATION_OWNER_EMAIL`; `LV_SMTP_*` once Resend exists) → invite the team with LV roles → smoke as each role → Resend SMTP for `EMAIL_DRIVER` → Cloudflare proxy (orange cloud) once verified.

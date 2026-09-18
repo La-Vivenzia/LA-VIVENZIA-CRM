@@ -61,11 +61,11 @@
         },
         {
           "name": "STORAGE_S3_NAME",
-          "value": "<R2_BUCKET_NAME>"
+          "value": "lavivenzia-crm-prod"
         },
         {
           "name": "STORAGE_S3_ENDPOINT",
-          "value": "https://<CF_ACCOUNT_ID>.r2.cloudflarestorage.com"
+          "value": "https://de0f88c61c4da81f1827a2c918a4f6ed.r2.cloudflarestorage.com"
         },
         {
           "name": "LOGIC_FUNCTION_TYPE",
@@ -99,11 +99,11 @@
         },
         {
           "name": "STORAGE_S3_ACCESS_KEY_ID",
-          "valueFrom": "<R2_ACCESS_KEY_ID_SECRET_ARN>"
+          "valueFrom": "arn:aws:secretsmanager:ap-south-1:361964630667:secret:lv-crm-prod/r2-access-key-id-wZW4wl"
         },
         {
           "name": "STORAGE_S3_SECRET_ACCESS_KEY",
-          "valueFrom": "<R2_SECRET_ACCESS_KEY_SECRET_ARN>"
+          "valueFrom": "arn:aws:secretsmanager:ap-south-1:361964630667:secret:lv-crm-prod/r2-secret-access-key-QOySml"
         }
       ],
       "healthCheck": {

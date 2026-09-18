@@ -1,0 +1,116 @@
+{
+  "family": "lv-crm-prod-worker",
+  "networkMode": "awsvpc",
+  "requiresCompatibilities": [
+    "FARGATE"
+  ],
+  "cpu": "1024",
+  "memory": "2048",
+  "runtimePlatform": {
+    "operatingSystemFamily": "LINUX",
+    "cpuArchitecture": "X86_64"
+  },
+  "executionRoleArn": "arn:aws:iam::361964630667:role/lv-crm-prod-ecs-exec",
+  "taskRoleArn": "arn:aws:iam::361964630667:role/lv-crm-prod-ecs-task",
+  "tags": [
+    {
+      "key": "Project",
+      "value": "lv-crm"
+    },
+    {
+      "key": "Environment",
+      "value": "prod"
+    }
+  ],
+  "containerDefinitions": [
+    {
+      "name": "worker",
+      "image": "361964630667.dkr.ecr.ap-south-1.amazonaws.com/lv-crm:d12a962e",
+      "essential": true,
+      "command": [
+        "yarn",
+        "worker:prod"
+      ],
+      "environment": [
+        {
+          "name": "SERVER_URL",
+          "value": "https://crm.lavivenzia.com"
+        },
+        {
+          "name": "FRONTEND_URL",
+          "value": "https://crm.lavivenzia.com"
+        },
+        {
+          "name": "PG_SSL_ALLOW_SELF_SIGNED",
+          "value": "true"
+        },
+        {
+          "name": "STORAGE_TYPE",
+          "value": "S3"
+        },
+        {
+          "name": "STORAGE_S3_REGION",
+          "value": "auto"
+        },
+        {
+          "name": "STORAGE_S3_NAME",
+          "value": "<R2_BUCKET_NAME>"
+        },
+        {
+          "name": "STORAGE_S3_ENDPOINT",
+          "value": "https://<CF_ACCOUNT_ID>.r2.cloudflarestorage.com"
+        },
+        {
+          "name": "LOGIC_FUNCTION_TYPE",
+          "value": "LOCAL"
+        },
+        {
+          "name": "IS_MULTIWORKSPACE_ENABLED",
+          "value": "false"
+        },
+        {
+          "name": "EMAIL_DRIVER",
+          "value": "LOGGER"
+        },
+        {
+          "name": "DISABLE_DB_MIGRATIONS",
+          "value": "true"
+        },
+        {
+          "name": "DISABLE_CRON_JOBS_REGISTRATION",
+          "value": "true"
+        }
+      ],
+      "secrets": [
+        {
+          "name": "PG_DATABASE_URL",
+          "valueFrom": "arn:aws:secretsmanager:ap-south-1:361964630667:secret:lv-crm-prod/pg-database-url-muAIY4"
+        },
+        {
+          "name": "REDIS_URL",
+          "valueFrom": "arn:aws:secretsmanager:ap-south-1:361964630667:secret:lv-crm-prod/redis-url-ACqQGG"
+        },
+        {
+          "name": "ENCRYPTION_KEY",
+          "valueFrom": "arn:aws:secretsmanager:ap-south-1:361964630667:secret:lv-crm-prod/encryption-key-tLWQOH"
+        },
+        {
+          "name": "STORAGE_S3_ACCESS_KEY_ID",
+          "valueFrom": "<R2_ACCESS_KEY_ID_SECRET_ARN>"
+        },
+        {
+          "name": "STORAGE_S3_SECRET_ACCESS_KEY",
+          "valueFrom": "<R2_SECRET_ACCESS_KEY_SECRET_ARN>"
+        }
+      ],
+      "logConfiguration": {
+        "logDriver": "awslogs",
+        "options": {
+          "awslogs-group": "/ecs/lv-crm-prod/worker",
+          "awslogs-region": "ap-south-1",
+          "awslogs-stream-prefix": "worker"
+        }
+      }
+    }
+  ]
+}

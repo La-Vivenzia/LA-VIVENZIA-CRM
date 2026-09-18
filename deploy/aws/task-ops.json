@@ -1,0 +1,34 @@
+{
+  "family": "lv-crm-prod-ops",
+  "networkMode": "awsvpc",
+  "requiresCompatibilities": ["FARGATE"],
+  "cpu": "256",
+  "memory": "512",
+  "runtimePlatform": { "operatingSystemFamily": "LINUX", "cpuArchitecture": "X86_64" },
+  "executionRoleArn": "arn:aws:iam::361964630667:role/lv-crm-prod-ecs-exec",
+  "taskRoleArn": "arn:aws:iam::361964630667:role/lv-crm-prod-ecs-task",
+  "tags": [{ "key": "Project", "value": "lv-crm" }, { "key": "Environment", "value": "prod" }],
+  "containerDefinitions": [
+    {
+      "name": "ops",
+      "image": "361964630667.dkr.ecr.ap-south-1.amazonaws.com/lv-crm:d12a962e",
+      "essential": true,
+      "entryPoint": ["sh", "-c"],
+      "command": ["echo 'ops task: override the command when running'"],
+      "environment": [
+        { "name": "PGHOST", "value": "lv-crm-prod-db.ctokeoqcczuh.ap-south-1.rds.amazonaws.com" },
+        { "name": "PGPORT", "value": "5432" },
+        { "name": "PGSSLMODE", "value": "require" }
+      ],
+      "secrets": [
+        { "name": "PGUSER", "valueFrom": "arn:aws:secretsmanager:ap-south-1:361964630667:secret:rds!db-04f7b500-89a6-4ee0-b2bd-82abdf15bee2-VL9Ts5:username::" },
+        { "name": "PGPASSWORD", "valueFrom": "arn:aws:secretsmanager:ap-south-1:361964630667:secret:rds!db-04f7b500-89a6-4ee0-b2bd-82abdf15bee2-VL9Ts5:password::" },
+        { "name": "APP_DB_PASSWORD", "valueFrom": "arn:aws:secretsmanager:ap-south-1:361964630667:secret:lv-crm-prod/pg-app-password-5Q0roq" }
+      ],
+      "logConfiguration": {
+        "logDriver": "awslogs",
+        "options": { "awslogs-group": "/ecs/lv-crm-prod/ops", "awslogs-region": "ap-south-1", "awslogs-stream-prefix": "ops" }
+      }
+    }
+  ]
+}

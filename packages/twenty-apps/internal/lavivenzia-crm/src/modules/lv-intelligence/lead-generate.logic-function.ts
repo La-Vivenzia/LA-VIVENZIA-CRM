@@ -1,3 +1,4 @@
+import 'src/modules/lv-core/runtime/resilient-fetch';
 import { defineLogicFunction } from 'twenty-sdk/define';
 
 import { FN_AI_LEAD_GENERATE_ID } from 'src/constants/universal-identifiers';

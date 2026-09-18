@@ -6,6 +6,7 @@ import {
   type SmtpConfig,
   type SmtpConfigResult,
 } from 'src/modules/lv-notifications/email/smtp-config';
+import { describeError } from 'src/modules/lv-core/utils/describe-error';
 
 // Delivery of one queued notification email, with the outcome reported
 // honestly. Three results are possible and each is written back to the row:
@@ -92,7 +93,7 @@ export const deliverNotificationEmail = async ({
   } catch (error) {
     return {
       status: 'FAILED',
-      error: (error instanceof Error ? error.message : String(error)).slice(0, 500),
+      error: (describeError(error)).slice(0, 500),
     };
   }
 };

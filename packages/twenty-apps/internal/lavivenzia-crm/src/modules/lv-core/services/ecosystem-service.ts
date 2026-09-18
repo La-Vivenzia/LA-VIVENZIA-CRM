@@ -9,6 +9,7 @@ import { writeAuditEvent } from 'src/modules/lv-governance/services/audit-log';
 import { createCoreApiNotificationPort } from 'src/modules/lv-notifications/services/core-api-notification-port';
 import { dispatchNotifications } from 'src/modules/lv-notifications/services/notification-service';
 import { notificationsForEcosystem } from 'src/modules/lv-notifications/utils/build-notification';
+import { describeError } from 'src/modules/lv-core/utils/describe-error';
 
 // The server side of Partner / Experience / Property operations: reading a
 // record with its relations, deciding what the caller may do, and applying a
@@ -448,7 +449,7 @@ export const applyListingTransition = async ({ delegated, application, caller, k
 
       await dispatchNotifications({ port: createCoreApiNotificationPort(application), intents, sourceEvent: 'lv-ecosystem-transition', actorWorkspaceMemberId: caller.workspaceMemberId });
     } catch (error) {
-      console.warn('[lv-ecosystem] approval notification not sent:', error instanceof Error ? error.message : String(error));
+      console.warn('[lv-ecosystem] approval notification not sent:', describeError(error));
     }
   }
 

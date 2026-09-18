@@ -1,3 +1,4 @@
+import 'src/modules/lv-core/runtime/resilient-fetch';
 import { CoreApiClient } from 'twenty-client-sdk/core';
 import { defineLogicFunction } from 'twenty-sdk/define';
 
@@ -16,6 +17,7 @@ import { deriveLeadFacts } from 'src/modules/lv-intelligence/engines/lead-facts'
 import { recommendNextBestAction } from 'src/modules/lv-intelligence/engines/next-best-action';
 import { loadLeadContext } from 'src/modules/lv-intelligence/services/lead-context';
 import { readRouteInput } from 'src/modules/lv-core/utils/route-event';
+import { describeError } from 'src/modules/lv-core/utils/describe-error';
 
 // POST /capture/create
 //   { captureKey, method, fields, assignment: { mode, memberId? },
@@ -181,7 +183,7 @@ export const handler = async (event: unknown): Promise<Record<string, unknown>> 
         // The scan failing must not block a real lead — but it is never
         // reported as "no duplicates".
         duplicateCheck = 'UNAVAILABLE';
-        console.warn('[lv-capture] duplicate gate unavailable:', error instanceof Error ? error.message : String(error));
+        console.warn('[lv-capture] duplicate gate unavailable:', describeError(error));
       }
     }
   }
@@ -266,7 +268,7 @@ export const handler = async (event: unknown): Promise<Record<string, unknown>> 
         await recordDecision(applicationClient(), row.id, { humanDecision: duplicateDecision === 'IGNORED' ? 'IGNORED' : 'CREATED_NEW', status: 'AI_REJECTED', reviewerId: actorWorkspaceMemberId, note: 'Decided on the capture screen' });
       }
     } catch (error) {
-      console.warn('[lv-capture] duplicate decision not persisted:', error instanceof Error ? error.message : String(error));
+      console.warn('[lv-capture] duplicate decision not persisted:', describeError(error));
     }
   }
 

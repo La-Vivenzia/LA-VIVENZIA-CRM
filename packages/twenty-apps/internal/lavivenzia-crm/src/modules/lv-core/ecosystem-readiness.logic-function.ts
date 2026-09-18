@@ -1,9 +1,11 @@
+import 'src/modules/lv-core/runtime/resilient-fetch';
 import { defineLogicFunction } from 'twenty-sdk/define';
 
 import { FN_ECOSYSTEM_READINESS_ID } from 'src/constants/universal-identifiers';
 import { type EcosystemKind, listingReadiness, loadListing, loadListingsForPartner, loadOnboardingWithDocuments, loadPartner, partnerReadiness } from 'src/modules/lv-core/services/ecosystem-service';
 import { readRouteInput } from 'src/modules/lv-core/utils/route-event';
 import { DelegatedGraphqlClient } from 'src/modules/lv-dashboard/services/graphql-client';
+import { describeError } from 'src/modules/lv-core/utils/describe-error';
 
 // POST /ecosystem/readiness { kind, id }
 //
@@ -52,7 +54,7 @@ export const handler = async (event: unknown): Promise<Record<string, unknown>> 
 
     return { ok: true, kind, id: listing.id, readiness: listingReadiness({ kind, listing, partner: listing.partnerId ? await loadPartner(delegated, listing.partnerId) : null, now }) };
   } catch (error) {
-    console.error('[lv-ecosystem] readiness failed:', error instanceof Error ? error.message : String(error));
+    console.error('[lv-ecosystem] readiness failed:', describeError(error));
 
     return { ok: false, error: 'Readiness could not be computed. Please try again.' };
   }

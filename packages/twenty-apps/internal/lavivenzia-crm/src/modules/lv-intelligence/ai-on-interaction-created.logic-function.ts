@@ -1,3 +1,4 @@
+import 'src/modules/lv-core/runtime/resilient-fetch';
 import { defineLogicFunction, type DatabaseEventPayload, type ObjectRecordCreateEvent } from 'twenty-sdk/define';
 
 import { FN_AI_ON_INTERACTION_CREATED_ID } from 'src/constants/universal-identifiers';
@@ -7,6 +8,7 @@ import { applicationClient } from 'src/modules/lv-ai/runtime/clients';
 import { loadLeadContext } from 'src/modules/lv-intelligence/services/lead-context';
 import { computeDeterministicInsights } from 'src/modules/lv-intelligence/services/lead-intelligence';
 import { summarizeConversation } from 'src/modules/lv-intelligence/services/model-operations';
+import { describeError } from 'src/modules/lv-core/utils/describe-error';
 
 // lvInteraction.created → refresh the lead's deterministic insights (free:
 // score, health, next best action, data quality) and, when a provider is
@@ -52,7 +54,7 @@ export const handler = async (payload: DatabaseEventPayload<ObjectRecordCreateEv
 
     return { deterministic: deterministic.persisted, model: result.status, code: result.code };
   } catch (error) {
-    console.error('[lv-ai-on-interaction-created]', error instanceof Error ? error.message : String(error));
+    console.error('[lv-ai-on-interaction-created]', describeError(error));
 
     return { applied: false, reason: 'error' };
   }

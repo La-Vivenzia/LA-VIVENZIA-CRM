@@ -1,3 +1,4 @@
+import 'src/modules/lv-core/runtime/resilient-fetch';
 import { defineLogicFunction } from 'twenty-sdk/define';
 
 import { FN_DASHBOARD_SUMMARY_ID } from 'src/constants/universal-identifiers';
@@ -6,6 +7,7 @@ import { clampTimeZoneOffset } from 'src/modules/lv-dashboard/metrics/definition
 import { resolveCaller, type DashboardLens } from 'src/modules/lv-dashboard/services/caller-context';
 import { buildDashboardSummary } from 'src/modules/lv-dashboard/services/dashboard-summary';
 import { DelegatedGraphqlClient } from 'src/modules/lv-dashboard/services/graphql-client';
+import { describeError } from 'src/modules/lv-core/utils/describe-error';
 
 // POST /dashboard/summary { lens?, timeZoneOffsetMinutes? }
 //
@@ -52,7 +54,7 @@ export const handler = async (event: unknown): Promise<Record<string, unknown>> 
     };
   } catch (error) {
     // Never a stack trace to the browser; the detail goes to the function log.
-    console.error('[lv-dashboard-summary]', error instanceof Error ? error.message : String(error));
+    console.error('[lv-dashboard-summary]', describeError(error));
 
     return { ok: false, error: 'The dashboard could not be loaded. Please try again.' };
   }

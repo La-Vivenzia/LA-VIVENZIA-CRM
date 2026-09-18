@@ -1,3 +1,4 @@
+import 'src/modules/lv-core/runtime/resilient-fetch';
 import { defineLogicFunction } from 'twenty-sdk/define';
 
 import { FN_COPILOT_ASK_ID } from 'src/constants/universal-identifiers';
@@ -12,6 +13,7 @@ import { buildBriefingFacts } from 'src/modules/lv-intelligence/briefing.logic-f
 import { clampTimeZoneOffset } from 'src/modules/lv-dashboard/metrics/definitions';
 import { resolveCaller } from 'src/modules/lv-dashboard/services/caller-context';
 import { buildDashboardSummary } from 'src/modules/lv-dashboard/services/dashboard-summary';
+import { describeError } from 'src/modules/lv-core/utils/describe-error';
 
 // POST /copilot/ask { question, timeZoneOffsetMinutes? }
 //
@@ -196,7 +198,7 @@ export const handler = async (event: unknown): Promise<Record<string, unknown>> 
         return { ...base, intent: 'UNSUPPORTED', title: 'Unsupported' };
     }
   } catch (error) {
-    console.error('[lv-copilot-ask]', error instanceof Error ? error.message : String(error));
+    console.error('[lv-copilot-ask]', describeError(error));
 
     return { ok: false, error: 'The Copilot could not answer. Please try again.' };
   }

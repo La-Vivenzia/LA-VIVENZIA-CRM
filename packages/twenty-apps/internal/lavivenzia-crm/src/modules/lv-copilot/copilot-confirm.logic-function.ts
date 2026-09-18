@@ -1,3 +1,4 @@
+import 'src/modules/lv-core/runtime/resilient-fetch';
 import { defineLogicFunction } from 'twenty-sdk/define';
 
 import { FN_COPILOT_CONFIRM_ID } from 'src/constants/universal-identifiers';
@@ -7,6 +8,7 @@ import { type ProposedAction } from 'src/modules/lv-copilot/query/intent-rules';
 import { readRouteInput } from 'src/modules/lv-core/utils/route-event';
 import { isUuid } from 'src/modules/lv-intelligence/services/route-support';
 import { loadLeadContext } from 'src/modules/lv-intelligence/services/lead-context';
+import { describeError } from 'src/modules/lv-core/utils/describe-error';
 
 // POST /copilot/confirm { proposalId, edits? }
 //
@@ -138,7 +140,7 @@ export const handler = async (event: unknown): Promise<Record<string, unknown>> 
 
     return { ok: false, refusal: 'NOT_SUPPORTED', error: 'Unknown proposal kind.' };
   } catch (error) {
-    console.error('[lv-copilot-confirm]', error instanceof Error ? error.message : String(error));
+    console.error('[lv-copilot-confirm]', describeError(error));
 
     return { ok: false, error: 'The action could not be completed. Please try again.' };
   }

@@ -1,3 +1,4 @@
+import 'src/modules/lv-core/runtime/resilient-fetch';
 import { CoreApiClient } from 'twenty-client-sdk/core';
 import { defineLogicFunction } from 'twenty-sdk/define';
 
@@ -6,6 +7,7 @@ import { composeListing360 } from 'src/modules/lv-core/services/ecosystem-360';
 import { readRouteInput } from 'src/modules/lv-core/utils/route-event';
 import { resolveCaller } from 'src/modules/lv-dashboard/services/caller-context';
 import { DelegatedGraphqlClient } from 'src/modules/lv-dashboard/services/graphql-client';
+import { describeError } from 'src/modules/lv-core/utils/describe-error';
 
 // POST /properties/360 { propertyId }
 //
@@ -38,7 +40,7 @@ export const handler = async (event: unknown): Promise<Record<string, unknown>> 
 
     return await composeListing360({ delegated, application: new CoreApiClient({ runAs: 'application' }), caller: { ...caller, workspaceMemberId: caller.workspaceMemberId }, kind: 'property', id: input.propertyId, now: new Date().toISOString() });
   } catch (error) {
-    console.error('[lv-property-360]', error instanceof Error ? error.message : String(error));
+    console.error('[lv-property-360]', describeError(error));
 
     return { ok: false, error: 'The page could not be loaded. Please try again.' };
   }

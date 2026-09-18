@@ -1,3 +1,4 @@
+import 'src/modules/lv-core/runtime/resilient-fetch';
 // Minimal GraphQL transport for the dashboard routes.
 //
 // The dashboards need dozens of COUNT / GROUP BY aggregations per page. The

@@ -1,3 +1,4 @@
+import 'src/modules/lv-core/runtime/resilient-fetch';
 import { defineLogicFunction, type DatabaseEventPayload } from 'twenty-sdk/define';
 
 import { FN_AUDIT_DOCUMENT_DESTROYED_ID } from 'src/constants/universal-identifiers';

@@ -1,3 +1,4 @@
+import 'src/modules/lv-core/runtime/resilient-fetch';
 import { defineLogicFunction, type DatabaseEventPayload, type ObjectRecordCreateEvent } from 'twenty-sdk/define';
 
 import { FN_AI_ON_LEAD_CREATED_ID } from 'src/constants/universal-identifiers';
@@ -6,6 +7,7 @@ import { createAiProvider } from 'src/modules/lv-ai/provider/create-provider';
 import { applicationClient } from 'src/modules/lv-ai/runtime/clients';
 import { loadLeadContext } from 'src/modules/lv-intelligence/services/lead-context';
 import { generateClassification } from 'src/modules/lv-intelligence/services/model-operations';
+import { describeError } from 'src/modules/lv-core/utils/describe-error';
 
 // lvLead.created → one classification suggestion, only when a provider is
 // configured and the lead has no category yet. This is the single automatic
@@ -43,7 +45,7 @@ export const handler = async (payload: DatabaseEventPayload<ObjectRecordCreateEv
 
     return { applied: result.ok, status: result.status, code: result.code };
   } catch (error) {
-    console.error('[lv-ai-on-lead-created]', error instanceof Error ? error.message : String(error));
+    console.error('[lv-ai-on-lead-created]', describeError(error));
 
     return { applied: false, reason: 'error' };
   }

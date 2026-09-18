@@ -1,3 +1,4 @@
+import 'src/modules/lv-core/runtime/resilient-fetch';
 import nodemailer from 'nodemailer';
 import { CoreApiClient } from 'twenty-client-sdk/core';
 import {

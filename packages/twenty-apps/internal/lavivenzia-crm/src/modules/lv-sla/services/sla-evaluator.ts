@@ -22,6 +22,7 @@ import {
   type TargetFacts,
 } from 'src/modules/lv-sla/services/sla-engine';
 import { type SlaPort } from 'src/modules/lv-sla/services/sla-port';
+import { describeError } from 'src/modules/lv-core/utils/describe-error';
 
 // Applies the engine's plan for one SLA through the port. Idempotent and
 // concurrency-safe by construction:
@@ -387,11 +388,11 @@ export const evaluateSla = async ({
       }
     }
   } catch (error) {
-    result.errors.push(error instanceof Error ? error.message : String(error));
+    result.errors.push(describeError(error));
   } finally {
     await port.touchEvaluated({ slaId: sla.id, at: now }).catch((error: unknown) => {
       result.errors.push(
-        `touchEvaluated: ${error instanceof Error ? error.message : String(error)}`,
+        `touchEvaluated: ${describeError(error)}`,
       );
     });
   }

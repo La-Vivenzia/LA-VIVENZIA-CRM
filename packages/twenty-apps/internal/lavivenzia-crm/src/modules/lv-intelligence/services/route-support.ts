@@ -5,6 +5,7 @@ import { applicationClient, delegatedClient } from 'src/modules/lv-ai/runtime/cl
 import { readRouteInput } from 'src/modules/lv-core/utils/route-event';
 import { type LeadContext, loadLeadContext } from 'src/modules/lv-intelligence/services/lead-context';
 import { type DelegatedGraphqlClient } from 'src/modules/lv-dashboard/services/graphql-client';
+import { describeError } from 'src/modules/lv-core/utils/describe-error';
 
 // Shared preamble for the AI routes: authenticate (session only — an API key
 // has no person behind it), load the lead under the caller's token (CM-004
@@ -62,7 +63,7 @@ export const beginLeadRoute = async <T extends { leadId?: unknown }>(event: unkn
 export const isRefusal = (value: unknown): value is Refusal => typeof value === 'object' && value !== null && (value as { ok?: unknown }).ok === false;
 
 export const internalError = (scope: string, error: unknown): { ok: false; error: string } => {
-  console.error(`[${scope}]`, error instanceof Error ? error.message : String(error));
+  console.error(`[${scope}]`, describeError(error));
 
   return { ok: false, error: 'The request could not be completed. Please try again.' };
 };

@@ -1,3 +1,4 @@
+import 'src/modules/lv-core/runtime/resilient-fetch';
 // Reading the input of an HTTP-route logic function.
 //
 // Route handlers do NOT receive their JSON body as the argument. Twenty hands

@@ -1,3 +1,4 @@
+import 'src/modules/lv-core/runtime/resilient-fetch';
 import { CoreApiClient } from 'twenty-client-sdk/core';
 import { defineLogicFunction } from 'twenty-sdk/define';
 
@@ -6,6 +7,7 @@ import { applyListingTransition, applyOwnerChange, applyPartnerTransition, type 
 import { readRouteInput } from 'src/modules/lv-core/utils/route-event';
 import { resolveCaller } from 'src/modules/lv-dashboard/services/caller-context';
 import { DelegatedGraphqlClient } from 'src/modules/lv-dashboard/services/graphql-client';
+import { describeError } from 'src/modules/lv-core/utils/describe-error';
 
 // POST /ecosystem/transition { kind: 'partner' | 'experience' | 'property', id, action?: 'STATUS' | 'OWNER', to?, reason?, ownerId? }
 //
@@ -108,7 +110,7 @@ export const handler = async (event: unknown): Promise<Record<string, unknown>> 
       readiness: async () => listingReadiness({ kind, listing, partner: listing.partnerId ? await loadPartner(delegated, listing.partnerId) : null, now }),
     });
   } catch (error) {
-    console.error('[lv-ecosystem] transition failed:', error instanceof Error ? error.message : String(error));
+    console.error('[lv-ecosystem] transition failed:', describeError(error));
 
     return { ok: false, error: 'The change could not be applied. Please try again.' };
   }

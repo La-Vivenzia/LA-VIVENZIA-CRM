@@ -1,3 +1,4 @@
+import 'src/modules/lv-core/runtime/resilient-fetch';
 import { defineLogicFunction } from 'twenty-sdk/define';
 
 import { FN_AI_SCORE_REFRESH_ID } from 'src/constants/universal-identifiers';
@@ -5,6 +6,7 @@ import { applicationClient } from 'src/modules/lv-ai/runtime/clients';
 import { OPEN_WORKLOAD_STATUSES } from 'src/modules/lv-dashboard/metrics/definitions';
 import { loadLeadContext } from 'src/modules/lv-intelligence/services/lead-context';
 import { computeDeterministicInsights } from 'src/modules/lv-intelligence/services/lead-intelligence';
+import { describeError } from 'src/modules/lv-core/utils/describe-error';
 
 // Hourly: recompute the deterministic insights for open leads so that
 // time-based signals (recency, overdue, silence) and the mirrored
@@ -45,7 +47,7 @@ export const handler = async (event: unknown): Promise<Record<string, unknown>> 
 
     return { scanned: ids.length, refreshed, unchanged, clock };
   } catch (error) {
-    console.error('[lv-ai-score-refresh]', error instanceof Error ? error.message : String(error));
+    console.error('[lv-ai-score-refresh]', describeError(error));
 
     return { scanned: 0, error: 'failed' };
   }

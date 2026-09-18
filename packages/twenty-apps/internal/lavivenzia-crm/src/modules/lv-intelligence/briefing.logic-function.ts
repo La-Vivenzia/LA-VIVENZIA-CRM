@@ -1,3 +1,4 @@
+import 'src/modules/lv-core/runtime/resilient-fetch';
 import { defineLogicFunction } from 'twenty-sdk/define';
 
 import { FN_AI_BRIEFING_ID } from 'src/constants/universal-identifiers';
@@ -11,6 +12,7 @@ import { readRouteInput } from 'src/modules/lv-core/utils/route-event';
 import { clampTimeZoneOffset } from 'src/modules/lv-dashboard/metrics/definitions';
 import { resolveCaller } from 'src/modules/lv-dashboard/services/caller-context';
 import { buildDashboardSummary, type DashboardSummary } from 'src/modules/lv-dashboard/services/dashboard-summary';
+import { describeError } from 'src/modules/lv-core/utils/describe-error';
 
 // POST /ai/briefing { timeZoneOffsetMinutes? }
 //
@@ -177,7 +179,7 @@ export const handler = async (event: unknown): Promise<Record<string, unknown>> 
       ],
     };
   } catch (error) {
-    console.error('[lv-ai-briefing]', error instanceof Error ? error.message : String(error));
+    console.error('[lv-ai-briefing]', describeError(error));
 
     return { ok: false, error: 'The briefing could not be built. Please try again.' };
   }

@@ -1,3 +1,4 @@
+import 'src/modules/lv-core/runtime/resilient-fetch';
 import { DelegatedGraphqlClient } from 'src/modules/lv-dashboard/services/graphql-client';
 
 // Two GraphQL clients, two identities, deliberately named:

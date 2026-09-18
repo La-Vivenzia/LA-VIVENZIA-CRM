@@ -17,6 +17,7 @@ import { createCoreApiNotificationPort } from 'src/modules/lv-notifications/serv
 import { findMember } from 'src/modules/lv-notifications/services/member-lookup';
 import { dispatchNotifications } from 'src/modules/lv-notifications/services/notification-service';
 import { notificationsForOwnerChange } from 'src/modules/lv-notifications/utils/build-notification';
+import { describeError } from 'src/modules/lv-core/utils/describe-error';
 
 // The capture engine behind the routes. Pure decisions live in the draft
 // builder and the assignment engine; this file sequences them against the
@@ -271,7 +272,7 @@ export const createCapturedLead = async (options: {
 
     leadId = (created as { createLvLead?: { id?: string } }).createLvLead?.id ?? null;
   } catch (error) {
-    const message = error instanceof Error ? error.message : String(error);
+    const message = describeError(error);
 
     // The unique index on captureKey is the last line of defence when two
     // requests race past the lookup above: the loser reads the winner.

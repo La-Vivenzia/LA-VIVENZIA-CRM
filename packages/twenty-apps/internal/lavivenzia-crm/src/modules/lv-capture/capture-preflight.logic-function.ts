@@ -1,3 +1,4 @@
+import 'src/modules/lv-core/runtime/resilient-fetch';
 import { CoreApiClient } from 'twenty-client-sdk/core';
 import { defineLogicFunction } from 'twenty-sdk/define';
 
@@ -11,6 +12,7 @@ import { assessDraftQuality, draftFor, recommendAssignment, scanDraftDuplicates 
 import { readRouteInput } from 'src/modules/lv-core/utils/route-event';
 import { writeAuditEvent } from 'src/modules/lv-governance/services/audit-log';
 import { classifyDraft } from 'src/modules/lv-intelligence/services/model-operations';
+import { describeError } from 'src/modules/lv-core/utils/describe-error';
 
 // POST /capture/preflight { captureKey, method, fields, classify?: boolean, recommend?: boolean }
 //
@@ -107,7 +109,7 @@ export const handler = async (event: unknown): Promise<Record<string, unknown>> 
       );
     } catch (error) {
       classification = { status: 'UNAVAILABLE', category: null, subcategory: null, confidence: null, reasoning: null, code: 'AI_UNAVAILABLE', runId: null, provider: 'none', model: null, promptVersion: 'lead-classification-v1' };
-      console.warn('[lv-capture] classification failed:', error instanceof Error ? error.message : String(error));
+      console.warn('[lv-capture] classification failed:', describeError(error));
     }
   }
 

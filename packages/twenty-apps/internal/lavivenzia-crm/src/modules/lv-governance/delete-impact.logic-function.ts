@@ -1,3 +1,4 @@
+import 'src/modules/lv-core/runtime/resilient-fetch';
 import { CoreApiClient } from 'twenty-client-sdk/core';
 import { defineLogicFunction } from 'twenty-sdk/define';
 
@@ -6,6 +7,7 @@ import { readRouteInput } from 'src/modules/lv-core/utils/route-event';
 import { resolveCaller } from 'src/modules/lv-dashboard/services/caller-context';
 import { DelegatedGraphqlClient } from 'src/modules/lv-dashboard/services/graphql-client';
 import { isDeletableObject, type DeletableObject, type Dependents } from 'src/modules/lv-governance/services/governance';
+import { describeError } from 'src/modules/lv-core/utils/describe-error';
 
 // POST /records/delete-impact { object, recordId }
 //
@@ -130,7 +132,7 @@ export const handler = async (event: unknown): Promise<Record<string, unknown>> 
       ],
     };
   } catch (error) {
-    console.error('[lv-delete-impact]', error instanceof Error ? error.message : String(error));
+    console.error('[lv-delete-impact]', describeError(error));
 
     return { ok: false, error: 'The deletion impact could not be computed. Please try again.' };
   }

@@ -1,3 +1,4 @@
+import 'src/modules/lv-core/runtime/resilient-fetch';
 import { CoreApiClient } from 'twenty-client-sdk/core';
 import { defineLogicFunction } from 'twenty-sdk/define';
 
@@ -10,6 +11,7 @@ import { readRouteInput } from 'src/modules/lv-core/utils/route-event';
 import { resolveCaller } from 'src/modules/lv-dashboard/services/caller-context';
 import { DelegatedGraphqlClient } from 'src/modules/lv-dashboard/services/graphql-client';
 import { writeAuditEvent } from 'src/modules/lv-governance/services/audit-log';
+import { describeError } from 'src/modules/lv-core/utils/describe-error';
 
 // POST /ecosystem/create { kind: 'experience' | 'property' | 'partner', partnerId?, fields, duplicateDecision?: 'CREATE_NEW' }
 //
@@ -155,7 +157,7 @@ export const handler = async (event: unknown): Promise<Record<string, unknown>> 
 
     return { ok: true, id: record.id, code, kind, partnerId };
   } catch (error) {
-    console.error('[lv-ecosystem] create failed:', error instanceof Error ? error.message : String(error));
+    console.error('[lv-ecosystem] create failed:', describeError(error));
 
     return { ok: false, error: 'The record could not be created. Please try again.' };
   }

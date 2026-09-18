@@ -1,3 +1,4 @@
+import 'src/modules/lv-core/runtime/resilient-fetch';
 import { defineLogicFunction } from 'twenty-sdk/define';
 
 import { FN_CONTROL_TOWER_SUMMARY_ID } from 'src/constants/universal-identifiers';
@@ -6,6 +7,7 @@ import { parseControlTowerFilters } from 'src/modules/lv-dashboard/metrics/contr
 import { resolveCaller } from 'src/modules/lv-dashboard/services/caller-context';
 import { buildControlTowerSummary } from 'src/modules/lv-dashboard/services/control-tower-summary';
 import { DelegatedGraphqlClient } from 'src/modules/lv-dashboard/services/graphql-client';
+import { describeError } from 'src/modules/lv-core/utils/describe-error';
 
 // POST /control-tower/summary { filters? }
 //
@@ -44,7 +46,7 @@ export const handler = async (event: unknown): Promise<Record<string, unknown>> 
 
     return { ok: true, ...summary };
   } catch (error) {
-    console.error('[lv-control-tower-summary]', error instanceof Error ? error.message : String(error));
+    console.error('[lv-control-tower-summary]', describeError(error));
 
     return { ok: false, error: 'The Control Tower could not be loaded. Please try again.' };
   }

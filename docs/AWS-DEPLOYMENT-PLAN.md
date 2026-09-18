@@ -260,5 +260,5 @@ Decision taken with approval: the application connects as the dedicated `laviven
 
 ### Remaining before the services (in order)
 1. ~~preflight / 443 listener~~ done.
-2. R2 from the Founder: bucket name, Cloudflare account id, API token → secrets `lv-crm-prod/r2-access-key-id`, `lv-crm-prod/r2-secret-access-key` → fill the four placeholders in `task-web.json` / `task-worker.json`.
-3. Register both task definitions → create `lv-crm-prod-web` (desired 1, grace 600 s) → wait healthy → create `lv-crm-prod-worker` (desired 1) → stop before first sign-up / `twenty-sdk apply`.
+2. R2 (Founder enables R2 on Cloudflare account `de0f88c6…`, then a token with *Workers R2 Storage: Edit* + *Account API Tokens: Edit*) → `node deploy/aws/r2-provision.mjs` creates the private bucket `lavivenzia-crm-prod`, a bucket-scoped Object Read & Write credential, the two secrets, and fills the task definitions.
+3. `bash deploy/aws/deploy-services.sh` → task definitions → `lv-crm-prod-web` (grace 600 s, circuit breaker) → healthy target → `lv-crm-prod-worker` → log / HTTPS / smoke verification → **stop before first sign-up / `twenty-sdk apply`**.

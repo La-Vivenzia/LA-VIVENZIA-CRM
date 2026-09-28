@@ -1,0 +1,678 @@
+{
+  "capturedAt": "2026-09-25T06:30:54.129092Z",
+  "account": "361964630667",
+  "region": "ap-south-1",
+  "ecs": {
+    "cluster": "lv-crm-prod",
+    "services": [
+      {
+        "name": "lv-crm-prod-web",
+        "taskDefinition": "arn:aws:ecs:ap-south-1:361964630667:task-definition/lv-crm-prod-web:7",
+        "desiredCount": 1,
+        "launchType": "FARGATE",
+        "network": {
+          "awsvpcConfiguration": {
+            "subnets": [
+              "subnet-0352a03f9c9008b71"
+            ],
+            "securityGroups": [
+              "sg-019afa6022ef1b7f4"
+            ],
+            "assignPublicIp": "DISABLED"
+          }
+        },
+        "loadBalancers": [
+          {
+            "targetGroupArn": "arn:aws:elasticloadbalancing:ap-south-1:361964630667:targetgroup/lv-crm-prod-web/3220c79c867498fe",
+            "containerName": "web",
+            "containerPort": 3000
+          }
+        ],
+        "healthCheckGracePeriodSeconds": 600,
+        "deploymentConfiguration": {
+          "deploymentCircuitBreaker": {
+            "enable": true,
+            "rollback": true,
+            "resetOnHealthyTask": true,
+            "thresholdConfiguration": {
+              "type": "BOUNDED_PERCENT",
+              "value": 50
+            }
+          },
+          "maximumPercent": 200,
+          "minimumHealthyPercent": 100,
+          "strategy": "ROLLING",
+          "bakeTimeInMinutes": 0
+        },
+        "enableExecuteCommand": true
+      },
+      {
+        "name": "lv-crm-prod-worker",
+        "taskDefinition": "arn:aws:ecs:ap-south-1:361964630667:task-definition/lv-crm-prod-worker:7",
+        "desiredCount": 1,
+        "launchType": "FARGATE",
+        "network": {
+          "awsvpcConfiguration": {
+            "subnets": [
+              "subnet-0352a03f9c9008b71"
+            ],
+            "securityGroups": [
+              "sg-019afa6022ef1b7f4"
+            ],
+            "assignPublicIp": "DISABLED"
+          }
+        },
+        "loadBalancers": [],
+        "healthCheckGracePeriodSeconds": 0,
+        "deploymentConfiguration": {
+          "deploymentCircuitBreaker": {
+            "enable": true,
+            "rollback": true,
+            "resetOnHealthyTask": true,
+            "thresholdConfiguration": {
+              "type": "BOUNDED_PERCENT",
+              "value": 50
+            }
+          },
+          "maximumPercent": 100,
+          "minimumHealthyPercent": 0,
+          "strategy": "ROLLING",
+          "bakeTimeInMinutes": 0
+        },
+        "enableExecuteCommand": true
+      }
+    ]
+  },
+  "taskDefinitions": {
+    "lv-crm-prod-web": {
+      "revision": 7,
+      "cpu": "1024",
+      "memory": "2048",
+      "image": "361964630667.dkr.ecr.ap-south-1.amazonaws.com/lv-crm:d12a962e",
+      "executionRoleArn": "arn:aws:iam::361964630667:role/lv-crm-prod-ecs-exec",
+      "taskRoleArn": "arn:aws:iam::361964630667:role/lv-crm-prod-ecs-task",
+      "runtimePlatform": {
+        "cpuArchitecture": "X86_64",
+        "operatingSystemFamily": "LINUX"
+      },
+      "envKeys": [
+        "STORAGE_S3_ENDPOINT",
+        "EMAIL_FROM_ADDRESS",
+        "EMAIL_SMTP_PORT",
+        "NODE_PORT",
+        "EMAIL_DRIVER",
+        "EMAIL_SMTP_HOST",
+        "EMAIL_FROM_NAME",
+        "FRONTEND_URL",
+        "SIGN_IN_PREFILLED",
+        "LOGIC_FUNCTION_TYPE",
+        "PG_SSL_ALLOW_SELF_SIGNED",
+        "IS_MULTIWORKSPACE_ENABLED",
+        "EMAIL_SYSTEM_ADDRESS",
+        "EMAIL_SMTP_USER",
+        "STORAGE_S3_REGION",
+        "STORAGE_S3_NAME",
+        "SERVER_URL",
+        "STORAGE_TYPE"
+      ],
+      "secretKeys": [
+        "PG_DATABASE_URL",
+        "REDIS_URL",
+        "ENCRYPTION_KEY",
+        "STORAGE_S3_ACCESS_KEY_ID",
+        "STORAGE_S3_SECRET_ACCESS_KEY",
+        "EMAIL_SMTP_PASSWORD",
+        "GOOGLE_API_KEY"
+      ],
+      "logs": {
+        "logDriver": "awslogs",
+        "options": {
+          "awslogs-group": "/ecs/lv-crm-prod/web",
+          "awslogs-region": "ap-south-1",
+          "awslogs-stream-prefix": "web"
+        }
+      }
+    },
+    "lv-crm-prod-worker": {
+      "revision": 7,
+      "cpu": "1024",
+      "memory": "2048",
+      "image": "361964630667.dkr.ecr.ap-south-1.amazonaws.com/lv-crm:d12a962e",
+      "executionRoleArn": "arn:aws:iam::361964630667:role/lv-crm-prod-ecs-exec",
+      "taskRoleArn": "arn:aws:iam::361964630667:role/lv-crm-prod-ecs-task",
+      "runtimePlatform": {
+        "cpuArchitecture": "X86_64",
+        "operatingSystemFamily": "LINUX"
+      },
+      "envKeys": [
+        "STORAGE_S3_ENDPOINT",
+        "DISABLE_CRON_JOBS_REGISTRATION",
+        "EMAIL_FROM_ADDRESS",
+        "EMAIL_SMTP_PORT",
+        "DISABLE_DB_MIGRATIONS",
+        "EMAIL_DRIVER",
+        "EMAIL_SMTP_HOST",
+        "EMAIL_FROM_NAME",
+        "FRONTEND_URL",
+        "LOGIC_FUNCTION_TYPE",
+        "PG_SSL_ALLOW_SELF_SIGNED",
+        "IS_MULTIWORKSPACE_ENABLED",
+        "EMAIL_SYSTEM_ADDRESS",
+        "EMAIL_SMTP_USER",
+        "STORAGE_S3_REGION",
+        "STORAGE_S3_NAME",
+        "SERVER_URL",
+        "STORAGE_TYPE"
+      ],
+      "secretKeys": [
+        "PG_DATABASE_URL",
+        "REDIS_URL",
+        "ENCRYPTION_KEY",
+        "STORAGE_S3_ACCESS_KEY_ID",
+        "STORAGE_S3_SECRET_ACCESS_KEY",
+        "EMAIL_SMTP_PASSWORD",
+        "GOOGLE_API_KEY"
+      ],
+      "logs": {
+        "logDriver": "awslogs",
+        "options": {
+          "awslogs-group": "/ecs/lv-crm-prod/worker",
+          "awslogs-region": "ap-south-1",
+          "awslogs-stream-prefix": "worker"
+        }
+      }
+    },
+    "lv-crm-prod-ops": {
+      "revision": 1,
+      "cpu": "256",
+      "memory": "512",
+      "image": "361964630667.dkr.ecr.ap-south-1.amazonaws.com/lv-crm:d12a962e",
+      "executionRoleArn": "arn:aws:iam::361964630667:role/lv-crm-prod-ecs-exec",
+      "taskRoleArn": "arn:aws:iam::361964630667:role/lv-crm-prod-ecs-task",
+      "runtimePlatform": {
+        "cpuArchitecture": "X86_64",
+        "operatingSystemFamily": "LINUX"
+      },
+      "envKeys": [
+        "PGSSLMODE",
+        "PGHOST",
+        "PGPORT"
+      ],
+      "secretKeys": [
+        "PGUSER",
+        "PGPASSWORD",
+        "APP_DB_PASSWORD"
+      ],
+      "logs": {
+        "logDriver": "awslogs",
+        "options": {
+          "awslogs-group": "/ecs/lv-crm-prod/ops",
+          "awslogs-region": "ap-south-1",
+          "awslogs-stream-prefix": "ops"
+        }
+      }
+    }
+  },
+  "rds": {
+    "engine": "postgres",
+    "engineVersion": "16.15",
+    "instanceClass": "db.t3.small",
+    "allocatedStorage": 20,
+    "storageType": "gp3",
+    "multiAZ": true,
+    "publiclyAccessible": false,
+    "masterUsername": "lvadmin",
+    "port": 5432,
+    "endpoint": "lv-crm-prod-db.ctokeoqcczuh.ap-south-1.rds.amazonaws.com",
+    "subnetGroup": "default-vpc-056de77c7b30da916",
+    "parameterGroup": "default.postgres16",
+    "securityGroups": [
+      "sg-006748531ff26eb84"
+    ],
+    "backupRetentionPeriod": 7,
+    "deletionProtection": true,
+    "caCert": "rds-ca-rsa2048-g1",
+    "availabilityZone": "ap-south-1b"
+  },
+  "elasticache": {
+    "id": "lv-crm-prod-valkey",
+    "nodeType": "cache.t4g.small",
+    "engine": "valkey",
+    "clusterMode": false,
+    "transitEncryption": true,
+    "atRestEncryption": true,
+    "endpoint": {
+      "Address": "master.lv-crm-prod-valkey.vpvtkp.aps1.cache.amazonaws.com",
+      "Port": 6379
+    },
+    "numNodes": 1
+  },
+  "elasticacheCluster": {
+    "engineVersion": "9.0.0",
+    "subnetGroup": "lv-crm-prod-vpc",
+    "parameterGroup": "lv-crm-prod-valkey9",
+    "securityGroups": [
+      "sg-0c58d59926e971352"
+    ],
+    "az": "ap-south-1a"
+  },
+  "alb": {
+    "arn": "arn:aws:elasticloadbalancing:ap-south-1:361964630667:loadbalancer/app/lv-crm-prod-alb/1d97f308e7e888a5",
+    "dns": "lv-crm-prod-alb-423039597.ap-south-1.elb.amazonaws.com",
+    "scheme": "internet-facing",
+    "type": "application",
+    "ipAddressType": "ipv4",
+    "securityGroups": [
+      "sg-03f2459b9668e0ed5"
+    ],
+    "subnets": [
+      "subnet-023a3bee5e968f838",
+      "subnet-06b17aee4da5ef6ec"
+    ]
+  },
+  "targetGroup": {
+    "name": "lv-crm-prod-web",
+    "port": 3000,
+    "protocol": "HTTP",
+    "targetType": "ip",
+    "vpc": "vpc-056de77c7b30da916",
+    "healthCheckPath": "/healthz",
+    "matcher": {
+      "HttpCode": "200"
+    },
+    "interval": 30,
+    "timeout": 5,
+    "healthy": 2,
+    "unhealthy": 3
+  },
+  "listeners": [
+    {
+      "port": 443,
+      "protocol": "HTTPS",
+      "certificate": "arn:aws:acm:ap-south-1:361964630667:certificate/deddb9d7-b5ee-429f-a271-cc492fe90841",
+      "sslPolicy": "ELBSecurityPolicy-TLS13-1-2-2021-06",
+      "defaultActions": [
+        {
+          "Type": "forward",
+          "TargetGroupArn": "arn:aws:elasticloadbalancing:ap-south-1:361964630667:targetgroup/lv-crm-prod-web/3220c79c867498fe",
+          "ForwardConfig": {
+            "TargetGroups": [
+              {
+                "TargetGroupArn": "arn:aws:elasticloadbalancing:ap-south-1:361964630667:targetgroup/lv-crm-prod-web/3220c79c867498fe",
+                "Weight": 1
+              }
+            ],
+            "TargetGroupStickinessConfig": {
+              "Enabled": false
+            }
+          }
+        }
+      ]
+    },
+    {
+      "port": 80,
+      "protocol": "HTTP",
+      "certificate": null,
+      "sslPolicy": null,
+      "defaultActions": [
+        {
+          "Type": "redirect",
+          "RedirectConfig": {
+            "Protocol": "HTTPS",
+            "Port": "443",
+            "Host": "#{host}",
+            "Path": "/#{path}",
+            "Query": "#{query}",
+            "StatusCode": "HTTP_301"
+          }
+        }
+      ]
+    }
+  ],
+  "acm": [
+    {
+      "CertificateArn": "arn:aws:acm:ap-south-1:361964630667:certificate/deddb9d7-b5ee-429f-a271-cc492fe90841",
+      "DomainName": "crm.lavivenzia.com",
+      "SubjectAlternativeNameSummaries": [
+        "crm.lavivenzia.com"
+      ],
+      "HasAdditionalSubjectAlternativeNames": false,
+      "Status": "ISSUED",
+      "Type": "AMAZON_ISSUED",
+      "KeyAlgorithm": "RSA-2048",
+      "KeyUsages": [
+        "DIGITAL_SIGNATURE",
+        "KEY_ENCIPHERMENT"
+      ],
+      "ExtendedKeyUsages": [
+        "TLS_WEB_SERVER_AUTHENTICATION"
+      ],
+      "ExportOption": "DISABLED",
+      "InUse": true,
+      "Exported": false,
+      "RenewalEligibility": "ELIGIBLE",
+      "NotBefore": "2026-09-17T05:30:00+05:30",
+      "NotAfter": "2027-04-03T05:29:59+05:30",
+      "CreatedAt": "2026-09-17T22:17:40.179000+05:30",
+      "IssuedAt": "2026-09-18T00:35:11.913000+05:30",
+      "CertificateKeyPairOrigin": "AWS_MANAGED"
+    }
+  ],
+  "network": {
+    "vpc": {
+      "id": "vpc-056de77c7b30da916",
+      "cidr": "10.20.0.0/16",
+      "name": "lv-crm-prod-vpc"
+    },
+    "subnets": [
+      {
+        "id": "subnet-023a3bee5e968f838",
+        "az": "ap-south-1a",
+        "cidr": "10.20.0.0/20",
+        "name": "lv-crm-prod-subnet-public1-ap-south-1a"
+      },
+      {
+        "id": "subnet-074fecfeaa62c4436",
+        "az": "ap-south-1b",
+        "cidr": "10.20.144.0/20",
+        "name": "lv-crm-prod-subnet-private2-ap-south-1b"
+      },
+      {
+        "id": "subnet-0352a03f9c9008b71",
+        "az": "ap-south-1a",
+        "cidr": "10.20.128.0/20",
+        "name": "lv-crm-prod-subnet-private1-ap-south-1a"
+      },
+      {
+        "id": "subnet-06b17aee4da5ef6ec",
+        "az": "ap-south-1b",
+        "cidr": "10.20.16.0/20",
+        "name": "lv-crm-prod-subnet-public2-ap-south-1b"
+      }
+    ],
+    "securityGroups": [
+      {
+        "id": "sg-03f2459b9668e0ed5",
+        "name": "lv-crm-prod-alb",
+        "ingress": [
+          {
+            "IpProtocol": "tcp",
+            "FromPort": 80,
+            "ToPort": 80,
+            "UserIdGroupPairs": [],
+            "IpRanges": [
+              {
+                "Description": "Public HTTP, redirected to HTTPS",
+                "CidrIp": "0.0.0.0/0"
+              }
+            ],
+            "Ipv6Ranges": [],
+            "PrefixListIds": []
+          },
+          {
+            "IpProtocol": "tcp",
+            "FromPort": 443,
+            "ToPort": 443,
+            "UserIdGroupPairs": [],
+            "IpRanges": [
+              {
+                "Description": "Public HTTPS access (IPv4)",
+                "CidrIp": "0.0.0.0/0"
+              }
+            ],
+            "Ipv6Ranges": [
+              {
+                "Description": "Public HTTPS access",
+                "CidrIpv6": "::/0"
+              }
+            ],
+            "PrefixListIds": []
+          }
+        ]
+      },
+      {
+        "id": "sg-002be2aed7369b527",
+        "name": "default",
+        "ingress": [
+          {
+            "IpProtocol": "-1",
+            "UserIdGroupPairs": [
+              {
+                "UserId": "361964630667",
+                "GroupId": "sg-002be2aed7369b527"
+              }
+            ],
+            "IpRanges": [],
+            "Ipv6Ranges": [],
+            "PrefixListIds": []
+          }
+        ]
+      },
+      {
+        "id": "sg-006748531ff26eb84",
+        "name": "lv-crm-prod-rds",
+        "ingress": [
+          {
+            "IpProtocol": "tcp",
+            "FromPort": 5432,
+            "ToPort": 5432,
+            "UserIdGroupPairs": [
+              {
+                "Description": "ECS to PostgreSQL",
+                "UserId": "361964630667",
+                "GroupId": "sg-019afa6022ef1b7f4"
+              }
+            ],
+            "IpRanges": [],
+            "Ipv6Ranges": [],
+            "PrefixListIds": []
+          }
+        ]
+      },
+      {
+        "id": "sg-0c58d59926e971352",
+        "name": "lv-crm-prod-valkey",
+        "ingress": [
+          {
+            "IpProtocol": "tcp",
+            "FromPort": 6379,
+            "ToPort": 6379,
+            "UserIdGroupPairs": [
+              {
+                "Description": "ECS to Valkey",
+                "UserId": "361964630667",
+                "GroupId": "sg-019afa6022ef1b7f4"
+              }
+            ],
+            "IpRanges": [],
+            "Ipv6Ranges": [],
+            "PrefixListIds": []
+          }
+        ]
+      },
+      {
+        "id": "sg-019afa6022ef1b7f4",
+        "name": "lv-crm-prod-ecs",
+        "ingress": [
+          {
+            "IpProtocol": "tcp",
+            "FromPort": 3000,
+            "ToPort": 3000,
+            "UserIdGroupPairs": [
+              {
+                "Description": "ALB to ECS",
+                "UserId": "361964630667",
+                "GroupId": "sg-03f2459b9668e0ed5"
+              }
+            ],
+            "IpRanges": [],
+            "Ipv6Ranges": [],
+            "PrefixListIds": []
+          }
+        ]
+      }
+    ],
+    "routeTables": [
+      {
+        "id": "rtb-0c7eb53e315895b34",
+        "main": false,
+        "routes": [
+          {
+            "dest": "10.20.0.0/16",
+            "gw": "local",
+            "nat": null
+          },
+          {
+            "dest": "0.0.0.0/0",
+            "gw": null,
+            "nat": "nat-096ee468b4530fcef"
+          },
+          {
+            "dest": null,
+            "gw": "vpce-0ca99cd292419be60",
+            "nat": null
+          }
+        ],
+        "subnets": [
+          "subnet-074fecfeaa62c4436"
+        ]
+      },
+      {
+        "id": "rtb-072c4a9615c65c075",
+        "main": false,
+        "routes": [
+          {
+            "dest": "10.20.0.0/16",
+            "gw": "local",
+            "nat": null
+          },
+          {
+            "dest": "0.0.0.0/0",
+            "gw": null,
+            "nat": "nat-096ee468b4530fcef"
+          },
+          {
+            "dest": null,
+            "gw": "vpce-0ca99cd292419be60",
+            "nat": null
+          }
+        ],
+        "subnets": [
+          "subnet-0352a03f9c9008b71"
+        ]
+      },
+      {
+        "id": "rtb-0748f3dced3a24984",
+        "main": true,
+        "routes": [
+          {
+            "dest": "10.20.0.0/16",
+            "gw": "local",
+            "nat": null
+          }
+        ],
+        "subnets": []
+      },
+      {
+        "id": "rtb-0394c0029200662bb",
+        "main": false,
+        "routes": [
+          {
+            "dest": "10.20.0.0/16",
+            "gw": "local",
+            "nat": null
+          },
+          {
+            "dest": "0.0.0.0/0",
+            "gw": "igw-0d930c6c9ec5e820c",
+            "nat": null
+          }
+        ],
+        "subnets": [
+          "subnet-023a3bee5e968f838",
+          "subnet-06b17aee4da5ef6ec"
+        ]
+      }
+    ],
+    "natGateway": {
+      "id": "nat-096ee468b4530fcef",
+      "subnet": "subnet-023a3bee5e968f838",
+      "eipAllocation": "eipalloc-02edc1bd7a6873a93",
+      "eip": "15.252.170.156"
+    },
+    "internetGateway": [
+      "igw-0d930c6c9ec5e820c"
+    ],
+    "s3GatewayEndpoint": "vpce-0ca99cd292419be60",
+    "dbSubnetGroup": "default-vpc-056de77c7b30da916",
+    "cacheSubnetGroup": "lv-crm-prod-vpc",
+    "subnetPinNote": "web/worker were pinned to subnet-0352a03f9c9008b71 (1a): public DNS lookups failed intermittently from subnet-074fecfeaa62c4436 (1b)"
+  },
+  "iamRoles": [
+    "lv-crm-prod-ecs-exec",
+    "lv-crm-prod-ecs-task"
+  ],
+  "secretNames": [
+    "rds!db-04f7b500-89a6-4ee0-b2bd-82abdf15bee2",
+    "lv-crm-prod/pg-app-password",
+    "lv-crm-prod/pg-database-url",
+    "lv-crm-prod/redis-url",
+    "lv-crm-prod/encryption-key",
+    "lv-crm-prod/r2-access-key-id",
+    "lv-crm-prod/r2-secret-access-key",
+    "lv-crm-prod/smtp",
+    "lv-crm-prod/google-api-key"
+  ],
+  "ecr": {
+    "repository": "lv-crm",
+    "images": [
+      {
+        "tags": null,
+        "digest": "sha256:6d92053b75c07ecf3d990047a0bc945f41408fe2f533cd684ee73c5f6135e3e0",
+        "pushedAt": "2026-09-17T22:12:05.507000+05:30",
+        "bytes": 1711
+      },
+      {
+        "tags": null,
+        "digest": "sha256:dae53eb1c3a5f15c88a5b67429b4c92f292944408833f625fdae5de12c9899fb",
+        "pushedAt": "2026-09-17T22:12:05.551000+05:30",
+        "bytes": 256234375
+      },
+      {
+        "tags": [
+          "d12a962e"
+        ],
+        "digest": "sha256:4de30132cd45a3f7f2784fe14f66bbd345367d8a22f31318e0ab41750da6257d",
+        "pushedAt": "2026-09-17T22:12:05.931000+05:30",
+        "bytes": 256234375
+      }
+    ]
+  },
+  "logGroups": [
+    {
+      "name": "/ecs/lv-crm-prod/ops",
+      "retentionInDays": 30,
+      "storedBytes": 1653
+    },
+    {
+      "name": "/ecs/lv-crm-prod/web",
+      "retentionInDays": 30,
+      "storedBytes": 1668544
+    },
+    {
+      "name": "/ecs/lv-crm-prod/worker",
+      "retentionInDays": 30,
+      "storedBytes": 12783734
+    }
+  ],
+  "cloudflare": {
+    "dns": "crm.lavivenzia.com CNAME -> ALB DNS (DNS-only)",
+    "r2Bucket": "lavivenzia-crm-prod",
+    "note": "NOT touched by this teardown"
+  },
+  "database": {
+    "name": "lavivenzia",
+    "workspaceSchema": "workspace_6qdaa73m9jaq6bnaayxqtvvo9",
+    "sizeBytes": 28851223
+  }
+}

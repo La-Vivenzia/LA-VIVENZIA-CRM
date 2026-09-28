@@ -1,0 +1,5 @@
+# Local server URL for development; every machine points somewhere different.
+.env.local
+.env.*.local
+dist/
+.notes/

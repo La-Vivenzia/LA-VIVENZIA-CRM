@@ -101,6 +101,8 @@ const context = (overrides: Partial<LeadContext> = {}): LeadContext => ({
 
 const caller = (overrides: Partial<Omit<CallerContext, 'workspaceMemberId'>> & { workspaceMemberId?: string } = {}): CallerContext & { workspaceMemberId: string } => ({
   workspaceMemberId: 'member-owner',
+  displayName: 'Tim Apple',
+  firstName: 'Tim',
   userId: 'user-1',
   isAdmin: false,
   permissionFlags: [],

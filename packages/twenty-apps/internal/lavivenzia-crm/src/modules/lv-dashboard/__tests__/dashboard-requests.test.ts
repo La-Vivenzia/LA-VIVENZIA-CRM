@@ -33,7 +33,7 @@ const fakeClient = () => {
 };
 
 const caller = (lens: DashboardLens, isAdmin = false): CallerContext => ({
-  workspaceMemberId: '11111111-1111-4111-8111-111111111111',
+  workspaceMemberId: '11111111-1111-4111-8111-111111111111', displayName: 'Asha Rao', firstName: 'Asha',
   userId: null,
   isAdmin,
   permissionFlags: isAdmin ? ['WORKSPACE'] : [],

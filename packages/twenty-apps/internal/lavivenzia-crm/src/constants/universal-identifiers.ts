@@ -711,3 +711,10 @@ export const PL_PROPERTY_360_TAB_ID = 'a810d474-fec1-4e6f-aa38-cc3b24838e80';
 export const PL_PROPERTY_360_WIDGET_ID = '7c197ec3-a560-45e6-9571-90f72a0359c3';
 export const PL_PROPERTY_DETAILS_TAB_ID = '29a5e461-5e28-4213-9a3b-722ea36d6250';
 export const PL_PROPERTY_DETAILS_WIDGET_ID = 'cb41d705-207a-43dc-a768-3821832e3b42';
+
+// The La Vivenzia shell — the six-door workspace (docs/UI-EXACT-MATCH-PLAN.md).
+export const FC_LV_HOME_ID = '49dc0101-7649-4445-8776-859e57967505';
+export const PL_LV_HOME_ID = 'fe15eb21-6f12-465e-951f-22e8c07f23e8';
+export const PL_LV_HOME_TAB_ID = '8df65126-81a9-4cec-b67f-11037ec3bdf6';
+export const PL_LV_HOME_WIDGET_ID = '2bcfac1e-6b57-4b46-aa4a-a27ccd0ad4be';
+export const NAV_LV_HOME_ID = '3318d241-d11d-400f-bd1d-3a4df907ffae';

@@ -51,6 +51,13 @@ export const handler = async (event: unknown): Promise<Record<string, unknown>> 
         isAdmin: caller.isAdmin,
         controlTower: caller.isAdmin,
       },
+      // The shell greets the person by name and shows their role; both come
+      // from the caller the server already resolved, so no extra round trip.
+      viewer: {
+        displayName: caller.displayName,
+        firstName: caller.firstName,
+        lens: caller.lens,
+      },
     };
   } catch (error) {
     // Never a stack trace to the browser; the detail goes to the function log.

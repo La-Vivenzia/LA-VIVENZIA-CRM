@@ -10,6 +10,7 @@ import { MobileNavigationBar } from '@/navigation/components/MobileNavigationBar
 import { PageDragDropProvider } from '@/navigation-menu-item/display/dnd/providers/PageDragDropProvider';
 import { useShowFullscreen } from '@/ui/layout/fullscreen/hooks/useShowFullscreen';
 import { useIsMobile } from '@/ui/utilities/responsive/hooks/useIsMobile';
+import { useIsLvWorkspacePage } from '~/lv/useIsLvWorkspacePage';
 import { styled } from '@linaria/react';
 import { Outlet } from 'react-router-dom';
 import { themeCssVariables } from 'twenty-ui/theme-constants';
@@ -75,6 +76,8 @@ const StyledMainContainer = styled.div`
 export const DefaultLayout = () => {
   const isMobile = useIsMobile();
   const useShowFullScreen = useShowFullscreen();
+  // The La Vivenzia workspace draws its own rail, so Twenty's is suppressed.
+  const isLvWorkspacePage = useIsLvWorkspacePage();
 
   return (
     <>
@@ -86,7 +89,7 @@ export const DefaultLayout = () => {
             <StyledPageContainer>
               <PageDragDropProvider>
                 <KeyboardShortcutMenu />
-                {useShowFullScreen ? null : (
+                {useShowFullScreen || isLvWorkspacePage ? null : (
                   <StyledNavigationDrawerWrapper>
                     <AppNavigationDrawer />
                   </StyledNavigationDrawerWrapper>
@@ -98,7 +101,7 @@ export const DefaultLayout = () => {
                 </StyledMainContainer>
               </PageDragDropProvider>
             </StyledPageContainer>
-            {isMobile && <MobileNavigationBar />}
+            {isMobile && !isLvWorkspacePage && <MobileNavigationBar />}
           </AppErrorBoundary>
         </StyledLayout>
       </FileUploadProvider>

@@ -23,6 +23,8 @@ export type DashboardLens = 'HUNTER' | 'COORDINATOR' | 'ONBOARDING' | 'ADMIN' | 
 
 export type CallerContext = {
   workspaceMemberId: string | null;
+  displayName: string | null;
+  firstName: string | null;
   userId: string | null;
   isAdmin: boolean;
   permissionFlags: string[];
@@ -39,7 +41,7 @@ export type CallerContext = {
 type CurrentUserResponse = {
   currentUser?: {
     id?: string;
-    workspaceMember?: { id?: string } | null;
+    workspaceMember?: { id?: string; name?: { firstName?: string | null; lastName?: string | null } | null } | null;
     currentUserWorkspace?: {
       permissionFlags?: string[] | null;
       objectPermissions?:
@@ -94,7 +96,7 @@ export const deriveLens = ({
 
 export const resolveCaller = async (client: DelegatedGraphqlClient): Promise<CallerContext> => {
   const { data } = await client.query<CurrentUserResponse>(
-    `query { currentUser { id workspaceMember { id } currentUserWorkspace { permissionFlags objectPermissions { objectMetadataId canReadObjectRecords canUpdateObjectRecords canSoftDeleteObjectRecords canDestroyObjectRecords } } } objects(paging: { first: 200 }) { edges { node { id nameSingular } } } }`,
+    `query { currentUser { id workspaceMember { id name { firstName lastName } } currentUserWorkspace { permissionFlags objectPermissions { objectMetadataId canReadObjectRecords canUpdateObjectRecords canSoftDeleteObjectRecords canDestroyObjectRecords } } } objects(paging: { first: 200 }) { edges { node { id nameSingular } } } }`,
     {},
     'metadata',
   );
@@ -126,8 +128,16 @@ export const resolveCaller = async (client: DelegatedGraphqlClient): Promise<Cal
   const isAdmin = permissionFlags.includes(ADMIN_PERMISSION_FLAG);
   const { lens, availableLenses } = deriveLens({ isAdmin, objectPermissions });
 
+  const member = data.currentUser?.workspaceMember;
+  const firstName = member?.name?.firstName?.trim() ?? '';
+  const lastName = member?.name?.lastName?.trim() ?? '';
+
   return {
-    workspaceMemberId: data.currentUser?.workspaceMember?.id ?? null,
+    workspaceMemberId: member?.id ?? null,
+    // The shell greets the person by name; nothing else needs it, so it is
+    // carried on the caller rather than queried a second time.
+    displayName: [firstName, lastName].filter(Boolean).join(' ') || null,
+    firstName: firstName || null,
     userId: data.currentUser?.id ?? null,
     isAdmin,
     permissionFlags,

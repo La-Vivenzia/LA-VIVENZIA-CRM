@@ -7,6 +7,7 @@ import { LayoutRenderingProvider } from '@/ui/layout/contexts/LayoutRenderingCon
 import { PageCardLayout } from '@/ui/layout/page/components/PageCardLayout';
 import { isDefined } from 'twenty-shared/utils';
 import { PageLayoutType } from '~/generated-metadata/graphql';
+import { useIsLvWorkspacePage } from '~/lv/useIsLvWorkspacePage';
 import { StandalonePageHeader } from '~/pages/page-layout/StandalonePageHeader';
 
 const StyledPageLayoutContainer = styled.div`
@@ -25,9 +26,30 @@ const StyledPageLayoutContainer = styled.div`
 
 export const StandalonePageLayoutPage = () => {
   const { pageLayoutId } = useParams<{ pageLayoutId: string }>();
+  // The La Vivenzia workspace owns the whole viewport: no card, no header.
+  const isLvWorkspacePage = useIsLvWorkspacePage();
 
   if (!isDefined(pageLayoutId)) {
     return null;
+  }
+
+  if (isLvWorkspacePage) {
+    return (
+      <CommandMenuComponentInstanceContext.Provider
+        value={{ instanceId: pageLayoutId }}
+      >
+        <LayoutRenderingProvider
+          value={{
+            targetRecordIdentifier: undefined,
+            layoutType: PageLayoutType.STANDALONE_PAGE,
+          }}
+        >
+          <StyledPageLayoutContainer>
+            <PageLayoutRenderer pageLayoutId={pageLayoutId} />
+          </StyledPageLayoutContainer>
+        </LayoutRenderingProvider>
+      </CommandMenuComponentInstanceContext.Provider>
+    );
   }
 
   return (

@@ -17,6 +17,18 @@ export type FileFolderConfig = {
 
 export const IMMUTABLE_FILE_CACHE_CONTROL = 'private, max-age=86400, immutable';
 
+// A built front component is served from a URL that does not change when the
+// application is re-applied, so `immutable` means the browser keeps running
+// yesterday's code for a day — and because the component is fetched inside a
+// Web Worker, a hard reload of the page does not clear it either. That is
+// harmless in production, where an install is a deliberate event, and fatal in
+// development, where the same app is applied many times an hour. Revalidate
+// while developing; keep the immutable policy everywhere else.
+export const BUILT_FRONT_COMPONENT_CACHE_CONTROL =
+  process.env.NODE_ENV === 'development'
+    ? 'no-cache'
+    : IMMUTABLE_FILE_CACHE_CONTROL;
+
 export const PUBLIC_ASSET_CACHE_CONTROL = 'public, max-age=3600';
 
 // Responses embedding a short-lived presigned URL must never be stored:
@@ -42,7 +54,7 @@ export const fileFolderConfigs: Record<FileFolder, FileFolderConfig> = {
   },
   [FileFolder.BuiltFrontComponent]: {
     ignoreExpirationToken: false,
-    cacheControl: IMMUTABLE_FILE_CACHE_CONTROL,
+    cacheControl: BUILT_FRONT_COMPONENT_CACHE_CONTROL,
     allowedMimeTypes: ANY_MIME_TYPE,
   },
   [FileFolder.PublicAsset]: {

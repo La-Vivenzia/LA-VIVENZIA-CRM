@@ -20,6 +20,12 @@ import {
 
 export { BRAND, LV_TYPE, type ColorScheme };
 
+// The five category tints of the reference system, in the order they appear on
+// the entry cards: Today, My Leads, Capture, Onboarding, Messages / Ask LV.
+export const LV_TINTS = ['mint', 'blue', 'peach', 'lavender', 'pink'] as const;
+
+export type LvTint = (typeof LV_TINTS)[number];
+
 export type LvTheme = {
   scheme: ColorScheme;
   // The semantic tokens, verbatim.
@@ -55,6 +61,8 @@ export type LvTheme = {
     infoMuted: string;
     ring: string;
   };
+  // Category tints by name: `wash` is the tile ground, `ink` the glyph on it.
+  tint: Record<LvTint, { wash: string; ink: string }>;
   shadow: { sm: string; md: string; lg: string };
   space: (steps: number) => number;
   radius: typeof LV_RADIUS;
@@ -106,6 +114,7 @@ const build = (scheme: ColorScheme): LvTheme => {
       infoMuted: t['info-muted'],
       ring: t.ring,
     },
+    tint: Object.fromEntries(LV_TINTS.map((name) => [name, { wash: t[`tint-${name}`], ink: t[`tint-${name}-ink`] }])) as LvTheme['tint'],
     shadow: { sm: t['shadow-sm'], md: t['shadow-md'], lg: t['shadow-lg'] },
     space: (steps: number) => steps * 4,
     radius: LV_RADIUS,
@@ -115,7 +124,9 @@ const build = (scheme: ColorScheme): LvTheme => {
       body: LV_FONT.body,
       display: LV_FONT.display,
       mono: LV_FONT.mono,
-      size: { xs: 11, sm: 12, md: 13, lg: 18, xl: 24 },
+      // One step up across the board with LV_TYPE (see tokens.ts): the
+      // reference UI is calm rather than dense, and that is mostly type size.
+      size: { xs: 12, sm: 13, md: 15, lg: 20, xl: 26 },
       weight: { regular: 400, medium: 500, bold: 600 },
     },
     breakpoint: LV_BREAKPOINT,

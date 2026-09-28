@@ -84,11 +84,45 @@ describe('typography', () => {
     expect(LV_TYPE.label.textTransform).toBe('uppercase');
   });
 
-  it('never drops below 10.5px', () => {
+  it('never drops below 11px', () => {
     for (const [name, style] of Object.entries(LV_TYPE)) {
       if (typeof style.fontSize === 'number') {
-        expect(style.fontSize, name).toBeGreaterThanOrEqual(10.5);
+        expect(style.fontSize, name).toBeGreaterThanOrEqual(11);
       }
+    }
+  });
+
+  // The reference UI reads as a calm assistant rather than a dense admin
+  // panel, and that difference is mostly type size: body sits at 15px with a
+  // generous line height, and the scale steps down from there without
+  // collapsing into one indistinguishable size.
+  it('sets body at 15px and keeps the small sizes distinguishable', () => {
+    expect(LV_TYPE.body.fontSize).toBe(15);
+    expect(LV_TYPE.body.lineHeight).toBeGreaterThanOrEqual(1.5);
+    expect(LV_TYPE.bodySmall.fontSize).toBeLessThan(LV_TYPE.body.fontSize as number);
+    expect(LV_TYPE.caption.fontSize).toBeLessThan(LV_TYPE.bodySmall.fontSize as number);
+    expect(LV_TYPE.subheading.fontSize).toBeGreaterThan(LV_TYPE.body.fontSize as number);
+  });
+});
+
+describe('category tints', () => {
+  const TINTS = ['mint', 'blue', 'peach', 'lavender', 'pink'] as const;
+
+  it.each(['light', 'dark'] as const)('%s: every ink reads on its own wash (AA large 3:1)', (scheme) => {
+    const t = LV_TOKENS[scheme];
+
+    for (const tint of TINTS) {
+      expect(contrast(t[`tint-${tint}-ink`], t[`tint-${tint}`]), `${tint} ink on wash`).toBeGreaterThanOrEqual(3);
+    }
+  });
+
+  it.each(['light', 'dark'] as const)('%s: washes are distinct from each other and from the surface', (scheme) => {
+    const t = LV_TOKENS[scheme];
+    const washes = TINTS.map((tint) => t[`tint-${tint}`]);
+
+    expect(new Set(washes).size).toBe(TINTS.length);
+    for (const wash of washes) {
+      expect(wash).not.toBe(t.surface);
     }
   });
 });

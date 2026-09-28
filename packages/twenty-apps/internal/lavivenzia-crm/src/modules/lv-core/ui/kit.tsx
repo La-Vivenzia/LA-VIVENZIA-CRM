@@ -1,7 +1,8 @@
 import { type ChangeEvent, type CSSProperties, type ReactNode, useId, useState } from 'react';
 
+import { LvIcon, type LvIconName } from 'src/modules/lv-core/ui/icons';
 import { describeStatus, badgeToneOf, type BadgeTone, type StatusKind, type StatusTone } from 'src/modules/lv-core/ui/status';
-import { layout, type LvTheme } from 'src/modules/lv-core/ui/theme';
+import { layout, type LvTheme, type LvTint } from 'src/modules/lv-core/ui/theme';
 
 // The La Vivenzia component kit — every primitive an LV surface is built
 // from. One place, so the dashboard, the Lead 360, onboarding, the Control
@@ -89,6 +90,13 @@ export const LvStyles = ({ theme }: { theme: LvTheme }) => (
     .lv-root .lv-sidebar-layout { display: grid; grid-template-columns: 1fr; gap: ${theme.space(4)}px; align-items: start; }
     .lv-root .lv-field-grid { display: grid; grid-template-columns: 1fr; gap: ${theme.space(3)}px; }
     .lv-root .lv-hide-mobile { display: none; }
+    .lv-root .lv-entry-grid { grid-template-columns: 1fr; }
+    .lv-shell .lv-shell-rail { position: fixed; left: 0; bottom: 0; top: auto; width: 100%; height: auto; flex-direction: row; justify-content: space-around; padding: 6px 4px; border-right: none; border-top: 1px solid ${theme.color.border}; z-index: 20; }
+    .lv-shell .lv-shell-rail > div, .lv-shell .lv-shell-rail > ul:last-child { display: none; }
+    .lv-shell .lv-shell-rail > ul { flex-direction: row; gap: 2px; }
+    .lv-shell .lv-shell-rail button { flex-direction: column; gap: 2px; min-height: 52px; padding: 4px 6px; font-size: ${theme.font.size.xs}px; }
+    .lv-shell .lv-shell-main { padding: ${theme.space(4)}px ${theme.space(4)}px 76px; }
+    .lv-shell .lv-shell-topbar { padding: 0 ${theme.space(4)}px; gap: ${theme.space(2)}px; }
     .lv-root .lv-skeleton { background: linear-gradient(90deg, ${theme.color.surfaceSunken} 25%, ${theme.color.surface} 50%, ${theme.color.surfaceSunken} 75%); background-size: 200% 100%; animation: lv-shimmer 1.4s ease-in-out infinite; border-radius: ${theme.radius.md}px; }
     .lv-root .lv-fade-in { animation: lv-fade ${theme.motion.duration.normal}ms ${theme.motion.easing}; }
     .lv-root table { border-collapse: collapse; width: 100%; }
@@ -96,6 +104,13 @@ export const LvStyles = ({ theme }: { theme: LvTheme }) => (
     @keyframes lv-shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
     @keyframes lv-fade { from { opacity: 0; transform: translateY(2px); } to { opacity: 1; transform: none; } }
     @media (min-width: ${theme.breakpoint.md}px) {
+      .lv-root .lv-entry-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .lv-shell .lv-shell-rail { position: sticky; top: 0; bottom: auto; width: 240px; height: 100vh; flex-direction: column; justify-content: flex-start; padding: ${theme.space(4)}px ${theme.space(3)}px; border-right: 1px solid ${theme.color.border}; border-top: none; }
+      .lv-shell .lv-shell-rail > div, .lv-shell .lv-shell-rail > ul:last-child { display: flex; }
+      .lv-shell .lv-shell-rail > ul { flex-direction: column; gap: 4px; }
+      .lv-shell .lv-shell-rail button { flex-direction: row; gap: ${theme.space(3)}px; min-height: 44px; padding: 0 ${theme.space(3)}px; font-size: ${theme.font.size.md}px; }
+      .lv-shell .lv-shell-main { padding: ${theme.space(8)}px; }
+      .lv-shell .lv-shell-topbar { padding: 0 ${theme.space(8)}px; gap: ${theme.space(4)}px; }
       .lv-root .lv-kpi-grid { grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: ${theme.space(3)}px; }
       .lv-root .lv-two-col { grid-template-columns: repeat(2, minmax(0, 1fr)); }
       .lv-root .lv-field-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
@@ -103,6 +118,7 @@ export const LvStyles = ({ theme }: { theme: LvTheme }) => (
       .lv-root .lv-hide-desktop { display: none; }
     }
     @media (min-width: ${theme.breakpoint.lg}px) {
+      .lv-root .lv-entry-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
       .lv-root .lv-three-col { grid-template-columns: repeat(3, minmax(0, 1fr)); }
       .lv-root .lv-sidebar-layout { grid-template-columns: minmax(0, 1fr) minmax(280px, 360px); }
     }
@@ -941,3 +957,381 @@ export const twoColumn = (theme: LvTheme): CSSProperties => ({
 export const Wordmark = ({ theme, size = 13, tone = 'inherit' }: { theme: LvTheme; size?: number; tone?: 'inherit' | 'gold' }) => (
   <span style={{ fontFamily: theme.font.display, fontSize: size, letterSpacing: '0.3em', textTransform: 'uppercase', fontWeight: 600, color: tone === 'gold' ? theme.color.accent : 'inherit', whiteSpace: 'nowrap' }}>La Vivenzia</span>
 );
+
+// ===========================================================================
+// Reference-system primitives (UI-UX-AUDIT.md phase 0)
+//
+// The five approved boards are built from a small vocabulary that the original
+// kit did not have: a face beside every name, a row that carries its own
+// action, a counter rather than a chart, underline tabs, a search field that
+// invites a sentence, and a progress card that names what is still missing.
+// Each one is here so the surfaces stay compositions rather than bespoke CSS.
+// ===========================================================================
+
+// A person's face, or their initials when there is no photo. Decorative by
+// default: the name is always beside it in the row, so a screen reader would
+// otherwise hear it twice.
+export const LvAvatar = ({
+  theme,
+  name,
+  src,
+  size = 40,
+  tint,
+}: {
+  theme: LvTheme;
+  name: string;
+  src?: string | null;
+  size?: number;
+  tint?: LvTint;
+}) => {
+  const initials = name
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0]?.toUpperCase() ?? '')
+    .join('');
+  const wash = tint ? theme.tint[tint].wash : theme.color.brandMuted;
+  const ink = tint ? theme.tint[tint].ink : theme.color.brand;
+
+  return src ? (
+    <img
+      src={src}
+      alt=""
+      aria-hidden="true"
+      width={size}
+      height={size}
+      loading="lazy"
+      style={{ width: size, height: size, borderRadius: theme.radius.pill, objectFit: 'cover', flex: '0 0 auto', background: wash }}
+    />
+  ) : (
+    <span
+      aria-hidden="true"
+      style={{
+        width: size,
+        height: size,
+        flex: '0 0 auto',
+        borderRadius: theme.radius.pill,
+        background: wash,
+        color: ink,
+        display: 'inline-flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        fontFamily: theme.font.body,
+        fontSize: Math.max(11, Math.round(size * 0.36)),
+        fontWeight: theme.font.weight.bold,
+        letterSpacing: '0.02em',
+      }}
+    >
+      {initials || '·'}
+    </span>
+  );
+};
+
+// A tinted icon tile — the mark on an entry card, a counter or a category row.
+export const LvIconTile = ({ theme, icon, tint, size = 44 }: { theme: LvTheme; icon: LvIconName; tint: LvTint; size?: number }) => (
+  <span
+    aria-hidden="true"
+    style={{
+      width: size,
+      height: size,
+      flex: '0 0 auto',
+      borderRadius: theme.radius.md,
+      background: theme.tint[tint].wash,
+      color: theme.tint[tint].ink,
+      display: 'inline-flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+    }}
+  >
+    <LvIcon name={icon} size={Math.round(size * 0.5)} />
+  </span>
+);
+
+// The row the reference system repeats everywhere: a face, two lines of
+// context, an optional urgent line, the action you would actually take, and a
+// chevron into the record. The action is a separate control from the row, so
+// "call Raj" and "open Raj" never become the same click.
+export const LvActionRow = ({
+  theme,
+  title,
+  subtitle,
+  urgent,
+  avatarName,
+  avatarSrc,
+  icon,
+  tint = 'mint',
+  action,
+  onOpen,
+  openLabel,
+}: {
+  theme: LvTheme;
+  title: string;
+  subtitle?: string | null;
+  // The one line that explains why this row is in front of you today.
+  urgent?: string | null;
+  avatarName?: string | null;
+  avatarSrc?: string | null;
+  // Used instead of a face for rows that are not about a person.
+  icon?: LvIconName;
+  tint?: LvTint;
+  action?: ReactNode;
+  onOpen?: () => void;
+  openLabel?: string;
+}) => (
+  <li
+    style={{
+      listStyle: 'none',
+      display: 'flex',
+      alignItems: 'center',
+      gap: theme.space(3),
+      padding: `${theme.space(3)}px ${theme.space(3)}px`,
+      background: theme.color.surfaceRaised,
+      border: `1px solid ${theme.color.border}`,
+      borderRadius: theme.radius.lg,
+    }}
+  >
+    {icon ? <LvIconTile theme={theme} icon={icon} tint={tint} size={40} /> : <LvAvatar theme={theme} name={avatarName ?? title} src={avatarSrc} tint={tint} />}
+    <span style={{ flex: '1 1 160px', minWidth: 0 }}>
+      <span style={{ display: 'block', ...theme.type.subheading, color: theme.color.heading, overflowWrap: 'anywhere' }}>{title}</span>
+      {subtitle && <span style={{ display: 'block', ...theme.type.bodySmall, color: theme.color.textMuted, overflowWrap: 'anywhere' }}>{subtitle}</span>}
+      {urgent && (
+        <span style={{ display: 'block', ...theme.type.bodySmall, color: theme.color.danger, fontWeight: theme.font.weight.medium, overflowWrap: 'anywhere' }}>{urgent}</span>
+      )}
+    </span>
+    {action && <span style={{ display: 'flex', alignItems: 'center', flex: '0 0 auto' }}>{action}</span>}
+    {onOpen && (
+      <button
+        type="button"
+        onClick={onOpen}
+        aria-label={openLabel ?? `Open ${title}`}
+        style={{
+          flex: '0 0 auto',
+          width: 36,
+          height: 36,
+          minWidth: 36,
+          display: 'inline-flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          borderRadius: theme.radius.pill,
+          border: '1px solid transparent',
+          background: 'transparent',
+          color: theme.color.textMuted,
+          cursor: 'pointer',
+        }}
+      >
+        <LvIcon name="chevronRight" size={18} />
+      </button>
+    )}
+  </li>
+);
+
+// "4 Calls" — the reference system counts the work rather than charting it.
+export const LvCounter = ({
+  theme,
+  icon,
+  tint,
+  count,
+  label,
+  onClick,
+}: {
+  theme: LvTheme;
+  icon: LvIconName;
+  tint: LvTint;
+  count: number;
+  label: string;
+  onClick?: () => void;
+}) => {
+  const inner = (
+    <>
+      <LvIconTile theme={theme} icon={icon} tint={tint} size={36} />
+      <span style={{ display: 'flex', flexDirection: 'column', minWidth: 0 }}>
+        <span style={{ ...theme.type.subheading, color: theme.color.heading, lineHeight: 1.1 }}>{count}</span>
+        <span style={{ ...theme.type.bodySmall, color: theme.color.textMuted, overflowWrap: 'anywhere' }}>{label}</span>
+      </span>
+    </>
+  );
+  const style: CSSProperties = {
+    display: 'flex',
+    alignItems: 'center',
+    gap: theme.space(2),
+    padding: theme.space(2),
+    minHeight: 56,
+    width: '100%',
+    background: 'transparent',
+    border: 'none',
+    borderRadius: theme.radius.md,
+    textAlign: 'left',
+    fontFamily: theme.font.body,
+    cursor: onClick ? 'pointer' : 'default',
+  };
+
+  return onClick ? (
+    <button type="button" onClick={onClick} style={style}>
+      {inner}
+    </button>
+  ) : (
+    <div style={style}>{inner}</div>
+  );
+};
+
+// Underline tabs (R3). `Segmented` stays for filtering; this is for switching
+// the *view* of one record, which is a different idea and looks like one.
+export const LvTabs = ({
+  theme,
+  tabs,
+  value,
+  onChange,
+  label,
+}: {
+  theme: LvTheme;
+  tabs: { key: string; label: string; count?: number }[];
+  value: string;
+  onChange: (key: string) => void;
+  label: string;
+}) => (
+  <div role="tablist" aria-label={label} style={{ display: 'flex', flexWrap: 'wrap', gap: theme.space(4), borderBottom: `1px solid ${theme.color.border}` }}>
+    {tabs.map((tab) => {
+      const active = tab.key === value;
+
+      return (
+        <button
+          key={tab.key}
+          type="button"
+          role="tab"
+          aria-selected={active}
+          onClick={() => onChange(tab.key)}
+          style={{
+            appearance: 'none',
+            background: 'transparent',
+            border: 'none',
+            borderBottom: `2px solid ${active ? theme.color.brand : 'transparent'}`,
+            padding: `${theme.space(2)}px 0 ${theme.space(2)}px`,
+            marginBottom: -1,
+            minHeight: 44,
+            cursor: 'pointer',
+            fontFamily: theme.font.body,
+            fontSize: theme.font.size.md,
+            fontWeight: active ? theme.font.weight.bold : theme.font.weight.regular,
+            color: active ? theme.color.heading : theme.color.textMuted,
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: theme.space(2),
+          }}
+        >
+          {tab.label}
+          {typeof tab.count === 'number' && (
+            <span style={{ ...theme.type.caption, color: theme.color.textSubtle, background: theme.color.surfaceSunken, borderRadius: theme.radius.pill, padding: '1px 7px' }}>{tab.count}</span>
+          )}
+        </button>
+      );
+    })}
+  </div>
+);
+
+// One wide search field that invites a sentence, not a keyword.
+export const LvSearchField = ({
+  theme,
+  value,
+  onChange,
+  onSubmit,
+  placeholder = 'Search anything…',
+  label,
+  busy,
+}: {
+  theme: LvTheme;
+  value: string;
+  onChange: (value: string) => void;
+  onSubmit?: () => void;
+  placeholder?: string;
+  label: string;
+  busy?: boolean;
+}) => {
+  const id = useId();
+
+  return (
+    <div style={{ position: 'relative', width: '100%' }}>
+      <label htmlFor={id} style={{ position: 'absolute', width: 1, height: 1, overflow: 'hidden', clip: 'rect(0 0 0 0)', whiteSpace: 'nowrap' }}>
+        {label}
+      </label>
+      <span aria-hidden="true" style={{ position: 'absolute', left: theme.space(3), top: '50%', transform: 'translateY(-50%)', color: theme.color.textSubtle, display: 'inline-flex' }}>
+        <LvIcon name="search" size={18} />
+      </span>
+      <input
+        id={id}
+        type="search"
+        value={value}
+        placeholder={placeholder}
+        aria-busy={busy || undefined}
+        onChange={(event: ChangeEvent<HTMLInputElement>) => onChange(event.target.value)}
+        onKeyDown={(event) => {
+          if (event.key === 'Enter' && onSubmit) {
+            onSubmit();
+          }
+        }}
+        style={{
+          width: '100%',
+          minHeight: 44,
+          padding: `${theme.space(2)}px ${theme.space(3)}px ${theme.space(2)}px ${theme.space(9)}px`,
+          borderRadius: theme.radius.pill,
+          border: `1px solid ${theme.color.border}`,
+          background: theme.color.surfaceRaised,
+          color: theme.color.text,
+          fontFamily: theme.font.body,
+          fontSize: theme.font.size.md,
+          boxSizing: 'border-box',
+        }}
+      />
+    </div>
+  );
+};
+
+// A progress bar that also says what is still missing and offers the one
+// action that closes the gap (R3's onboarding card).
+export const LvProgress = ({
+  theme,
+  percentage,
+  caption,
+  pending,
+  action,
+}: {
+  theme: LvTheme;
+  percentage: number;
+  caption?: string;
+  // Named items, not a count: "PAN", "Business proof".
+  pending?: string[];
+  action?: ReactNode;
+}) => {
+  const clamped = Math.max(0, Math.min(100, Math.round(percentage)));
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: theme.space(2) }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: theme.space(2) }}>
+        <div
+          role="progressbar"
+          aria-valuenow={clamped}
+          aria-valuemin={0}
+          aria-valuemax={100}
+          aria-label={caption ?? 'Progress'}
+          style={{ flex: 1, height: 8, borderRadius: theme.radius.pill, background: theme.color.surfaceSunken, overflow: 'hidden' }}
+        >
+          <div style={{ width: `${clamped}%`, height: '100%', background: theme.color.brand, borderRadius: theme.radius.pill }} />
+        </div>
+        <span style={{ ...theme.type.bodySmall, color: theme.color.textMuted, fontWeight: theme.font.weight.medium, whiteSpace: 'nowrap' }}>{clamped}%</span>
+      </div>
+      {caption && <span style={{ ...theme.type.bodySmall, color: theme.color.textMuted }}>{caption}</span>}
+      {pending && pending.length > 0 && (
+        <ul style={{ margin: 0, padding: 0, listStyle: 'none', display: 'flex', flexDirection: 'column', gap: 4 }}>
+          {pending.map((item) => (
+            <li key={item} style={{ display: 'flex', alignItems: 'center', gap: theme.space(2), ...theme.type.bodySmall, color: theme.color.text }}>
+              <span style={{ color: theme.color.warning, display: 'inline-flex' }}>
+                <LvIcon name="warning" size={15} />
+              </span>
+              {item}
+            </li>
+          ))}
+        </ul>
+      )}
+      {action && <span style={{ display: 'flex', justifyContent: 'flex-end', paddingTop: theme.space(1) }}>{action}</span>}
+    </div>
+  );
+};

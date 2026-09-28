@@ -18,7 +18,9 @@ export default defineConfig({
         },
         test: {
           name: 'unit',
-          include: ['src/**/*.test.ts'],
+          // `.tsx` too: the kit primitives are asserted by rendering them, so
+          // their accessibility contract cannot be lost in a restyle.
+          include: ['src/**/*.test.ts', 'src/**/*.test.tsx'],
           environment: 'node',
         },
       },

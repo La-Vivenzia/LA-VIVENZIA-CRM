@@ -60,6 +60,20 @@ export type LvTokenSet = {
   'warning-muted': string;
   info: string;
   'info-muted': string;
+  // Category tints — soft washes that label a *kind* of thing (an entry card,
+  // an icon tile, a channel) without implying the urgency a status colour
+  // does. Each wash carries an ink that reads on it: the glyph or figure
+  // sitting inside the tile. Never used for body text.
+  'tint-mint': string;
+  'tint-mint-ink': string;
+  'tint-blue': string;
+  'tint-blue-ink': string;
+  'tint-peach': string;
+  'tint-peach-ink': string;
+  'tint-lavender': string;
+  'tint-lavender-ink': string;
+  'tint-pink': string;
+  'tint-pink-ink': string;
   // Elevation
   'shadow-sm': string;
   'shadow-md': string;
@@ -103,6 +117,17 @@ export const LV_TOKENS: Record<ColorScheme, LvTokenSet> = {
     'warning-muted': '#FBF1E0',
     info: '#2E4B66',
     'info-muted': '#ECEFF3',
+
+    'tint-mint': '#E4F0E7',
+    'tint-mint-ink': '#2F6042',
+    'tint-blue': '#E6EDF7',
+    'tint-blue-ink': '#2E4B66',
+    'tint-peach': '#FAE9DA',
+    'tint-peach-ink': '#8A5A12',
+    'tint-lavender': '#ECE8F7',
+    'tint-lavender-ink': '#4A3E7A',
+    'tint-pink': '#F9E7EC',
+    'tint-pink-ink': '#8C3350',
 
     'shadow-sm': '0 1px 2px rgba(31, 77, 58, 0.05), 0 2px 8px rgba(31, 77, 58, 0.05)',
     'shadow-md': '0 2px 6px rgba(31, 77, 58, 0.06), 0 10px 30px rgba(31, 77, 58, 0.09)',
@@ -148,6 +173,17 @@ export const LV_TOKENS: Record<ColorScheme, LvTokenSet> = {
     info: '#8FB4D2',
     'info-muted': '#1A2A36',
 
+    'tint-mint': '#16301F',
+    'tint-mint-ink': '#7FC39A',
+    'tint-blue': '#172532',
+    'tint-blue-ink': '#8FB4D2',
+    'tint-peach': '#33260F',
+    'tint-peach-ink': '#E2B45B',
+    'tint-lavender': '#211D33',
+    'tint-lavender-ink': '#B3A6E0',
+    'tint-pink': '#331A22',
+    'tint-pink-ink': '#E7A0B0',
+
     'shadow-sm': '0 1px 2px rgba(0, 0, 0, 0.3)',
     'shadow-md': '0 2px 8px rgba(0, 0, 0, 0.35), 0 12px 32px rgba(0, 0, 0, 0.3)',
     'shadow-lg': '0 10px 24px rgba(0, 0, 0, 0.4), 0 30px 70px rgba(0, 0, 0, 0.45)',
@@ -174,20 +210,28 @@ export type LvTypeStyle = {
 };
 
 // Semantic type scale. Sizes are fluid where a title has to survive a phone.
+//
+// The scale was raised one step across the board (body 13 -> 15, small 12 ->
+// 13, caption 11 -> 12) for the reference UI: the approved screens read as a
+// calm assistant rather than a dense admin panel, and that difference is
+// mostly type size and line height. Nothing drops below 11px any more, which
+// also closes accessibility finding A1.
 export const LV_TYPE: Record<'display' | 'title' | 'heading' | 'subheading' | 'body' | 'bodySmall' | 'label' | 'caption' | 'figure' | 'mono', LvTypeStyle> = {
-  display: { fontFamily: LV_FONT.display, fontSize: 'clamp(24px, 3.2vw, 32px)', fontWeight: 600, lineHeight: 1.15, letterSpacing: '0.02em' },
-  title: { fontFamily: LV_FONT.display, fontSize: 'clamp(19px, 2.4vw, 24px)', fontWeight: 600, lineHeight: 1.2, letterSpacing: '0.02em' },
-  heading: { fontFamily: LV_FONT.display, fontSize: 15, fontWeight: 600, lineHeight: 1.3, letterSpacing: '0.03em' },
-  subheading: { fontFamily: LV_FONT.body, fontSize: 14, fontWeight: 600, lineHeight: 1.4 },
-  body: { fontFamily: LV_FONT.body, fontSize: 13, fontWeight: 400, lineHeight: 1.5 },
-  bodySmall: { fontFamily: LV_FONT.body, fontSize: 12, fontWeight: 400, lineHeight: 1.45 },
-  label: { fontFamily: LV_FONT.body, fontSize: 10.5, fontWeight: 600, lineHeight: 1.2, letterSpacing: '0.1em', textTransform: 'uppercase' },
-  caption: { fontFamily: LV_FONT.body, fontSize: 11, fontWeight: 400, lineHeight: 1.4 },
-  figure: { fontFamily: LV_FONT.display, fontSize: 'clamp(26px, 3.4vw, 34px)', fontWeight: 600, lineHeight: 1.05 },
-  mono: { fontFamily: LV_FONT.mono, fontSize: 12, fontWeight: 400, lineHeight: 1.4 },
+  display: { fontFamily: LV_FONT.display, fontSize: 'clamp(26px, 3.4vw, 36px)', fontWeight: 600, lineHeight: 1.15, letterSpacing: '0.02em' },
+  title: { fontFamily: LV_FONT.display, fontSize: 'clamp(21px, 2.6vw, 27px)', fontWeight: 600, lineHeight: 1.2, letterSpacing: '0.02em' },
+  heading: { fontFamily: LV_FONT.display, fontSize: 17, fontWeight: 600, lineHeight: 1.3, letterSpacing: '0.03em' },
+  subheading: { fontFamily: LV_FONT.body, fontSize: 16, fontWeight: 600, lineHeight: 1.4 },
+  body: { fontFamily: LV_FONT.body, fontSize: 15, fontWeight: 400, lineHeight: 1.55 },
+  bodySmall: { fontFamily: LV_FONT.body, fontSize: 13, fontWeight: 400, lineHeight: 1.5 },
+  label: { fontFamily: LV_FONT.body, fontSize: 11, fontWeight: 600, lineHeight: 1.2, letterSpacing: '0.1em', textTransform: 'uppercase' },
+  caption: { fontFamily: LV_FONT.body, fontSize: 12, fontWeight: 400, lineHeight: 1.45 },
+  figure: { fontFamily: LV_FONT.display, fontSize: 'clamp(28px, 3.6vw, 38px)', fontWeight: 600, lineHeight: 1.05 },
+  mono: { fontFamily: LV_FONT.mono, fontSize: 13, fontWeight: 400, lineHeight: 1.45 },
 };
 
-export const LV_RADIUS = { xs: 3, sm: 6, md: 10, lg: 14, pill: 999 } as const;
+// `xl` is the reference system's card and tile radius (the entry cards, the
+// icon tiles, the profile header); `lg` stays the radius of a plain panel.
+export const LV_RADIUS = { xs: 3, sm: 6, md: 10, lg: 14, xl: 18, pill: 999 } as const;
 
 export const LV_MOTION = {
   duration: { fast: 120, normal: 180 },

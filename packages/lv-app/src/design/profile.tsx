@@ -76,7 +76,7 @@ export const LvProfileHeader = ({
           </ul>
         )}
       </div>
-      <div style={{ display: 'flex', alignItems: 'center', gap: theme.space(2), flex: '0 0 auto' }}>
+      <div className="lv-profile-actions" style={{ display: 'flex', alignItems: 'center', gap: theme.space(2) }}>
         {actions}
         {overflow}
       </div>

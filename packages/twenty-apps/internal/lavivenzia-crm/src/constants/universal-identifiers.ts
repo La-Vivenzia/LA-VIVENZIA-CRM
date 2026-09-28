@@ -718,3 +718,9 @@ export const PL_LV_HOME_ID = 'fe15eb21-6f12-465e-951f-22e8c07f23e8';
 export const PL_LV_HOME_TAB_ID = '8df65126-81a9-4cec-b67f-11037ec3bdf6';
 export const PL_LV_HOME_WIDGET_ID = '2bcfac1e-6b57-4b46-aa4a-a27ccd0ad4be';
 export const NAV_LV_HOME_ID = '3318d241-d11d-400f-bd1d-3a4df907ffae';
+
+// Profile header facts the approved boards show (photo, "4.8 (32)", years).
+export const LEAD_PHOTO_FIELD_ID = '558222c1-ec35-4409-8c96-a622fc731afe';
+export const LEAD_RATING_FIELD_ID = 'ac6bc7f5-7a64-48b2-be19-a8830ca2812f';
+export const LEAD_REVIEW_COUNT_FIELD_ID = '02fffc29-bd08-47de-a09e-868c914c7875';
+export const LEAD_YEARS_EXPERIENCE_FIELD_ID = '36728b12-f161-47c4-921f-c84317c62db1';

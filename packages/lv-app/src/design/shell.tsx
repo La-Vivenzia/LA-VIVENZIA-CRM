@@ -50,19 +50,19 @@ export const LV_DOOR_DEFINITIONS: LvDoorDefinition[] = [
   { key: 'ask', label: 'Ask LV', icon: 'ask', tint: 'pink', description: 'Search. Analyse. Get next steps.' },
 ];
 
+// Only what does not change between the rail and the bottom bar. The box —
+// direction, gap, padding, height and type size — belongs to the stylesheet,
+// because an inline style beats a media query and would pin the desktop shape
+// to a phone.
 const railItem = (theme: LvTheme, active: boolean): CSSProperties => ({
   display: 'flex',
   alignItems: 'center',
-  gap: theme.space(3),
   width: '100%',
-  minHeight: 44,
-  padding: `0 ${theme.space(3)}px`,
   borderRadius: theme.radius.md,
   border: '1px solid transparent',
   background: active ? theme.tint.mint.wash : 'transparent',
   color: active ? theme.color.brand : theme.color.textMuted,
   fontFamily: theme.font.body,
-  fontSize: theme.font.size.md,
   fontWeight: active ? theme.font.weight.bold : theme.font.weight.regular,
   cursor: 'pointer',
   textAlign: 'left',
@@ -86,7 +86,9 @@ export const LvSidebarItem = ({
   <li style={{ listStyle: 'none' }}>
     <button type="button" onClick={onClick} aria-current={active ? 'page' : undefined} style={railItem(theme, Boolean(active))}>
       <LvIcon name={icon} size={20} />
-      <span style={{ flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{label}</span>
+      <span className="lv-rail-label" style={{ minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+        {label}
+      </span>
       {typeof badge === 'number' && badge > 0 && (
         <span style={{ ...theme.type.caption, minWidth: 20, textAlign: 'center', borderRadius: theme.radius.pill, padding: '1px 6px', background: theme.color.danger, color: '#FFFFFF', fontWeight: theme.font.weight.bold }}>
           {badge > 99 ? '99+' : badge}
@@ -199,27 +201,15 @@ export const LvShell = ({
     <nav
       className="lv-shell-rail"
       aria-label="La Vivenzia"
-      style={{
-        width: 240,
-        flex: '0 0 240px',
-        background: theme.color.surfaceRaised,
-        borderRight: `1px solid ${theme.color.border}`,
-        display: 'flex',
-        flexDirection: 'column',
-        padding: `${theme.space(4)}px ${theme.space(3)}px`,
-        gap: theme.space(2),
-        position: 'sticky',
-        top: 0,
-        alignSelf: 'flex-start',
-        height: '100vh',
-        boxSizing: 'border-box',
-      }}
+      // Everything that differs between the phone's bottom bar and the
+      // desktop rail is in the stylesheet; only the colour stays here.
+      style={{ background: theme.color.surfaceRaised, display: 'flex', boxSizing: 'border-box' }}
     >
       <button
         type="button"
         onClick={onHome}
         aria-label="La Vivenzia home"
-        style={{ height: 72, display: 'flex', alignItems: 'center', paddingLeft: theme.space(3), background: 'transparent', border: '1px solid transparent', borderRadius: theme.radius.md, cursor: onHome ? 'pointer' : 'default' }}
+        style={{ height: 72, alignItems: 'center', paddingLeft: theme.space(3), background: 'transparent', border: '1px solid transparent', borderRadius: theme.radius.md, cursor: onHome ? 'pointer' : 'default' }}
       >
         <img
           src={LV_ASSETS.logo}
@@ -229,7 +219,7 @@ export const LvShell = ({
           style={{ height: 30, width: 'auto', display: 'block' }}
         />
       </button>
-      <ul style={{ margin: 0, padding: 0, listStyle: 'none', display: 'flex', flexDirection: 'column', gap: 4, flex: 1 }}>
+      <ul style={{ margin: 0, padding: 0, listStyle: 'none' }}>
         {LV_DOOR_DEFINITIONS.map((door) => (
           <LvSidebarItem
             key={door.key}
@@ -242,7 +232,7 @@ export const LvShell = ({
           />
         ))}
       </ul>
-      <ul style={{ margin: 0, padding: 0, listStyle: 'none', display: 'flex', flexDirection: 'column', gap: 4, borderTop: `1px solid ${theme.color.border}`, paddingTop: theme.space(3) }}>
+      <ul style={{ margin: 0, padding: 0, listStyle: 'none', borderTop: `1px solid ${theme.color.border}`, paddingTop: theme.space(3) }}>
         <LvSidebarItem theme={theme} icon="profile" label="Profile" onClick={onProfile} />
         <LvSidebarItem theme={theme} icon="settings" label="Settings" onClick={onSettings} />
       </ul>
@@ -256,8 +246,6 @@ export const LvShell = ({
           flex: '0 0 64px',
           display: 'flex',
           alignItems: 'center',
-          gap: theme.space(4),
-          padding: `0 ${theme.space(8)}px`,
           background: theme.color.surfaceRaised,
           borderBottom: `1px solid ${theme.color.border}`,
           boxSizing: 'border-box',
@@ -303,7 +291,7 @@ export const LvShell = ({
         </button>
       </header>
 
-      <main className="lv-shell-main" style={{ flex: 1, minWidth: 0, padding: theme.space(8), boxSizing: 'border-box' }}>
+      <main className="lv-shell-main" style={{ flex: 1, minWidth: 0, boxSizing: 'border-box' }}>
         <div style={{ maxWidth: 1280, margin: '0 auto', display: 'flex', flexDirection: 'column', gap: theme.space(6) }}>{children}</div>
       </main>
     </div>

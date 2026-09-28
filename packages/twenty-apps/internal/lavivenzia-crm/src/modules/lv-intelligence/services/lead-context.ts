@@ -29,6 +29,11 @@ export type LeadRecord = {
   languages: string[] | null;
   opportunityScore: number | null;
   dataCompleteness: number | null;
+  // Profile header facts the approved boards show; all optional.
+  photoUrl: string | null;
+  rating: number | null;
+  reviewCount: number | null;
+  yearsOfExperience: number | null;
   lastInteractionAt: string | null;
   nextAction: string | null;
   nextFollowUpAt: string | null;
@@ -94,7 +99,7 @@ export type LeadContext = {
 };
 
 const LEAD_FIELDS =
-  'id lvLeadId name organisationName category subcategory location source captureMode status priority ownerId assignedAt emails { primaryEmail } phones { primaryPhoneNumber } website { primaryLinkUrl } instagram { primaryLinkUrl } languages opportunityScore dataCompleteness lastInteractionAt nextAction nextFollowUpAt onboardingStatus rawCaptureInput duplicateKeys jobTitle socialProfiles { primaryLinkUrl primaryLinkLabel } captureProvenance captureFiles createdAt updatedAt';
+  'id lvLeadId name organisationName category subcategory location source captureMode status priority ownerId assignedAt emails { primaryEmail } phones { primaryPhoneNumber } website { primaryLinkUrl } instagram { primaryLinkUrl } languages opportunityScore dataCompleteness photoUrl rating reviewCount yearsOfExperience lastInteractionAt nextAction nextFollowUpAt onboardingStatus rawCaptureInput duplicateKeys jobTitle socialProfiles { primaryLinkUrl primaryLinkLabel } captureProvenance captureFiles createdAt updatedAt';
 
 // `summary` is a RICH_TEXT field; only its markdown is read.
 const INTERACTION_FIELDS = 'id name channel direction occurredAt actorId purpose summary { markdown } sentiment outcome objections commitments nextAction nextFollowUpAt durationMinutes';

@@ -94,10 +94,27 @@ export const LvStyles = ({ theme }: { theme: LvTheme }) => (
        and a centred card would sit under the on-screen keyboard. */
     .lv-modal-panel { margin: auto 0 0; width: 100%; max-height: 92vh; border-radius: ${theme.radius.xl}px ${theme.radius.xl}px 0 0; padding: ${theme.space(5)}px; }
     .lv-root .lv-entry-grid { grid-template-columns: 1fr; }
-    .lv-shell .lv-shell-rail { position: fixed; left: 0; bottom: 0; top: auto; width: 100%; height: auto; flex-direction: row; justify-content: space-around; padding: 6px 4px; border-right: none; border-top: 1px solid ${theme.color.border}; z-index: 20; }
-    .lv-shell .lv-shell-rail > div, .lv-shell .lv-shell-rail > ul:last-child { display: none; }
-    .lv-shell .lv-shell-rail > ul { flex-direction: row; gap: 2px; }
+    /* On a phone the header's buttons wrap onto their own line, so they take
+       the full width rather than leaving a lone overflow dot hanging. */
+    .lv-root .lv-profile-actions { flex: 1 0 100%; justify-content: flex-end; }
+    .lv-root .lv-profile-actions > button { flex: 1; }
+    /* A row's call to action drops to its own line on a phone rather than
+       squeezing the name into a column narrow enough to break "LV-000005"
+       across two lines. */
+    .lv-root .lv-action-row { flex-wrap: wrap; }
+    .lv-root .lv-action-row-body { flex: 1 1 0; }
+    .lv-root .lv-action-row-cta { flex: 1 0 100%; order: 1; }
+    .lv-root .lv-action-row-cta > button { flex: 1; }
+    .lv-shell .lv-shell-rail { position: fixed; left: 0; bottom: 0; top: auto; width: 100%; height: auto; flex: 0 0 auto; align-self: auto; flex-direction: row; justify-content: space-around; gap: 0; padding: 6px 4px; border-right: none; border-top: 1px solid ${theme.color.border}; z-index: 20; }
+    /* On a phone the bar carries the six doors only: the logo, the greeting
+       block and the profile/settings list live on the screens themselves. */
+    .lv-shell .lv-shell-rail > div, .lv-shell .lv-shell-rail > button, .lv-shell .lv-shell-rail > ul:last-child { display: none; }
+    .lv-shell .lv-shell-rail > ul { display: flex; flex-direction: row; gap: 2px; flex: 1; min-width: 0; }
+    /* Six doors share the width evenly; a long label clips rather than
+       pushing the last door off the edge of the phone. */
+    .lv-shell .lv-shell-rail > ul > li { flex: 1 1 0; min-width: 0; }
     .lv-shell .lv-shell-rail button { flex-direction: column; gap: 2px; min-height: 52px; padding: 4px 6px; font-size: ${theme.font.size.xs}px; }
+    .lv-shell .lv-rail-label { flex: 0 0 auto; max-width: 100%; }
     .lv-shell .lv-shell-main { padding: ${theme.space(4)}px ${theme.space(4)}px 76px; }
     .lv-shell .lv-shell-topbar { padding: 0 ${theme.space(4)}px; gap: ${theme.space(2)}px; }
     .lv-root .lv-skeleton { background: linear-gradient(90deg, ${theme.color.surfaceSunken} 25%, ${theme.color.surface} 50%, ${theme.color.surfaceSunken} 75%); background-size: 200% 100%; animation: lv-shimmer 1.4s ease-in-out infinite; border-radius: ${theme.radius.md}px; }
@@ -109,15 +126,25 @@ export const LvStyles = ({ theme }: { theme: LvTheme }) => (
     @media (min-width: ${theme.breakpoint.md}px) {
       .lv-root .lv-entry-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
       .lv-modal-panel { margin: auto; width: min(560px, 100%); border-radius: ${theme.radius.xl}px; padding: ${theme.space(6)}px; }
-      .lv-shell .lv-shell-rail { position: sticky; top: 0; bottom: auto; width: 240px; height: 100vh; flex-direction: column; justify-content: flex-start; padding: ${theme.space(4)}px ${theme.space(3)}px; border-right: 1px solid ${theme.color.border}; border-top: none; }
+      .lv-shell .lv-shell-rail { position: sticky; top: 0; bottom: auto; width: 240px; height: 100vh; flex: 0 0 240px; align-self: flex-start; flex-direction: column; justify-content: flex-start; gap: ${theme.space(2)}px; padding: ${theme.space(4)}px ${theme.space(3)}px; border-right: 1px solid ${theme.color.border}; border-top: none; }
       .lv-shell .lv-shell-rail > div, .lv-shell .lv-shell-rail > ul:last-child { display: flex; }
-      .lv-shell .lv-shell-rail > ul { flex-direction: column; gap: 4px; }
+      .lv-shell .lv-shell-rail > button { display: flex; }
+      .lv-shell .lv-shell-rail > ul { display: flex; flex-direction: column; gap: 4px; flex: 0 0 auto; }
+      .lv-shell .lv-shell-rail > ul:first-of-type { flex: 1; }
+      .lv-shell .lv-shell-rail > ul > li { flex: 0 0 auto; }
       .lv-shell .lv-shell-rail button { flex-direction: row; gap: ${theme.space(3)}px; min-height: 44px; padding: 0 ${theme.space(3)}px; font-size: ${theme.font.size.md}px; }
+      .lv-shell .lv-rail-label { flex: 1; }
       .lv-shell .lv-shell-main { padding: ${theme.space(8)}px; }
       .lv-shell .lv-shell-topbar { padding: 0 ${theme.space(8)}px; gap: ${theme.space(4)}px; }
       .lv-root .lv-kpi-grid { grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: ${theme.space(3)}px; }
       .lv-root .lv-two-col { grid-template-columns: repeat(2, minmax(0, 1fr)); }
       .lv-root .lv-field-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .lv-root .lv-profile-actions { flex: 0 0 auto; }
+      .lv-root .lv-profile-actions > button { flex: 0 0 auto; }
+      .lv-root .lv-action-row { flex-wrap: nowrap; }
+      .lv-root .lv-action-row-body { flex: 1 1 160px; }
+      .lv-root .lv-action-row-cta { flex: 0 0 auto; order: 0; }
+      .lv-root .lv-action-row-cta > button { flex: 0 0 auto; }
       .lv-root .lv-hide-mobile { display: initial; }
       .lv-root .lv-hide-desktop { display: none; }
     }
@@ -1083,6 +1110,7 @@ export const LvActionRow = ({
   openLabel?: string;
 }) => (
   <li
+    className="lv-action-row"
     style={{
       listStyle: 'none',
       display: 'flex',
@@ -1095,14 +1123,14 @@ export const LvActionRow = ({
     }}
   >
     {icon ? <LvIconTile theme={theme} icon={icon} tint={tint} size={40} /> : <LvAvatar theme={theme} name={avatarName ?? title} src={avatarSrc} tint={tint} />}
-    <span style={{ flex: '1 1 160px', minWidth: 0 }}>
+    <span className="lv-action-row-body" style={{ minWidth: 0 }}>
       <span style={{ display: 'block', ...theme.type.subheading, color: theme.color.heading, overflowWrap: 'anywhere' }}>{title}</span>
       {subtitle && <span style={{ display: 'block', ...theme.type.bodySmall, color: theme.color.textMuted, overflowWrap: 'anywhere' }}>{subtitle}</span>}
       {urgent && (
         <span style={{ display: 'block', ...theme.type.bodySmall, color: theme.color.danger, fontWeight: theme.font.weight.medium, overflowWrap: 'anywhere' }}>{urgent}</span>
       )}
     </span>
-    {action && <span style={{ display: 'flex', alignItems: 'center', flex: '0 0 auto' }}>{action}</span>}
+    {action && <span className="lv-action-row-cta" style={{ display: 'flex', alignItems: 'center' }}>{action}</span>}
     {onOpen && (
       <button
         type="button"

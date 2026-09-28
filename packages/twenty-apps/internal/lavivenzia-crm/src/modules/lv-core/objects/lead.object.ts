@@ -28,6 +28,10 @@ import {
   LEAD_NEXT_ACTION_FIELD_ID,
   LEAD_NEXT_FOLLOW_UP_FIELD_ID,
   LEAD_OBJECT_ID,
+  LEAD_PHOTO_FIELD_ID,
+  LEAD_RATING_FIELD_ID,
+  LEAD_REVIEW_COUNT_FIELD_ID,
+  LEAD_YEARS_EXPERIENCE_FIELD_ID,
   LEAD_ONBOARDING_STATUS_FIELD_ID,
   LEAD_OPPORTUNITY_SCORE_FIELD_ID,
   LEAD_ORGANISATION_FIELD_ID,
@@ -240,6 +244,45 @@ export default defineObject({
       description:
         'Set by the Phase 2 scoring engine. Left empty until a model backs it.',
       icon: 'IconTargetArrow',
+      isNullable: true,
+    },
+    {
+      // The boards put a face, a rating and a tenure in the profile header.
+      // All three are optional: a lead captured from a visiting card has none
+      // of them, and the header must read well empty.
+      universalIdentifier: LEAD_PHOTO_FIELD_ID,
+      type: FieldType.TEXT,
+      name: 'photoUrl',
+      label: 'Photo',
+      description: 'Portrait or venue photograph shown in the profile header. A URL; initials are used when it is empty.',
+      icon: 'IconPhoto',
+      isNullable: true,
+    },
+    {
+      universalIdentifier: LEAD_RATING_FIELD_ID,
+      type: FieldType.NUMBER,
+      name: 'rating',
+      label: 'Rating',
+      description: 'Average guest rating out of 5, e.g. 4.8. Supplied by the partner or a marketplace; never computed here.',
+      icon: 'IconStar',
+      isNullable: true,
+    },
+    {
+      universalIdentifier: LEAD_REVIEW_COUNT_FIELD_ID,
+      type: FieldType.NUMBER,
+      name: 'reviewCount',
+      label: 'Reviews',
+      description: 'How many reviews the rating is based on. Shown beside it, because 4.8 from three people is not 4.8 from three hundred.',
+      icon: 'IconMessageStar',
+      isNullable: true,
+    },
+    {
+      universalIdentifier: LEAD_YEARS_EXPERIENCE_FIELD_ID,
+      type: FieldType.NUMBER,
+      name: 'yearsOfExperience',
+      label: 'Years of experience',
+      description: 'Years in hospitality. Collected again during onboarding (About you); this is the value captured earlier.',
+      icon: 'IconBriefcase',
       isNullable: true,
     },
     {

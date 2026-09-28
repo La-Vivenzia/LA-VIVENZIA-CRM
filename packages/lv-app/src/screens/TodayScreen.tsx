@@ -148,7 +148,9 @@ export const TodayScreen = ({ theme, firstName }: { theme: LvTheme; firstName: s
                   key={action.ref?.ref ?? action.title}
                   theme={theme}
                   title={action.ref?.label ?? action.title}
-                  subtitle={action.title}
+                  // The briefing often names the record it points at, which
+                  // would print the same line twice.
+                  subtitle={action.ref && action.ref.label !== action.title ? action.title : null}
                   urgent={action.why}
                   tint={tintFor(index)}
                   avatarName={action.ref?.label ?? action.title}

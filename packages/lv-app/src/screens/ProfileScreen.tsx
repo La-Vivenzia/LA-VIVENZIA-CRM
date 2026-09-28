@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 
 import { callRoute } from 'src/api/client';
-import { LvIcon } from 'src/design/icons';
+import { channelIcon, LvIcon } from 'src/design/icons';
 import { ErrorState, formatWhen, LoadingState, LvButton, LvCard, LvTabs, LvProgress, type Tone } from 'src/design/kit';
 import { LvMenu } from 'src/design/overlay';
 import { LvChip, LvFactRow, LvNextBestAction, LvProfileHeader, LvRelatedList, LvSectionCard, LvTimeline } from 'src/design/profile';
@@ -37,6 +37,10 @@ type Lead360 = {
     phones: { primaryPhoneNumber: string | null } | null;
     opportunityScore: number | null;
     dataCompleteness: number | null;
+    photoUrl: string | null;
+    rating: number | null;
+    reviewCount: number | null;
+    yearsOfExperience: number | null;
     lastInteractionAt: string | null;
     nextAction: string | null;
     nextFollowUpAt: string | null;
@@ -54,7 +58,9 @@ type Lead360 = {
     status: string | null;
     progressPercentage: number | null;
     currentStep: string | null;
-    documents: { id: string; name: string | null; documentType: string | null; status: string | null }[];
+    // The composer calls it verificationState; there is no `status` on a
+    // document, and reading one silently printed "Pending" for every file.
+    documents: { id: string; name: string | null; documentType: string | null; verificationState: string | null; rejectionReason: string | null; expiresAt: string | null }[];
     pendingDocuments: number;
   } | null;
   intelligence: {
@@ -129,6 +135,7 @@ export const ProfileScreen = ({ theme }: { theme: LvTheme }) => {
   const recommendation = intelligence.nextBestAction?.primary ?? data.nextAction.suggestion;
   const documents = onboarding?.documents ?? [];
   const lastInteraction = data.interactions[0];
+  const verifiedDocuments = documents.filter((document) => document.verificationState === 'VERIFIED').length;
 
   return (
     <>
@@ -138,10 +145,21 @@ export const ProfileScreen = ({ theme }: { theme: LvTheme }) => {
         status={status.label}
         statusTone={statusBadgeTone('lead', lead.status)}
         subtitle={[lead.jobTitle, lead.organisationName].filter(Boolean).join(' · ') || null}
+        photoUrl={lead.photoUrl}
         meta={[
           ...(lead.location ? [{ icon: 'location' as const, text: lead.location }] : []),
+          ...(typeof lead.yearsOfExperience === 'number' ? [{ icon: 'clock' as const, text: `${lead.yearsOfExperience} years exp.` }] : []),
+          // The count travels with the rating: 4.8 from three people is not the
+          // same fact as 4.8 from three hundred.
+          ...(typeof lead.rating === 'number'
+            ? [
+                {
+                  icon: 'star' as const,
+                  text: `${lead.rating.toFixed(1)}${typeof lead.reviewCount === 'number' ? ` (${lead.reviewCount})` : ''}`,
+                },
+              ]
+            : []),
           ...(lead.lvLeadId ? [{ icon: 'person' as const, text: lead.lvLeadId }] : []),
-          ...(typeof lead.opportunityScore === 'number' ? [{ icon: 'star' as const, text: `Score ${lead.opportunityScore}` }] : []),
         ]}
         overflow={
           <LvMenu
@@ -235,7 +253,7 @@ export const ProfileScreen = ({ theme }: { theme: LvTheme }) => {
                 theme={theme}
                 percentage={onboarding.progressPercentage ?? 0}
                 caption={onboarding.pendingDocuments > 0 ? 'Documents pending:' : `Current step: ${sentenceCase(onboarding.currentStep)}`}
-                pending={documents.filter((document) => (document.status ?? 'PENDING') !== 'VERIFIED').map((document) => document.name ?? sentenceCase(document.documentType))}
+                pending={documents.filter((document) => document.verificationState !== 'VERIFIED').map((document) => document.name ?? sentenceCase(document.documentType))}
                 action={
                   data.capabilities.canWorkOnboarding ? (
                     <LvButton theme={theme} variant="secondary" size="sm" onClick={() => setTab('documents')}>
@@ -263,36 +281,117 @@ export const ProfileScreen = ({ theme }: { theme: LvTheme }) => {
           )}
 
           {tab === 'conversations' && (
-            <LvSectionCard theme={theme} title="Conversations" icon="messages">
+            <LvSectionCard
+              theme={theme}
+              title="Conversations"
+              icon="messages"
+              action={
+                data.capabilities.canLogInteraction ? (
+                  <LvButton theme={theme} variant="secondary" size="sm" onClick={() => setAction('interaction')}>
+                    Log an interaction
+                  </LvButton>
+                ) : undefined
+              }
+            >
               {data.interactions.length === 0 ? (
                 <p style={{ ...theme.type.body, color: theme.color.textMuted, margin: 0 }}>Nothing has been logged yet.</p>
               ) : (
-                <LvTimeline
-                  theme={theme}
-                  formatWhen={(iso) => formatWhen(iso, data.now)}
-                  entries={data.interactions.map((interaction) => ({
-                    id: interaction.id,
-                    at: interaction.occurredAt ?? data.now,
-                    title: `${sentenceCase(interaction.channel)} · ${sentenceCase(interaction.outcome)}`,
-                    detail: interaction.summary,
-                    kind: 'INTERACTION',
-                    channel: interaction.channel,
-                  }))}
-                />
+                <ul style={{ display: 'flex', flexDirection: 'column', gap: theme.space(3), margin: 0, padding: 0, listStyle: 'none' }}>
+                  {data.interactions.map((interaction) => (
+                    <li
+                      key={interaction.id}
+                      style={{ border: `1px solid ${theme.color.border}`, borderRadius: theme.radius.lg, padding: theme.space(4) }}
+                    >
+                      <div style={{ display: 'flex', alignItems: 'center', gap: theme.space(2), flexWrap: 'wrap' }}>
+                        <span style={{ color: theme.color.textSubtle, display: 'inline-flex' }}>
+                          <LvIcon name={channelIcon(interaction.channel)} size={17} />
+                        </span>
+                        <span style={{ ...theme.type.subheading, fontSize: 15, color: theme.color.heading }}>
+                          {sentenceCase(interaction.channel)} · {sentenceCase(interaction.direction)}
+                        </span>
+                        <span style={{ ...theme.type.bodySmall, color: theme.color.textSubtle }}>
+                          {interaction.occurredAt ? formatWhen(interaction.occurredAt, data.now) : ''}
+                        </span>
+                        <span style={{ flex: 1 }} />
+                        <LvChip
+                          theme={theme}
+                          tint={interaction.sentiment === 'NEGATIVE' ? 'pink' : interaction.sentiment === 'POSITIVE' ? 'mint' : 'blue'}
+                        >
+                          {sentenceCase(interaction.outcome)}
+                        </LvChip>
+                      </div>
+                      {interaction.summary && (
+                        <p style={{ ...theme.type.body, color: theme.color.text, margin: `${theme.space(2)}px 0 0` }}>{interaction.summary}</p>
+                      )}
+                      {interaction.objections && (
+                        <p style={{ ...theme.type.bodySmall, color: theme.color.warning, margin: `${theme.space(2)}px 0 0` }}>
+                          Concern raised: {interaction.objections}
+                        </p>
+                      )}
+                    </li>
+                  ))}
+                </ul>
               )}
             </LvSectionCard>
           )}
 
           {tab === 'documents' && (
-            <LvSectionCard theme={theme} title="Documents" icon="document">
+            <LvSectionCard
+              theme={theme}
+              title="Documents"
+              icon="document"
+              action={
+                documents.length > 0 ? (
+                  <span style={{ ...theme.type.bodySmall, color: theme.color.textMuted }}>
+                    {verifiedDocuments} of {documents.length} verified
+                  </span>
+                ) : undefined
+              }
+            >
               {documents.length === 0 ? (
                 <p style={{ ...theme.type.body, color: theme.color.textMuted, margin: 0 }}>No document has been uploaded.</p>
               ) : (
-                documents.map((document) => (
-                  <LvFactRow key={document.id} theme={theme} label={document.name ?? sentenceCase(document.documentType)}>
-                    {sentenceCase(document.status ?? 'PENDING')}
-                  </LvFactRow>
-                ))
+                <ul style={{ display: 'flex', flexDirection: 'column', gap: theme.space(2), margin: 0, padding: 0, listStyle: 'none' }}>
+                  {documents.map((document) => {
+                    const state = document.verificationState ?? 'PENDING';
+
+                    return (
+                      <li
+                        key={document.id}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          flexWrap: 'wrap',
+                          gap: theme.space(3),
+                          border: `1px solid ${theme.color.border}`,
+                          borderRadius: theme.radius.md,
+                          padding: theme.space(3),
+                        }}
+                      >
+                        <span style={{ color: theme.color.textSubtle, display: 'inline-flex' }}>
+                          <LvIcon name="document" size={18} />
+                        </span>
+                        <span style={{ flex: 1, minWidth: 0 }}>
+                          <span style={{ ...theme.type.body, color: theme.color.heading, display: 'block', overflowWrap: 'anywhere' }}>
+                            {document.name ?? sentenceCase(document.documentType)}
+                          </span>
+                          <span style={{ ...theme.type.bodySmall, color: theme.color.textMuted }}>
+                            {sentenceCase(document.documentType)}
+                            {document.expiresAt ? ` · expires ${formatWhen(document.expiresAt, data.now)}` : ''}
+                          </span>
+                        </span>
+                        <LvChip theme={theme} tint={state === 'VERIFIED' ? 'mint' : state === 'REJECTED' || state === 'EXPIRED' ? 'pink' : 'peach'}>
+                          {sentenceCase(state)}
+                        </LvChip>
+                        {/* A refusal without its reason is a dead end for
+                            whoever has to go back to the partner. */}
+                        {document.rejectionReason && (
+                          <p style={{ ...theme.type.bodySmall, color: theme.color.danger, flex: '1 0 100%', margin: 0 }}>{document.rejectionReason}</p>
+                        )}
+                      </li>
+                    );
+                  })}
+                </ul>
               )}
             </LvSectionCard>
           )}

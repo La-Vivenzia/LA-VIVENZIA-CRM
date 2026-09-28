@@ -128,7 +128,7 @@ describe('intent rules', () => {
 
 describe('answers', () => {
   const context = (): LeadContext => ({
-    lead: { id: 'l1', lvLeadId: 'LV-000009', name: 'ABC Experiences', organisationName: 'ABC Experiences', category: 'EXPERIENCE', subcategory: null, location: 'Goa', source: 'WEBSITE', captureMode: null, status: 'INTERESTED', priority: 'HIGH', ownerId: ME, assignedAt: null, emails: null, phones: null, website: null, instagram: null, languages: null, opportunityScore: null, dataCompleteness: 40, lastInteractionAt: null, nextAction: null, nextFollowUpAt: null, onboardingStatus: null, rawCaptureInput: null, duplicateKeys: null, jobTitle: null, socialProfiles: null, captureProvenance: null, captureFiles: null, createdAt: '2026-09-01T00:00:00.000Z', updatedAt: NOW },
+    lead: { id: 'l1', lvLeadId: 'LV-000009', name: 'ABC Experiences', organisationName: 'ABC Experiences', category: 'EXPERIENCE', subcategory: null, location: 'Goa', source: 'WEBSITE', captureMode: null, status: 'INTERESTED', priority: 'HIGH', ownerId: ME, assignedAt: null, emails: null, phones: null, website: null, instagram: null, languages: null, opportunityScore: null, dataCompleteness: 40, photoUrl: null, rating: null, reviewCount: null, yearsOfExperience: null, lastInteractionAt: null, nextAction: null, nextFollowUpAt: null, onboardingStatus: null, rawCaptureInput: null, duplicateKeys: null, jobTitle: null, socialProfiles: null, captureProvenance: null, captureFiles: null, createdAt: '2026-09-01T00:00:00.000Z', updatedAt: NOW },
     interactions: [],
     tasks: [],
     notes: [],

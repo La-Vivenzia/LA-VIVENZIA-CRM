@@ -1,6 +1,7 @@
-import { type AiImageInput, type AiProvider, type AiResult } from 'src/modules/lv-ai/provider/ai-provider';
+import { failure, type AiImageInput, type AiProvider, type AiResult } from 'src/modules/lv-ai/provider/ai-provider';
 import { type PromptDefinition } from 'src/modules/lv-ai/prompts/prompt-registry';
 import { boundedJson, type GraphqlClient } from 'src/modules/lv-ai/runtime/clients';
+import { checkThrottle } from 'src/modules/lv-ai/runtime/throttle';
 import { type AiRunStatus } from 'src/modules/lv-ai/objects/ai-run.object';
 
 // Runs one prompt through the provider and records the run — the AI audit
@@ -82,6 +83,26 @@ export const runPrompt = async <T>(
   images: readonly AiImageInput[] = [],
 ): Promise<RecordedRun<T>> => {
   const startedAt = new Date().toISOString();
+
+  // Before the provider is asked anything: has it just told us, repeatedly,
+  // that there is no quota left? The breaker reads that from this very table.
+  // A refusal here is recorded like any other run, so the history stays honest
+  // about what was attempted and why it stopped.
+  const throttle = await checkThrottle(application, { provider: provider.name, actorWorkspaceMemberId: context.actorWorkspaceMemberId });
+
+  if (!throttle.allowed) {
+    console.info(`[lv-ai] op=${context.operation} prompt=${prompt.id} provider=${provider.name} status=THROTTLED code=${throttle.code} reason=${throttle.reason}`);
+
+    const blocked = failure(throttle.code, throttle.message, { provider: provider.name, model: provider.model, latencyMs: 0, attempts: 0, retryable: false });
+    const throttledRunId = await recordRun(
+      application,
+      { ...context, metadata: { ...(context.metadata ?? {}), throttled: throttle.reason } },
+      { status: 'FAILED', promptVersion: prompt.id, provider: provider.name, model: provider.model, errorCode: throttle.code, latencyMs: 0, startedAt },
+    );
+
+    return { result: blocked, runId: throttledRunId };
+  }
+
   const result = await provider.structuredOutput<T>(
     { purpose: prompt.id, system: prompt.system, user: userMessage, maxOutputTokens: prompt.maxOutputTokens, temperature: prompt.temperature, json: true, images: images.length > 0 ? images : undefined },
     prompt.validate,

@@ -724,3 +724,6 @@ export const LEAD_PHOTO_FIELD_ID = '558222c1-ec35-4409-8c96-a622fc731afe';
 export const LEAD_RATING_FIELD_ID = 'ac6bc7f5-7a64-48b2-be19-a8830ca2812f';
 export const LEAD_REVIEW_COUNT_FIELD_ID = '02fffc29-bd08-47de-a09e-868c914c7875';
 export const LEAD_YEARS_EXPERIENCE_FIELD_ID = '36728b12-f161-47c4-921f-c84317c62db1';
+
+/** POST /ai/diagnostics — the administrator's configuration read-out and probe. */
+export const FN_AI_DIAGNOSTICS_ID = 'fb7c7cbd-6cef-4685-8a67-214ac44794ff';

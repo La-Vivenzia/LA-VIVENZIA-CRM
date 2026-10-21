@@ -122,7 +122,7 @@ export const LvNextBestAction = ({
       <p style={{ ...theme.type.subheading, fontSize: 17, color: theme.color.heading, margin: `${theme.space(1)}px 0 0` }}>{action}</p>
       {reason && <p style={{ ...theme.type.bodySmall, color: theme.color.textMuted, margin: `${theme.space(1)}px 0 0` }}>Reason: {reason}</p>}
     </div>
-    {aside && <div style={{ flex: '0 0 auto' }}>{aside}</div>}
+    {aside && <div className="lv-nba-aside">{aside}</div>}
   </section>
 );
 
@@ -241,20 +241,38 @@ export const LvSectionCard = ({
   theme,
   title,
   icon,
+  tint = 'mint',
   action,
   children,
 }: {
   theme: LvTheme;
   title: string;
   icon?: LvIconName;
+  /** The wash the header glyph sits in. A calm brand green by default. */
+  tint?: LvTint;
   action?: ReactNode;
   children: ReactNode;
 }) => (
   <LvCard theme={theme}>
-    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: theme.space(3), marginBottom: theme.space(3) }}>
-      <h2 style={{ ...theme.type.subheading, fontSize: 17, color: theme.color.heading, margin: 0, display: 'flex', alignItems: 'center', gap: theme.space(2) }}>
+    {/* Wraps rather than pushing the page sideways: at 320px a title and a
+        button like "Log an interaction" do not fit on one line. */}
+    <div className="lv-section-head" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: theme.space(3), marginBottom: theme.space(4) }}>
+      <h2 style={{ ...theme.type.subheading, fontSize: 17, color: theme.color.heading, margin: 0, minWidth: 0, display: 'flex', alignItems: 'center', gap: theme.space(3) }}>
         {icon && (
-          <span style={{ color: theme.color.textSubtle, display: 'inline-flex' }}>
+          <span
+            aria-hidden="true"
+            style={{
+              width: 34,
+              height: 34,
+              flex: '0 0 auto',
+              borderRadius: theme.radius.md,
+              background: theme.tint[tint].wash,
+              color: theme.tint[tint].ink,
+              display: 'inline-flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}
+          >
             <LvIcon name={icon} size={18} />
           </span>
         )}
@@ -270,4 +288,53 @@ export const LvGhostButton = ({ theme, children, onClick }: { theme: LvTheme; ch
   <LvButton theme={theme} variant="ghost" size="sm" onClick={onClick}>
     {children}
   </LvButton>
+);
+
+// One logged interaction, as the Conversations tab shows it.
+//
+// It lives here rather than inside the profile screen because the same card is
+// what the messages thread, the interactions log and the partner record all
+// need, and three copies would drift.
+export const LvActivityCard = ({
+  theme,
+  channel,
+  direction,
+  when,
+  outcome,
+  sentiment,
+  summary,
+  objection,
+}: {
+  theme: LvTheme;
+  channel: string;
+  direction: string;
+  /** Already formatted, e.g. "15 d ago". */
+  when: string;
+  outcome: string;
+  sentiment?: string | null;
+  summary?: string | null;
+  /** What the person pushed back on. Shown in full — it is the useful part. */
+  objection?: string | null;
+}) => (
+  <li className="lv-activity-card" style={{ listStyle: 'none', border: `1px solid ${theme.color.border}`, borderRadius: theme.radius.lg, padding: theme.space(4) }}>
+    <div className="lv-activity-head" style={{ display: 'flex', alignItems: 'center', gap: theme.space(2), flexWrap: 'wrap' }}>
+      <span aria-hidden="true" style={{ color: theme.color.textSubtle, display: 'inline-flex' }}>
+        <LvIcon name={channelIcon(channel)} size={17} />
+      </span>
+      <span style={{ ...theme.type.subheading, fontSize: 15, color: theme.color.heading }}>
+        {channel} · {direction}
+      </span>
+      <span style={{ ...theme.type.bodySmall, color: theme.color.textSubtle }}>{when}</span>
+      <span className="lv-activity-spacer" style={{ flex: 1 }} />
+      <span className="lv-activity-outcome">
+        <LvChip theme={theme} tint={sentiment === 'NEGATIVE' ? 'pink' : sentiment === 'POSITIVE' ? 'mint' : 'blue'}>
+          {outcome}
+        </LvChip>
+      </span>
+    </div>
+    {summary && <p style={{ ...theme.type.body, color: theme.color.text, margin: `${theme.space(2)}px 0 0` }}>{summary}</p>}
+    {objection && (
+      <p style={{ ...theme.type.bodySmall, color: theme.color.warning, margin: `${theme.space(2)}px 0 0` }}>Concern raised: {objection}</p>
+    )}
+  </li>
 );

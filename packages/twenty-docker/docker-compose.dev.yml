@@ -6,15 +6,20 @@
 #   docker compose -f docker-compose.dev.yml down       # stop
 #   docker compose -f docker-compose.dev.yml down -v    # stop + wipe data
 
-name: lavivenzia-crm-dev
+# Pinned. Compose names a volume <project>_<key>, so this project name and the
+# volume key below together resolve to lv-crm-dev_lv-dev-db-data — the volume
+# that holds the La Vivenzia workspace. Renaming either one silently creates a
+# second, empty volume and the database appears wiped; that is exactly what
+# happened on 2026-10-02. Do not change these without migrating the data first.
+name: lv-crm-dev
 
 services:
   db:
     image: postgres:16
     volumes:
-      - dev-db-data:/var/lib/postgresql/data
+      - lv-dev-db-data:/var/lib/postgresql/data
     ports:
-      - "5432:5432"
+      - "5433:5432"
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
@@ -29,7 +34,7 @@ services:
   redis:
     image: redis:7
     ports:
-      - "6379:6379"
+      - "6380:6379"
     command: ["--maxmemory-policy", "noeviction"]
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
@@ -39,4 +44,4 @@ services:
     restart: unless-stopped
 
 volumes:
-  dev-db-data:
+  lv-dev-db-data:

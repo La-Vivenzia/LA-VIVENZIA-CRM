@@ -24,7 +24,13 @@ import { describeError } from 'src/modules/lv-core/utils/describe-error';
 // fixed rule (breaches, then overdue, then high-priority without a next
 // step, then approvals).
 
-type Input = { timeZoneOffsetMinutes?: unknown };
+// `skipModel` returns the same briefing without asking the model to reorder
+// it. The deterministic half takes about a second and a half; the model adds
+// twenty-five more, so Today asks for this first, renders it, and then asks
+// again without the flag to fold the model's ranking in when it arrives.
+// Nothing else about the response changes — same shape, same fields, and
+// `narrative.status` still says plainly which produced it.
+type Input = { timeZoneOffsetMinutes?: unknown; skipModel?: unknown };
 
 type Ref = { ref: string; label: string; target: { object: string; recordId: string } };
 
@@ -33,15 +39,23 @@ type BriefingLine = { key: string; count: number; label: string; link: { object:
 const pick = (summary: DashboardSummary, key: string) => summary.actions.find((section) => section.key === key) ?? null;
 
 const rowRef = (prefix: string, row: Record<string, unknown>): Ref | null => {
-  const target = isRecord(row.target) && typeof row.target.object === 'string' && typeof row.target.recordId === 'string' ? { object: row.target.object, recordId: row.target.recordId } : null;
+  const raw = isRecord(row.target) && typeof row.target.object === 'string' && typeof row.target.recordId === 'string' ? { object: row.target.object, recordId: row.target.recordId } : null;
 
-  if (!target) {
+  if (!raw) {
     return null;
   }
 
-  const label = String(row.lvLeadId ?? '') ? `${String(row.lvLeadId)} ${String(row.name ?? row.leadName ?? row.title ?? '')}`.trim() : String(row.title ?? row.name ?? target.recordId);
+  // The app can open a lead, not a task: a follow-up (and any SLA or document
+  // action) navigates to the lead it belongs to rather than a record with no
+  // page of its own. `row.leadId` is the lead's own id - `row.lvLeadId` is only
+  // its human code. The ref string keeps the original record id so two
+  // follow-ups on one lead stay distinct.
+  const leadId = typeof row.leadId === 'string' && row.leadId !== '' ? row.leadId : null;
+  const target = raw.object === 'lvLead' || leadId === null ? raw : { object: 'lvLead', recordId: leadId };
 
-  return { ref: `${prefix}:${target.recordId}`, label, target };
+  const label = String(row.lvLeadId ?? '') ? `${String(row.lvLeadId)} ${String(row.name ?? row.leadName ?? row.title ?? '')}`.trim() : String(row.title ?? row.name ?? raw.recordId);
+
+  return { ref: `${prefix}:${raw.recordId}`, label, target };
 };
 
 export const buildBriefingFacts = (summary: DashboardSummary): { today: BriefingLine[]; candidates: { ref: Ref; reason: string; rank: number }[] } => {
@@ -129,7 +143,7 @@ export const handler = async (event: unknown): Promise<Record<string, unknown>> 
     let topActions = fallbackActions;
     let narrative: { provider: string; model: string | null; promptVersion: string; status: string; code: string | null } = { provider: 'rules', model: null, promptVersion: 'briefing-rules-v1', status: 'RULES', code: null };
 
-    if (availability.available && facts.candidates.length > 0) {
+    if (input.skipModel !== true && availability.available && facts.candidates.length > 0) {
       const provider = createAiProvider(config);
       const contextText = [
         `Lens: ${summary.lens}. Today: ${now.slice(0, 10)}.`,

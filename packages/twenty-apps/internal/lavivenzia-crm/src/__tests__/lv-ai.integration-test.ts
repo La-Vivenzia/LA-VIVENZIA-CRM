@@ -384,4 +384,30 @@ describeIfLive('La Vivenzia AI intelligence & Copilot — live', () => {
       expect(briefing.topActions.every((action) => action.origin === 'RULES' && action.ref?.target.recordId)).toBe(true);
     }
   }, 60_000);
+
+  it('skipModel returns the same briefing without asking the model, so Today can render before the model answers', async () => {
+    const started = Date.now();
+    const briefing = (await route('/ai/briefing', { timeZoneOffsetMinutes: 330, skipModel: true }, hunter)) as {
+      ok: boolean;
+      narrative: { status: string; provider: string };
+      today: { count: number; label: string }[];
+      topActions: { origin: string; ref: { target: { recordId: string } } | null }[];
+      ai: { available: boolean };
+    };
+    const elapsed = Date.now() - started;
+
+    expect(briefing.ok).toBe(true);
+    // The flag is about the model, not about the facts: the same counts and
+    // the same deep-linked actions come back, ranked by the fixed rule.
+    expect(briefing.narrative.status).toBe('RULES');
+    expect(briefing.narrative.provider).toBe('rules');
+    expect(briefing.topActions.every((action) => action.origin === 'RULES')).toBe(true);
+    expect(briefing.today.every((line) => typeof line.count === 'number' && line.count > 0)).toBe(true);
+    // Whether a provider is configured is still reported honestly, so the UI
+    // knows whether an enriched briefing is worth waiting for.
+    expect(typeof briefing.ai.available).toBe('boolean');
+    // The point of the flag. A model round trip is tens of seconds; this must
+    // stay in the same order of magnitude as the dashboard engine alone.
+    expect(elapsed).toBeLessThan(15_000);
+  }, 30_000);
 });

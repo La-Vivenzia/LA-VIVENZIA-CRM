@@ -1,11 +1,9 @@
 // The La Vivenzia semantic tokens — the one place the brand is decided.
 //
-// Two consumers read this file and must never disagree:
-//   1. the front components (through `themeFor()` in theme.ts), which run in
-//      Twenty's sandboxed renderer and style themselves inline;
-//   2. the host stylesheet `packages/twenty-front/src/lv/lv-theme.css`, which
-//      restyles the Twenty shell (sidebar, header, tables, record pages) with
-//      the same values. A unit test asserts the two stay identical.
+// Every surface in the product reads these through `themeFor()` in theme.ts.
+// Nothing hard-codes a colour, which is what makes the dark scheme a data
+// change rather than a rewrite, and what lets a unit test prove the two
+// schemes carry exactly the same set of tokens.
 //
 // Values come from the approved La Vivenzia design system
 // (lavivenziaSAAS/src/app/globals.css, DESIGN.md): warm ivory grounds, pine
@@ -62,17 +60,23 @@ export type LvTokenSet = {
   'info-muted': string;
   // Category tints — soft washes that label a *kind* of thing (an entry card,
   // an icon tile, a channel) without implying the urgency a status colour
-  // does. Each wash carries an ink that reads on it: the glyph or figure
-  // sitting inside the tile. Never used for body text.
+  // does. Each wash carries two marks that read on it: `glyph` is the large
+  // category mark, `ink` the deeper tone for a chevron or a figure on the
+  // wash. Neither is ever used for body text.
   'tint-mint': string;
+  'tint-mint-glyph': string;
   'tint-mint-ink': string;
   'tint-blue': string;
+  'tint-blue-glyph': string;
   'tint-blue-ink': string;
   'tint-peach': string;
+  'tint-peach-glyph': string;
   'tint-peach-ink': string;
   'tint-lavender': string;
+  'tint-lavender-glyph': string;
   'tint-lavender-ink': string;
   'tint-pink': string;
+  'tint-pink-glyph': string;
   'tint-pink-ink': string;
   // Elevation
   'shadow-sm': string;
@@ -119,15 +123,20 @@ export const LV_TOKENS: Record<ColorScheme, LvTokenSet> = {
     'info-muted': '#ECEFF3',
 
     'tint-mint': '#E4F0E7',
-    'tint-mint-ink': '#2F6042',
+    'tint-mint-glyph': '#30B080',
+    'tint-mint-ink': '#1A6048',
     'tint-blue': '#E6EDF7',
-    'tint-blue-ink': '#2E4B66',
+    'tint-blue-glyph': '#4880D0',
+    'tint-blue-ink': '#2C5AA8',
     'tint-peach': '#FAE9DA',
-    'tint-peach-ink': '#8A5A12',
+    'tint-peach-glyph': '#E89868',
+    'tint-peach-ink': '#A85423',
     'tint-lavender': '#ECE8F7',
-    'tint-lavender-ink': '#4A3E7A',
+    'tint-lavender-glyph': '#A088D0',
+    'tint-lavender-ink': '#3B2F72',
     'tint-pink': '#F9E7EC',
-    'tint-pink-ink': '#8C3350',
+    'tint-pink-glyph': '#D870A0',
+    'tint-pink-ink': '#8C2A44',
 
     'shadow-sm': '0 1px 2px rgba(31, 77, 58, 0.05), 0 2px 8px rgba(31, 77, 58, 0.05)',
     'shadow-md': '0 2px 6px rgba(31, 77, 58, 0.06), 0 10px 30px rgba(31, 77, 58, 0.09)',
@@ -174,14 +183,19 @@ export const LV_TOKENS: Record<ColorScheme, LvTokenSet> = {
     'info-muted': '#1A2A36',
 
     'tint-mint': '#16301F',
+    'tint-mint-glyph': '#4FC194',
     'tint-mint-ink': '#7FC39A',
     'tint-blue': '#172532',
+    'tint-blue-glyph': '#6FA3E2',
     'tint-blue-ink': '#8FB4D2',
     'tint-peach': '#33260F',
+    'tint-peach-glyph': '#E9A776',
     'tint-peach-ink': '#E2B45B',
     'tint-lavender': '#211D33',
+    'tint-lavender-glyph': '#A990E0',
     'tint-lavender-ink': '#B3A6E0',
     'tint-pink': '#331A22',
+    'tint-pink-glyph': '#DE84AE',
     'tint-pink-ink': '#E7A0B0',
 
     'shadow-sm': '0 1px 2px rgba(0, 0, 0, 0.3)',
@@ -191,9 +205,9 @@ export const LV_TOKENS: Record<ColorScheme, LvTokenSet> = {
 };
 
 // Typography. Cinzel is the display face (page titles, KPI figures, the
-// wordmark), Sora the working face. Both are self-hosted by the host app
-// (packages/twenty-front/public/fonts/lv, SIL OFL) and fall back to system
-// faces of the same shape, so a missing font never changes the layout.
+// wordmark), Sora the working face. Both are self-hosted (public/fonts/lv,
+// SIL OFL) and fall back to system faces of the same shape, so a missing font
+// never changes the layout.
 export const LV_FONT = {
   display: '"Cinzel", "Cormorant Garamond", Georgia, "Times New Roman", serif',
   body: '"Sora", "Segoe UI", system-ui, -apple-system, Roboto, sans-serif',
@@ -217,15 +231,22 @@ export type LvTypeStyle = {
 // mostly type size and line height. Nothing drops below 11px any more, which
 // also closes accessibility finding A1.
 export const LV_TYPE: Record<'display' | 'title' | 'heading' | 'subheading' | 'body' | 'bodySmall' | 'label' | 'caption' | 'figure' | 'mono', LvTypeStyle> = {
-  display: { fontFamily: LV_FONT.display, fontSize: 'clamp(26px, 3.4vw, 36px)', fontWeight: 600, lineHeight: 1.15, letterSpacing: '0.02em' },
-  title: { fontFamily: LV_FONT.display, fontSize: 'clamp(21px, 2.6vw, 27px)', fontWeight: 600, lineHeight: 1.2, letterSpacing: '0.02em' },
-  heading: { fontFamily: LV_FONT.display, fontSize: 17, fontWeight: 600, lineHeight: 1.3, letterSpacing: '0.03em' },
+  // Sora throughout, at every size.
+  //
+  // These three were Cinzel, which rendered every page title as serif
+  // small-caps. The reference boards carry no Cinzel anywhere inside the
+  // application: the greeting, the record names, the card titles and the
+  // figures are all bold Sora. Cinzel survives in the wordmark, which is an
+  // image, and nowhere else.
+  display: { fontFamily: LV_FONT.body, fontSize: 'clamp(26px, 3.2vw, 34px)', fontWeight: 700, lineHeight: 1.18, letterSpacing: '-0.01em' },
+  title: { fontFamily: LV_FONT.body, fontSize: 'clamp(20px, 2.4vw, 25px)', fontWeight: 700, lineHeight: 1.25, letterSpacing: '-0.01em' },
+  heading: { fontFamily: LV_FONT.body, fontSize: 17, fontWeight: 600, lineHeight: 1.35 },
   subheading: { fontFamily: LV_FONT.body, fontSize: 16, fontWeight: 600, lineHeight: 1.4 },
   body: { fontFamily: LV_FONT.body, fontSize: 15, fontWeight: 400, lineHeight: 1.55 },
   bodySmall: { fontFamily: LV_FONT.body, fontSize: 13, fontWeight: 400, lineHeight: 1.5 },
   label: { fontFamily: LV_FONT.body, fontSize: 11, fontWeight: 600, lineHeight: 1.2, letterSpacing: '0.1em', textTransform: 'uppercase' },
   caption: { fontFamily: LV_FONT.body, fontSize: 12, fontWeight: 400, lineHeight: 1.45 },
-  figure: { fontFamily: LV_FONT.display, fontSize: 'clamp(28px, 3.6vw, 38px)', fontWeight: 600, lineHeight: 1.05 },
+  figure: { fontFamily: LV_FONT.body, fontSize: 'clamp(28px, 3.4vw, 36px)', fontWeight: 700, lineHeight: 1.05, letterSpacing: '-0.02em' },
   mono: { fontFamily: LV_FONT.mono, fontSize: 13, fontWeight: 400, lineHeight: 1.45 },
 };
 
@@ -241,6 +262,18 @@ export const LV_MOTION = {
 // Breakpoints match UI-UX-SPEC.md's QA widths: phones up to 767, tablet 768,
 // desktop from 1024.
 export const LV_BREAKPOINT = { sm: 480, md: 768, lg: 1024 } as const;
+
+// The media queries, written once.
+//
+// The threshold sits half a pixel below the breakpoint on purpose: a viewport
+// that is 768 CSS pixels wide measures 767.99 at a fractional device pixel
+// ratio, and `min-width: 768px` then fails. The result is the worst of both
+// layouts — the sidebar gone but the table still rendering rows — so the
+// stylesheet and `useLvTier` read the same guarded query.
+export const LV_MEDIA = {
+  md: `(min-width: ${LV_BREAKPOINT.md - 0.5}px)`,
+  lg: `(min-width: ${LV_BREAKPOINT.lg - 0.5}px)`,
+} as const;
 
 export const lvVar = (token: keyof LvTokenSet): string => `var(--lv-${token})`;
 

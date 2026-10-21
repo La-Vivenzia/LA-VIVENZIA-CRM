@@ -19,13 +19,15 @@ export class SmtpDriver implements EmailDriverInterface {
   }
 
   async send(sendMailOptions: SendMailOptions): Promise<void> {
-    this.transport
-      .sendMail(sendMailOptions)
-      .then(() =>
-        this.logger.log(`Email to '${sendMailOptions.to}' successfully sent`),
-      )
-      .catch((err) =>
-        this.logger.error(`sending email to '${sendMailOptions.to}': ${err}`),
+    try {
+      await this.transport.sendMail(sendMailOptions);
+      this.logger.log(`Email to '${sendMailOptions.to}' successfully sent`);
+    } catch (err) {
+      this.logger.error(
+        `sending email to '${sendMailOptions.to}': ${err instanceof Error ? err.message : err}`,
       );
+      throw err;
+    }
   }
 }
+

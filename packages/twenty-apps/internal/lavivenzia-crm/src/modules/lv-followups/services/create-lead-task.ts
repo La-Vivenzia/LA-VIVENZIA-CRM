@@ -22,7 +22,34 @@ export type LeadTaskInput = {
   origin?: 'LEAD_360' | 'CAPTURE';
 };
 
-export type LeadTaskOutcome = { ok: true; taskId: string; auditId: string | null } | { ok: false; refusal: 'NOT_PERMITTED' | 'FAILED'; error: string; detail?: string };
+export type LeadTaskOutcome = { ok: true; taskId: string; auditId: string | null } | { ok: false; refusal: 'NOT_PERMITTED' | 'INVALID_INPUT' | 'FAILED'; error: string; detail?: string };
+
+/**
+ * What actually went wrong, read off the platform's own message.
+ *
+ * This used to assume every failure was a permission failure: one catch, one
+ * hardcoded 'NOT_PERMITTED', and `error: 'permission'` written into the audit
+ * row. A malformed title was therefore reported to the person as a role
+ * problem *and* recorded in the audit trail as a refused permission — a
+ * durable, wrong fact about who may do what.
+ *
+ * Only a message that actually talks about permission is treated as one.
+ * Anything the platform rejected on the shape of the data is INVALID_INPUT,
+ * and whatever is left is an honest FAILED rather than a guess.
+ */
+export const classifyTaskFailure = (error: unknown): { refusal: 'NOT_PERMITTED' | 'INVALID_INPUT' | 'FAILED'; error: string; auditReason: string } => {
+  const message = error instanceof Error ? error.message : String(error ?? '');
+
+  if (/forbidden|permission|not allowed|unauthori[sz]ed|403/i.test(message)) {
+    return { refusal: 'NOT_PERMITTED', error: 'Your role cannot create tasks on this lead.', auditReason: 'permission' };
+  }
+
+  if (/invalid|malformed|null byte|0x00|untranslatable|encoding|too long|constraint|violates|syntax/i.test(message)) {
+    return { refusal: 'INVALID_INPUT', error: 'The platform would not store that task. Check the title and description for unusual characters.', auditReason: 'validation' };
+  }
+
+  return { refusal: 'FAILED', error: 'The task was not created.', auditReason: 'error' };
+};
 
 export const createLeadTask = async (delegated: CoreApiClient, application: CoreApiClient, actorWorkspaceMemberId: string, input: LeadTaskInput, now = new Date().toISOString()): Promise<LeadTaskOutcome> => {
   let taskId: string | null = null;
@@ -51,6 +78,8 @@ export const createLeadTask = async (delegated: CoreApiClient, application: Core
       await delegated.mutation({ createTaskTarget: { __args: { data: { taskId, targetLvLeadId: input.leadId } }, id: true } });
     }
   } catch (error) {
+    const verdict = classifyTaskFailure(error);
+
     await writeAuditEvent(application, {
       action: 'TASK_CREATED',
       outcome: 'REFUSED',
@@ -60,10 +89,10 @@ export const createLeadTask = async (delegated: CoreApiClient, application: Core
       actorWorkspaceMemberId,
       at: now,
       reason: null,
-      metadata: { title: input.title, error: 'permission', taskId, origin: input.origin ?? 'LEAD_360' },
+      metadata: { title: input.title, error: verdict.auditReason, taskId, origin: input.origin ?? 'LEAD_360' },
     });
 
-    return { ok: false, refusal: 'NOT_PERMITTED', error: 'Your role cannot create tasks on this lead.', detail: error instanceof Error ? error.message.slice(0, 160) : undefined };
+    return { ok: false, refusal: verdict.refusal, error: verdict.error, detail: error instanceof Error ? error.message.slice(0, 160) : undefined };
   }
 
   if (taskId === null) {

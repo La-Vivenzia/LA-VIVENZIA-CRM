@@ -51,6 +51,17 @@ export type LvTheme = {
     textMuted: string;
     textSubtle: string;
     textOnBrand: string;
+    /**
+     * Ink for text on a *filled status* ground — a danger or success pill, a
+     * counter badge.
+     *
+     * It inverts with the scheme, which is the whole point: `danger` is a deep
+     * red in light and a pale salmon in dark, so a hardcoded white reads at
+     * about 8:1 in one scheme and 1.8:1 in the other. Three counters were
+     * hardcoded white and would have been illegible the moment dark mode
+     * became reachable.
+     */
+    textInverse: string;
     success: string;
     successMuted: string;
     warning: string;
@@ -61,8 +72,9 @@ export type LvTheme = {
     infoMuted: string;
     ring: string;
   };
-  // Category tints by name: `wash` is the tile ground, `ink` the glyph on it.
-  tint: Record<LvTint, { wash: string; ink: string }>;
+  // Category tints by name: `wash` is the tile ground, `glyph` the large
+  // category mark on it, `ink` the deeper tone for a chevron or a figure.
+  tint: Record<LvTint, { wash: string; glyph: string; ink: string }>;
   shadow: { sm: string; md: string; lg: string };
   space: (steps: number) => number;
   radius: typeof LV_RADIUS;
@@ -104,6 +116,7 @@ const build = (scheme: ColorScheme): LvTheme => {
       textMuted: t['text-muted'],
       textSubtle: t['text-subtle'],
       textOnBrand: t['primary-fg'],
+      textInverse: t['text-inverse'],
       success: t.success,
       successMuted: t['success-muted'],
       warning: t.warning,
@@ -114,7 +127,9 @@ const build = (scheme: ColorScheme): LvTheme => {
       infoMuted: t['info-muted'],
       ring: t.ring,
     },
-    tint: Object.fromEntries(LV_TINTS.map((name) => [name, { wash: t[`tint-${name}`], ink: t[`tint-${name}-ink`] }])) as LvTheme['tint'],
+    tint: Object.fromEntries(
+      LV_TINTS.map((name) => [name, { wash: t[`tint-${name}`], glyph: t[`tint-${name}-glyph`], ink: t[`tint-${name}-ink`] }]),
+    ) as LvTheme['tint'],
     shadow: { sm: t['shadow-sm'], md: t['shadow-md'], lg: t['shadow-lg'] },
     space: (steps: number) => steps * 4,
     radius: LV_RADIUS,
@@ -188,7 +203,7 @@ export const layout = (theme: LvTheme) => ({
   button: (variant: 'primary' | 'secondary' | 'ghost' | 'danger' | 'gold' = 'primary') => ({
     minHeight: 44,
     padding: `${theme.space(2)}px ${theme.space(4)}px`,
-    borderRadius: theme.radius.pill,
+    borderRadius: theme.radius.md,
     fontFamily: theme.font.body,
     fontSize: theme.font.size.md,
     fontWeight: theme.font.weight.medium,

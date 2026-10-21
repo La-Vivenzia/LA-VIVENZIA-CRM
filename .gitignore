@@ -71,6 +71,13 @@ screenshots/
 /.diag*.mjs
 /.compare*.mjs
 /.narrow*.mjs
+/test.js
+/test.sql
+*.bak
+packages/twenty-server/test-db.js
+packages/twenty-server/test_fetch.ts
+packages/twenty-server/test_pass.js
+packages/twenty-server/seed_mock.js
 
 # deploy/aws script scratch files
 lv-null.tmp

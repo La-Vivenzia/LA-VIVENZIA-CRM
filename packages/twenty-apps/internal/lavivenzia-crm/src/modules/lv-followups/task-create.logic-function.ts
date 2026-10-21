@@ -3,7 +3,8 @@ import { CoreApiClient } from 'twenty-client-sdk/core';
 import { defineLogicFunction } from 'twenty-sdk/define';
 
 import { FN_TASK_CREATE_ID } from 'src/constants/universal-identifiers';
-import { isLeadPriority, type LeadPriority } from 'src/modules/lv-core/constants/lead-lifecycle';
+import { isLeadPriority, LEAD_PRIORITIES, type LeadPriority } from 'src/modules/lv-core/constants/lead-lifecycle';
+import { hasUnstorableCharacters, priorityWasAsked } from 'src/modules/lv-followups/utils/task-input';
 import { readRouteInput } from 'src/modules/lv-core/utils/route-event';
 import { dueAtFor, quickAction } from 'src/modules/lv-followups/utils/quick-actions';
 import { createLeadTask } from 'src/modules/lv-followups/services/create-lead-task';
@@ -52,6 +53,10 @@ export const handler = async (event: unknown): Promise<Record<string, unknown>> 
     return { ok: false, refusal: 'INVALID_INPUT', error: 'A task needs a title.' };
   }
 
+  if (hasUnstorableCharacters(title)) {
+    return { ok: false, refusal: 'INVALID_INPUT', error: 'That title contains characters that cannot be stored. Remove them and try again.' };
+  }
+
   let dueAt: string | null = null;
 
   if (typeof input.dueAt === 'string' && input.dueAt.length > 0) {
@@ -62,6 +67,16 @@ export const handler = async (event: unknown): Promise<Record<string, unknown>> 
     dueAt = new Date(input.dueAt).toISOString();
   } else if (preset) {
     dueAt = dueAtFor(preset, now, offset);
+  }
+
+  // A priority that was *asked for* and is not one of ours is a mistake worth
+  // reporting. It used to fall through to MEDIUM, so `priority: 'SUPER'` was
+  // accepted, answered with ok: true, and quietly stored as something the
+  // caller never asked for — the worst of the three possible behaviours. The
+  // fallback stays for the case it was written for: no priority supplied at
+  // all, where the quick action's own default is the right answer.
+  if (priorityWasAsked(input.priority) && !isLeadPriority(input.priority)) {
+    return { ok: false, refusal: 'INVALID_INPUT', error: `That is not a priority. Use one of ${LEAD_PRIORITIES.join(', ')}.` };
   }
 
   const priority: LeadPriority = isLeadPriority(input.priority) ? input.priority : (preset?.priority ?? 'MEDIUM');
@@ -90,7 +105,9 @@ export const handler = async (event: unknown): Promise<Record<string, unknown>> 
   const outcome = await createLeadTask(delegated, application, actorWorkspaceMemberId, { leadId: lead.id, leadLabel: label, title, description, dueAt, priority, assigneeId, sourceInteractionId, quickActionKey: preset?.key ?? null, origin: 'LEAD_360' }, now);
 
   if (!outcome.ok) {
-    return outcome.refusal === 'NOT_PERMITTED' ? { ok: false, refusal: 'NOT_PERMITTED', error: outcome.error, detail: outcome.detail } : { ok: false, error: outcome.error };
+    // The reason travels as the service classified it, rather than only
+    // NOT_PERMITTED being allowed through and everything else losing its code.
+    return { ok: false, refusal: outcome.refusal, error: outcome.error, detail: outcome.detail };
   }
 
   return { ok: true, taskId: outcome.taskId, title, dueAt, priority, assigneeId, auditId: outcome.auditId };

@@ -8,7 +8,7 @@ import { type LvTheme } from 'src/design/theme';
 // Sign in. Credentials go straight to Twenty's own mutation — this screen
 // never sees a password policy, a session rule or a token refresh; it only
 // asks, and shows what the server said.
-export const SignInScreen = ({ theme, onSignedIn }: { theme: LvTheme; onSignedIn: () => void }) => {
+export const SignInScreen = ({ theme, onSignedIn, notice }: { theme: LvTheme; onSignedIn: () => void; /** Why they are here, when they did not choose to be. */ notice?: string }) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -39,6 +39,17 @@ export const SignInScreen = ({ theme, onSignedIn }: { theme: LvTheme; onSignedIn
           <p style={{ ...theme.type.body, color: theme.color.textMuted, margin: `${theme.space(1)}px 0 ${theme.space(6)}px` }}>
             Sign in to your workspace.
           </p>
+
+          {/* A session that ran out is not a failed sign-in: it is said in
+              its own words, above the form, so nobody thinks they typed
+              something wrong. */}
+          {notice && (
+            <div style={{ marginBottom: theme.space(5) }}>
+              <InlineNotice theme={theme} tone="warning">
+                {notice}
+              </InlineNotice>
+            </div>
+          )}
 
           <form onSubmit={submit} style={{ display: 'flex', flexDirection: 'column', gap: theme.space(4) }}>
             <Field theme={theme} label="Email" htmlFor={emailId} required>

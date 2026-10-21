@@ -1,457 +1,264 @@
 import { useEffect, useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 
-import { callRoute } from 'src/api/client';
-import { channelIcon, LvIcon } from 'src/design/icons';
-import { ErrorState, formatWhen, LoadingState, LvButton, LvCard, LvTabs, LvProgress, type Tone } from 'src/design/kit';
+import { useLead360 } from 'src/api/leads';
+import { LvBreadcrumbs } from 'src/design/data';
+import { LvIcon } from 'src/design/icons';
+import { ErrorState, isForbiddenMessage, LvButton, LvCard, LvSkeletonRow, VisuallyHidden } from 'src/design/kit';
 import { LvMenu } from 'src/design/overlay';
-import { LvChip, LvFactRow, LvNextBestAction, LvProfileHeader, LvRelatedList, LvSectionCard, LvTimeline } from 'src/design/profile';
-import { describeStatus, statusBadgeTone } from 'src/design/status';
-import { LeadActionDialog, type LeadAction } from 'src/screens/profile/LeadActions';
+import { LvContextualActions, LvSectionNav } from 'src/design/page';
+import { LvNextBestAction } from 'src/design/profile';
 import { type LvTheme } from 'src/design/theme';
+import { LeadHeader, leadChannels, sentenceCase } from 'src/screens/lead/header';
+import { GovernanceTab, IntelligenceTab } from 'src/screens/lead/insight';
+import { ConversationsTab, DocumentsTab, OnboardingTab, OverviewTab, TimelineTab } from 'src/screens/lead/tabs';
+import { LeadActionDialog, LEAD_ACTIONS, type LeadAction } from 'src/screens/lead/actions';
 
-// The profile — the screen the reference boards call "the one screen that
-// defines the CRM". Everything on it comes from a single /leads/360 call: the
-// server composes the relationship under the caller's own permissions, and
-// this screen arranges it. No second query, no client-side business rule.
+// The lead profile — a relationship workspace, not a record page.
+//
+// Everything comes from one /leads/360 call: the server composes the
+// relationship under the caller's own permissions, and this screen arranges
+// it. No second query, no client-side business rule, and no tab shown that the
+// caller's role cannot see.
+//
+// The section is part of the URL, so a colleague can be sent straight to the
+// documents of a specific lead and the back button behaves.
 
-type Member = { id: string; displayName: string | null; email: string | null };
-type Target = { object: string; recordId: string } | null;
-
-type Lead360 = {
-  now: string;
-  lead: {
-    id: string;
-    lvLeadId: string | null;
-    name: string | null;
-    organisationName: string | null;
-    category: string | null;
-    subcategory: string | null;
-    location: string | null;
-    source: string | null;
-    status: string | null;
-    priority: string | null;
-    jobTitle: string | null;
-    languages: string[] | null;
-    emails: { primaryEmail: string | null } | null;
-    phones: { primaryPhoneNumber: string | null } | null;
-    opportunityScore: number | null;
-    dataCompleteness: number | null;
-    photoUrl: string | null;
-    rating: number | null;
-    reviewCount: number | null;
-    yearsOfExperience: number | null;
-    lastInteractionAt: string | null;
-    nextAction: string | null;
-    nextFollowUpAt: string | null;
-    rawCaptureInput: string | null;
-    owner: Member | null;
-  };
-  capabilities: Record<string, boolean>;
-  settableStatuses: string[];
-  nextAction: { task: { id: string; title: string | null; dueAt: string | null } | null; suggestion: { action?: string | null; reason?: string | null } | null };
-  openTasks: { id: string; title: string | null; dueAt: string | null; isOverdue: boolean }[];
-  interactions: { id: string; channel: string | null; direction: string | null; occurredAt: string | null; summary: string | null; sentiment: string | null; outcome: string | null; objections: string | null }[];
-  timeline: { id: string; kind: string; at: string; title: string; detail: string | null; tone: Tone | 'neutral'; target: Target }[];
-  onboarding: {
-    id: string;
-    status: string | null;
-    progressPercentage: number | null;
-    currentStep: string | null;
-    // The composer calls it verificationState; there is no `status` on a
-    // document, and reading one silently printed "Pending" for every file.
-    documents: { id: string; name: string | null; documentType: string | null; verificationState: string | null; rejectionReason: string | null; expiresAt: string | null }[];
-    pendingDocuments: number;
-  } | null;
-  intelligence: {
-    opportunity: { available: boolean; score: number | null };
-    health: { state: string | null };
-    nextBestAction: { primary: { action?: string | null; reason?: string | null } | null };
-    dataQuality: { issues: { field?: string; text?: string }[] };
-  };
-  ecosystem: { partner: { id: string; name: string | null } | null; experiences: unknown[]; properties: unknown[] };
-};
-
-const TABS = [
+const ALL_TABS = [
   { key: 'overview', label: 'Overview' },
   { key: 'onboarding', label: 'Onboarding' },
   { key: 'conversations', label: 'Conversations' },
   { key: 'documents', label: 'Documents' },
   { key: 'timeline', label: 'Timeline' },
+  { key: 'intelligence', label: 'Intelligence' },
+  { key: 'governance', label: 'Governance' },
 ];
 
-const sentenceCase = (value: string | null | undefined): string =>
-  value ? value.charAt(0) + value.slice(1).toLowerCase().replace(/_/g, ' ') : '—';
-
 export const ProfileScreen = ({ theme }: { theme: LvTheme }) => {
-  const { leadId } = useParams<{ leadId: string }>();
+  const { leadId, tab: tabParam } = useParams<{ leadId: string; tab?: string }>();
   const navigate = useNavigate();
-  const [data, setData] = useState<Lead360 | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [tab, setTab] = useState('overview');
+  const { data, error, reload } = useLead360(leadId);
+  // An action can be addressed in the URL, so another screen can send
+  // somebody straight into it — Messages hands over to "log an interaction"
+  // this way once a draft has been sent. The parameter is consumed on arrival
+  // so a refresh does not reopen it.
+  const [search, setSearch] = useSearchParams();
+  const requested = search.get('action');
   const [action, setAction] = useState<LeadAction | null>(null);
-  // Bumped after an action succeeds so the whole relationship is re-read from
-  // the server rather than patched in the browser — the routes change more
-  // than the record they were called on (tasks, SLAs, status, timeline).
-  const [reloads, setReloads] = useState(0);
 
   useEffect(() => {
-    let cancelled = false;
+    if (requested === null) {
+      return;
+    }
 
-    setData(null);
-    setError(null);
+    // An unknown value must not put the screen into a state that renders
+    // nothing: ?action=delete silently set an action no dialog answers to.
+    if (LEAD_ACTIONS.includes(requested as LeadAction)) {
+      setAction(requested as LeadAction);
+    }
 
-    const load = async () => {
-      try {
-        const result = await callRoute<Lead360>('/leads/360', { leadId });
+    setSearch(
+      (current) => {
+        const next = new URLSearchParams(current);
 
-        if (!cancelled) {
-          setData(result);
-        }
-      } catch (cause) {
-        if (!cancelled) {
-          setError(cause instanceof Error ? cause.message : 'That lead could not be opened.');
-        }
-      }
-    };
+        next.delete('action');
 
-    void load();
+        return next;
+      },
+      { replace: true },
+    );
+  }, [requested, setSearch]);
 
-    return () => {
-      cancelled = true;
-    };
-  }, [leadId, reloads]);
+  const goToTab = (next: string) => navigate(next === 'overview' ? `/leads/${leadId}` : `/leads/${leadId}/${next}`, { replace: true });
 
+  // ------------------------------------------------------------------ error
   if (error !== null) {
-    return <ErrorState theme={theme} text={error} />;
+    // A refusal is not a crash. The server says why, and the way back is the
+    // list rather than a dead end.
+    const forbidden = isForbiddenMessage(error);
+
+    return (
+      <>
+        <LvBreadcrumbs theme={theme} trail={[{ key: 'leads', label: 'My Leads', onNavigate: () => navigate('/leads') }, { key: 'lead', label: 'Lead' }]} />
+        <ErrorState
+          theme={theme}
+          title={forbidden ? 'You cannot open this relationship' : 'That lead could not be opened'}
+          text={error}
+          onRetry={forbidden ? undefined : reload}
+        />
+        <LvCard theme={theme} style={{ background: 'transparent', border: 'none', boxShadow: 'none', padding: 0 }}>
+          <LvButton theme={theme} variant="secondary" icon={<LvIcon name="chevronLeft" size={16} />} onClick={() => navigate('/leads')}>
+            Back to my leads
+          </LvButton>
+        </LvCard>
+      </>
+    );
   }
 
+  // ---------------------------------------------------------------- loading
   if (data === null) {
-    return <LoadingState theme={theme} label="Opening the relationship" />;
+    return (
+      <>
+        <VisuallyHidden>Opening the relationship</VisuallyHidden>
+        <div aria-busy="true" style={{ display: 'flex', flexDirection: 'column', gap: theme.space(5) }}>
+          <LvCard theme={theme} padding={0} style={{ overflow: 'hidden' }}>
+            <span className="lv-skeleton" aria-hidden="true" style={{ display: 'block', height: 120, borderRadius: 0 }} />
+            <div style={{ padding: theme.space(5), display: 'flex', gap: theme.space(4), alignItems: 'center' }}>
+              <span className="lv-skeleton" aria-hidden="true" style={{ width: 72, height: 72, borderRadius: theme.radius.pill, flex: '0 0 auto' }} />
+              <span style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 8 }}>
+                <LvSkeletonRow theme={theme} width="46%" />
+                <LvSkeletonRow theme={theme} width="68%" />
+              </span>
+            </div>
+          </LvCard>
+          <LvCard theme={theme}>
+            <LvSkeletonRow theme={theme} width="34%" />
+            <div style={{ display: 'flex', flexDirection: 'column', gap: theme.space(3), marginTop: theme.space(4) }}>
+              <LvSkeletonRow theme={theme} />
+              <LvSkeletonRow theme={theme} width="80%" />
+            </div>
+          </LvCard>
+        </div>
+      </>
+    );
   }
 
-  const { lead, onboarding, intelligence } = data;
-  const status = describeStatus('lead', lead.status);
-  const recommendation = intelligence.nextBestAction?.primary ?? data.nextAction.suggestion;
-  const documents = onboarding?.documents ?? [];
-  const lastInteraction = data.interactions[0];
-  const verifiedDocuments = documents.filter((document) => document.verificationState === 'VERIFIED').length;
+  const { lead, capabilities } = data;
+  const channels = leadChannels(lead);
+  const recommendation = data.intelligence.nextBestAction?.primary ?? data.nextAction.suggestion;
+
+  // A tab the caller's role cannot use is not shown disabled — it is not
+  // shown. The section list is what this person's product actually has.
+  const tabs = ALL_TABS.filter((candidate) => {
+    if (candidate.key === 'onboarding') {
+      return capabilities.canViewOnboarding || data.onboarding !== null;
+    }
+
+    if (candidate.key === 'documents') {
+      return capabilities.canViewOnboarding || (data.onboarding?.documents.length ?? 0) > 0;
+    }
+
+    if (candidate.key === 'intelligence') {
+      return capabilities.canViewIntelligence;
+    }
+
+    if (candidate.key === 'governance') {
+      return capabilities.canGovern || capabilities.canChangeStatus || data.caller.isAdmin;
+    }
+
+    return true;
+  }).map((candidate) => ({
+    ...candidate,
+    count: candidate.key === 'documents' ? (data.onboarding?.documents.length ?? 0) : candidate.key === 'conversations' ? data.interactions.length : undefined,
+  }));
+
+  // An unknown or now-forbidden section falls back to the overview rather than
+  // rendering nothing.
+  const tab = tabs.some((candidate) => candidate.key === tabParam) ? (tabParam as string) : 'overview';
+
+  const overflow = (
+    <LvMenu
+      theme={theme}
+      label={`Actions for ${lead.name ?? 'this lead'}`}
+      // Only what this person may actually do. An action the payload does not
+      // support is absent, not disabled — a greyed row is a question nobody
+      // can answer from the screen.
+      items={[
+        ...(capabilities.canLogInteraction ? [{ key: 'interaction', label: 'Log an interaction', icon: 'messages' as const, onSelect: () => setAction('interaction') }] : []),
+        ...(capabilities.canCreateTask ? [{ key: 'task', label: 'Create a follow-up', icon: 'task' as const, onSelect: () => setAction('task') }] : []),
+        ...(capabilities.canAddNote ? [{ key: 'note', label: 'Add an internal note', icon: 'note' as const, onSelect: () => setAction('note') }] : []),
+        ...(capabilities.canChangeOwner || capabilities.canClaim
+          ? [{ key: 'owner', label: capabilities.canClaim && !lead.owner ? 'Claim this lead' : 'Change the owner', icon: 'person' as const, onSelect: () => setAction('owner') }]
+          : []),
+        // The one that ends a relationship sits last and reads as what it is.
+        ...(capabilities.canChangeStatus
+          ? [{ key: 'status', label: 'Change the status', icon: 'check' as const, tone: 'danger' as const, onSelect: () => setAction('status') }]
+          : []),
+      ]}
+    />
+  );
+
+  // One props object, passed explicitly: the house lint rule forbids
+  // spreading, and naming them keeps each tab's contract visible.
+  const onTabAction = (next: LeadAction) => setAction(next);
 
   return (
     <>
-      <LvProfileHeader
-        theme={theme}
-        name={lead.name ?? 'Unnamed lead'}
-        status={status.label}
-        statusTone={statusBadgeTone('lead', lead.status)}
-        subtitle={[lead.jobTitle, lead.organisationName].filter(Boolean).join(' · ') || null}
-        photoUrl={lead.photoUrl}
-        meta={[
-          ...(lead.location ? [{ icon: 'location' as const, text: lead.location }] : []),
-          ...(typeof lead.yearsOfExperience === 'number' ? [{ icon: 'clock' as const, text: `${lead.yearsOfExperience} years exp.` }] : []),
-          // The count travels with the rating: 4.8 from three people is not the
-          // same fact as 4.8 from three hundred.
-          ...(typeof lead.rating === 'number'
-            ? [
-                {
-                  icon: 'star' as const,
-                  text: `${lead.rating.toFixed(1)}${typeof lead.reviewCount === 'number' ? ` (${lead.reviewCount})` : ''}`,
-                },
-              ]
-            : []),
-          ...(lead.lvLeadId ? [{ icon: 'person' as const, text: lead.lvLeadId }] : []),
-        ]}
-        overflow={
-          <LvMenu
-            theme={theme}
-            label={`Actions for ${lead.name ?? 'this lead'}`}
-            items={[
-              { key: 'interaction', label: 'Log an interaction', icon: 'note', onSelect: () => setAction('interaction'), disabled: !data.capabilities.canLogInteraction },
-              { key: 'task', label: 'Create a follow-up', icon: 'task', onSelect: () => setAction('task'), disabled: !data.capabilities.canCreateTask },
-              { key: 'note', label: 'Add a note', icon: 'note', onSelect: () => setAction('note'), disabled: !data.capabilities.canAddNote },
-              { key: 'status', label: 'Change the status', icon: 'check', onSelect: () => setAction('status'), disabled: !data.capabilities.canChangeStatus || (data.settableStatuses ?? []).length === 0 },
-            ]}
-          />
-        }
-        actions={
-          <>
-            {lead.phones?.primaryPhoneNumber && (
-              <LvButton theme={theme} variant="primary" icon={<LvIcon name="phone" size={16} />} onClick={() => window.open(`tel:${lead.phones?.primaryPhoneNumber}`)}>
-                Call
-              </LvButton>
-            )}
-            {lead.phones?.primaryPhoneNumber && (
-              <LvButton
-                theme={theme}
-                variant="secondary"
-                icon={<LvIcon name="whatsapp" size={16} />}
-                onClick={() => window.open(`https://wa.me/${(lead.phones?.primaryPhoneNumber ?? '').replace(/\D/g, '')}`, '_blank', 'noreferrer')}
-              >
-                WhatsApp
-              </LvButton>
-            )}
-          </>
-        }
-      />
+      <div className="lv-hide-mobile">
+        <LvBreadcrumbs
+          theme={theme}
+          trail={[
+            { key: 'leads', label: 'My Leads', onNavigate: () => navigate('/leads') },
+            { key: 'lead', label: lead.name ?? 'Lead' },
+          ]}
+        />
+      </div>
+
+      <LeadHeader theme={theme} data={data} onBack={() => navigate('/leads')} onAction={(next) => setAction(next)} overflow={overflow} />
 
       {recommendation?.action && (
         <LvNextBestAction
           theme={theme}
-          action={sentenceCase(recommendation.action)}
+          action={recommendation.title ?? sentenceCase(recommendation.action)}
           reason={recommendation.reason ?? null}
           aside={
-            data.capabilities.canViewIntelligence ? (
-              <LvButton theme={theme} variant="secondary" size="sm" onClick={() => setTab('conversations')}>
-                View message suggestions
+            capabilities.canViewIntelligence ? (
+              <LvButton theme={theme} variant="secondary" size="sm" onClick={() => goToTab('intelligence')}>
+                Why this?
               </LvButton>
             ) : undefined
           }
         />
       )}
 
-      <LvTabs theme={theme} label="Relationship sections" value={tab} onChange={setTab} tabs={TABS.map((item) => ({ ...item, count: item.key === 'documents' ? documents.length : undefined }))} />
+      <LvSectionNav theme={theme} label="Relationship sections" sections={tabs} value={tab} onChange={goToTab} />
 
-      <div className="lv-sidebar-layout">
-        <div style={{ display: 'flex', flexDirection: 'column', gap: theme.space(5), minWidth: 0 }}>
-          {tab === 'overview' && (
-            <>
-              <LvSectionCard theme={theme} title="About" icon="person">
-                <p style={{ ...theme.type.body, color: theme.color.text, margin: 0 }}>
-                  {lead.rawCaptureInput ?? `${lead.name ?? 'This lead'} came in from ${sentenceCase(lead.source)}.`}
-                </p>
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: theme.space(2), marginTop: theme.space(3) }}>
-                  {[lead.category, lead.subcategory, ...(lead.languages ?? [])].filter(Boolean).map((chip, index) => (
-                    <LvChip key={`${chip}`} theme={theme} tint={(['mint', 'blue', 'peach', 'lavender', 'pink'] as const)[index % 5]}>
-                      {sentenceCase(String(chip))}
-                    </LvChip>
-                  ))}
-                </div>
-              </LvSectionCard>
-
-              <LvSectionCard theme={theme} title="Relationship" icon="leads">
-                <LvFactRow theme={theme} label="Last contact">
-                  {lead.lastInteractionAt ? `${formatWhen(lead.lastInteractionAt, data.now)} · ${sentenceCase(lastInteraction?.channel)}` : 'No contact yet'}
-                </LvFactRow>
-                <LvFactRow theme={theme} label="Sentiment">{sentenceCase(lastInteraction?.sentiment)}</LvFactRow>
-                <LvFactRow theme={theme} label="Concern">{lastInteraction?.objections ?? '—'}</LvFactRow>
-                <LvFactRow theme={theme} label="Owner">{lead.owner?.displayName ?? 'Unassigned'}</LvFactRow>
-                <LvFactRow theme={theme} label="Next follow-up">
-                  {lead.nextFollowUpAt ? formatWhen(lead.nextFollowUpAt, data.now) : 'Not scheduled'}
-                </LvFactRow>
-              </LvSectionCard>
-            </>
-          )}
-
-          {(tab === 'overview' || tab === 'onboarding') && onboarding && (
-            <LvSectionCard
-              theme={theme}
-              title="Onboarding"
-              icon="onboarding"
-              action={<span style={{ ...theme.type.bodySmall, color: theme.color.textMuted }}>{sentenceCase(onboarding.status)}</span>}
-            >
-              <LvProgress
-                theme={theme}
-                percentage={onboarding.progressPercentage ?? 0}
-                caption={onboarding.pendingDocuments > 0 ? 'Documents pending:' : `Current step: ${sentenceCase(onboarding.currentStep)}`}
-                pending={documents.filter((document) => document.verificationState !== 'VERIFIED').map((document) => document.name ?? sentenceCase(document.documentType))}
-                action={
-                  data.capabilities.canWorkOnboarding ? (
-                    <LvButton theme={theme} variant="secondary" size="sm" onClick={() => setTab('documents')}>
-                      Help complete
-                    </LvButton>
-                  ) : undefined
-                }
-              />
-            </LvSectionCard>
-          )}
-
-          {tab === 'overview' && data.capabilities.canViewIntelligence && (
-            <LvSectionCard theme={theme} title="AI insights" icon="sparkle">
-              <p style={{ ...theme.type.body, color: theme.color.text, margin: 0 }}>
-                {intelligence.opportunity.available && typeof intelligence.opportunity.score === 'number'
-                  ? `Opportunity score ${intelligence.opportunity.score} of 100, relationship ${sentenceCase(intelligence.health.state).toLowerCase()}.`
-                  : 'No scoring is available for this lead yet.'}
-              </p>
-              {intelligence.dataQuality.issues.length > 0 && (
-                <p style={{ ...theme.type.bodySmall, color: theme.color.textMuted, margin: `${theme.space(2)}px 0 0` }}>
-                  {intelligence.dataQuality.issues.length} data quality issue{intelligence.dataQuality.issues.length === 1 ? '' : 's'} to fix.
-                </p>
-              )}
-            </LvSectionCard>
-          )}
-
-          {tab === 'conversations' && (
-            <LvSectionCard
-              theme={theme}
-              title="Conversations"
-              icon="messages"
-              action={
-                data.capabilities.canLogInteraction ? (
-                  <LvButton theme={theme} variant="secondary" size="sm" onClick={() => setAction('interaction')}>
-                    Log an interaction
-                  </LvButton>
-                ) : undefined
-              }
-            >
-              {data.interactions.length === 0 ? (
-                <p style={{ ...theme.type.body, color: theme.color.textMuted, margin: 0 }}>Nothing has been logged yet.</p>
-              ) : (
-                <ul style={{ display: 'flex', flexDirection: 'column', gap: theme.space(3), margin: 0, padding: 0, listStyle: 'none' }}>
-                  {data.interactions.map((interaction) => (
-                    <li
-                      key={interaction.id}
-                      style={{ border: `1px solid ${theme.color.border}`, borderRadius: theme.radius.lg, padding: theme.space(4) }}
-                    >
-                      <div style={{ display: 'flex', alignItems: 'center', gap: theme.space(2), flexWrap: 'wrap' }}>
-                        <span style={{ color: theme.color.textSubtle, display: 'inline-flex' }}>
-                          <LvIcon name={channelIcon(interaction.channel)} size={17} />
-                        </span>
-                        <span style={{ ...theme.type.subheading, fontSize: 15, color: theme.color.heading }}>
-                          {sentenceCase(interaction.channel)} · {sentenceCase(interaction.direction)}
-                        </span>
-                        <span style={{ ...theme.type.bodySmall, color: theme.color.textSubtle }}>
-                          {interaction.occurredAt ? formatWhen(interaction.occurredAt, data.now) : ''}
-                        </span>
-                        <span style={{ flex: 1 }} />
-                        <LvChip
-                          theme={theme}
-                          tint={interaction.sentiment === 'NEGATIVE' ? 'pink' : interaction.sentiment === 'POSITIVE' ? 'mint' : 'blue'}
-                        >
-                          {sentenceCase(interaction.outcome)}
-                        </LvChip>
-                      </div>
-                      {interaction.summary && (
-                        <p style={{ ...theme.type.body, color: theme.color.text, margin: `${theme.space(2)}px 0 0` }}>{interaction.summary}</p>
-                      )}
-                      {interaction.objections && (
-                        <p style={{ ...theme.type.bodySmall, color: theme.color.warning, margin: `${theme.space(2)}px 0 0` }}>
-                          Concern raised: {interaction.objections}
-                        </p>
-                      )}
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </LvSectionCard>
-          )}
-
-          {tab === 'documents' && (
-            <LvSectionCard
-              theme={theme}
-              title="Documents"
-              icon="document"
-              action={
-                documents.length > 0 ? (
-                  <span style={{ ...theme.type.bodySmall, color: theme.color.textMuted }}>
-                    {verifiedDocuments} of {documents.length} verified
-                  </span>
-                ) : undefined
-              }
-            >
-              {documents.length === 0 ? (
-                <p style={{ ...theme.type.body, color: theme.color.textMuted, margin: 0 }}>No document has been uploaded.</p>
-              ) : (
-                <ul style={{ display: 'flex', flexDirection: 'column', gap: theme.space(2), margin: 0, padding: 0, listStyle: 'none' }}>
-                  {documents.map((document) => {
-                    const state = document.verificationState ?? 'PENDING';
-
-                    return (
-                      <li
-                        key={document.id}
-                        style={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          flexWrap: 'wrap',
-                          gap: theme.space(3),
-                          border: `1px solid ${theme.color.border}`,
-                          borderRadius: theme.radius.md,
-                          padding: theme.space(3),
-                        }}
-                      >
-                        <span style={{ color: theme.color.textSubtle, display: 'inline-flex' }}>
-                          <LvIcon name="document" size={18} />
-                        </span>
-                        <span style={{ flex: 1, minWidth: 0 }}>
-                          <span style={{ ...theme.type.body, color: theme.color.heading, display: 'block', overflowWrap: 'anywhere' }}>
-                            {document.name ?? sentenceCase(document.documentType)}
-                          </span>
-                          <span style={{ ...theme.type.bodySmall, color: theme.color.textMuted }}>
-                            {sentenceCase(document.documentType)}
-                            {document.expiresAt ? ` · expires ${formatWhen(document.expiresAt, data.now)}` : ''}
-                          </span>
-                        </span>
-                        <LvChip theme={theme} tint={state === 'VERIFIED' ? 'mint' : state === 'REJECTED' || state === 'EXPIRED' ? 'pink' : 'peach'}>
-                          {sentenceCase(state)}
-                        </LvChip>
-                        {/* A refusal without its reason is a dead end for
-                            whoever has to go back to the partner. */}
-                        {document.rejectionReason && (
-                          <p style={{ ...theme.type.bodySmall, color: theme.color.danger, flex: '1 0 100%', margin: 0 }}>{document.rejectionReason}</p>
-                        )}
-                      </li>
-                    );
-                  })}
-                </ul>
-              )}
-            </LvSectionCard>
-          )}
-
-          {tab === 'timeline' && (
-            <LvSectionCard theme={theme} title="Relationship timeline" icon="clock">
-              <LvTimeline theme={theme} formatWhen={(iso) => formatWhen(iso, data.now)} entries={data.timeline} />
-            </LvSectionCard>
-          )}
-        </div>
-
-        <aside style={{ display: 'flex', flexDirection: 'column', gap: theme.space(5), minWidth: 0 }}>
-          <LvSectionCard theme={theme} title="Timeline" icon="clock">
-            <LvTimeline theme={theme} formatWhen={(iso) => formatWhen(iso, data.now)} entries={data.timeline.slice(0, 6)} />
-          </LvSectionCard>
-
-          <LvSectionCard theme={theme} title="Related" icon="partner">
-            <LvRelatedList
-              theme={theme}
-              items={[
-                { key: 'experiences', icon: 'experience', label: 'Experiences', detail: `${data.ecosystem.experiences.length} linked` },
-                { key: 'documents', icon: 'document', label: 'Documents', detail: `${documents.length} received` },
-                { key: 'tasks', icon: 'task', label: 'Tasks', detail: `${data.openTasks.length} open` },
-                ...(data.ecosystem.partner
-                  ? [{ key: 'partner', icon: 'partner' as const, label: data.ecosystem.partner.name ?? 'Partner', detail: 'Partner profile', onOpen: () => navigate('/onboarding') }]
-                  : []),
-              ]}
-            />
-          </LvSectionCard>
-
-          {data.openTasks.length > 0 && (
-            <LvSectionCard theme={theme} title="Open tasks" icon="task">
-              {data.openTasks.slice(0, 5).map((task) => (
-                <LvFactRow key={task.id} theme={theme} label={task.title ?? 'Task'}>
-                  <span style={{ color: task.isOverdue ? theme.color.danger : theme.color.textMuted }}>
-                    {task.dueAt ? formatWhen(task.dueAt, data.now) : '—'}
-                  </span>
-                </LvFactRow>
-              ))}
-            </LvSectionCard>
-          )}
-        </aside>
+      <div className="lv-lead-body">
+        {tab === 'overview' && <OverviewTab theme={theme} data={data} onAction={onTabAction} onOpenTab={goToTab} />}
+        {tab === 'onboarding' && <OnboardingTab theme={theme} data={data} onAction={onTabAction} onOpenTab={goToTab} />}
+        {tab === 'conversations' && <ConversationsTab theme={theme} data={data} onAction={onTabAction} onOpenTab={goToTab} />}
+        {tab === 'documents' && <DocumentsTab theme={theme} data={data} onAction={onTabAction} onOpenTab={goToTab} />}
+        {tab === 'timeline' && <TimelineTab theme={theme} data={data} onAction={onTabAction} onOpenTab={goToTab} />}
+        {tab === 'intelligence' && <IntelligenceTab theme={theme} data={data} onAction={onTabAction} onOpenTab={goToTab} />}
+        {tab === 'governance' && <GovernanceTab theme={theme} data={data} onAction={onTabAction} onOpenTab={goToTab} />}
       </div>
 
-      {action !== null && (
-        <LeadActionDialog
-          theme={theme}
-          action={action}
-          leadId={lead.id}
-          settableStatuses={data.settableStatuses ?? []}
-          onClose={() => setAction(null)}
-          onDone={() => setReloads((value) => value + 1)}
-        />
-      )}
+      {/* On a phone this pins to the foot of the screen and the six doors step
+          aside for it; on a wider screen it sits in the flow. Only the actions
+          this person may take are in it. */}
+      {/* One primary, the rest secondary, nothing destructive: ending a
+          relationship lives in the overflow, not under a thumb. */}
+      <LvContextualActions theme={theme}>
+        {channels.phone && (
+          <LvButton theme={theme} variant="primary" icon={<LvIcon name="phone" size={16} />} onClick={() => window.open(`tel:${channels.phone}`)}>
+            Call
+          </LvButton>
+        )}
+        {channels.whatsapp && (
+          <LvButton theme={theme} variant="secondary" icon={<LvIcon name="whatsapp" size={16} />} onClick={() => window.open(channels.whatsapp as string, '_blank', 'noreferrer')}>
+            WhatsApp
+          </LvButton>
+        )}
+        {capabilities.canLogInteraction && (
+          <LvButton theme={theme} variant={channels.phone ? 'secondary' : 'primary'} icon={<LvIcon name="messages" size={16} />} onClick={() => setAction('interaction')}>
+            Log
+          </LvButton>
+        )}
+        {capabilities.canCreateTask && (
+          <LvButton theme={theme} variant="secondary" icon={<LvIcon name="task" size={16} />} onClick={() => setAction('task')}>
+            Follow-up
+          </LvButton>
+        )}
+        {capabilities.canClaim && !lead.owner && (
+          <LvButton theme={theme} variant="secondary" icon={<LvIcon name="person" size={16} />} onClick={() => setAction('owner')}>
+            Claim
+          </LvButton>
+        )}
+      </LvContextualActions>
 
-      <LvCard theme={theme} style={{ background: 'transparent', border: 'none', boxShadow: 'none', padding: 0 }}>
-        <LvButton theme={theme} variant="ghost" size="sm" onClick={() => navigate('/leads')}>
-          ← Back to my leads
-        </LvButton>
-      </LvCard>
+      {action !== null && (
+        <LeadActionDialog theme={theme} action={action} data={data} onClose={() => setAction(null)} onDone={reload} onOpenTab={goToTab} />
+      )}
     </>
   );
 };

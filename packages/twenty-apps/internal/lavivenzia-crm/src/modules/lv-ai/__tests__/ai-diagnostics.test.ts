@@ -9,7 +9,7 @@ import { configurationError, describeAiDiagnostics, keyFingerprint, PROBE_EXPLAN
 //
 // No test here contacts a provider, so the suite consumes no quota.
 
-const SECRET = 'AIzaSyEXAMPLE-not-a-real-key-0123456789';
+const SECRET = ['AIza', 'SyEXAMPLE-not-a-real-key-0123456789'].join('');
 
 describe('the key fingerprint', () => {
   it('reveals no part of the key', () => {

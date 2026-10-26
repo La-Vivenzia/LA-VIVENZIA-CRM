@@ -113,14 +113,6 @@ export const LvStyles = ({ theme }: { theme: LvTheme }) => (
     .lv-root .lv-ask-starter:hover { border-color: ${theme.color.borderStrong}; box-shadow: ${theme.shadow.md}; transform: translateY(-1px); }
     .lv-root .lv-ask-starter-arrow { margin-left: auto; flex: 0 0 auto; color: ${theme.color.textSubtle}; transition: transform ${theme.motion.duration.normal}ms ${theme.motion.easing}, color ${theme.motion.duration.normal}ms ${theme.motion.easing}; }
     .lv-root .lv-ask-starter:hover .lv-ask-starter-arrow { transform: translateX(3px); color: ${theme.color.brand}; }
-    @media (min-width: ${theme.breakpoint.md - 0.5}px) {
-      .lv-root .lv-ask-starter-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-      .lv-root .lv-ask-input { min-height: 68px; font-size: ${theme.font.size.lg - 2}px; }
-    }
-    @media (prefers-reduced-motion: reduce) {
-      .lv-root .lv-ask-send, .lv-root .lv-ask-starter, .lv-root .lv-ask-starter-arrow { transition: none; }
-      .lv-root .lv-ask-starter:hover, .lv-root .lv-ask-send:not(:disabled):hover { transform: none; }
-    }
     /* The account page reads as an editorial settings list, not a stack of
        boxed forms: an identity band, then sections whose rows are separated by
        hairlines, each row a label on the left and its control on the right. */
@@ -133,19 +125,11 @@ export const LvStyles = ({ theme }: { theme: LvTheme }) => (
     .lv-root .lv-acct-row:first-child { border-top: none; padding-top: 0; }
     .lv-root .lv-acct-control { width: 100%; min-width: 0; }
     .lv-root .lv-acct-savebar { position: sticky; bottom: ${theme.space(4)}px; z-index: 20; display: flex; align-items: center; gap: ${theme.space(3)}px; flex-wrap: wrap; padding: ${theme.space(3)}px ${theme.space(4)}px; background: ${theme.color.surfaceRaised}; border: 1px solid ${theme.color.borderStrong}; border-radius: ${theme.radius.lg}px; box-shadow: ${theme.shadow.lg}; }
-    @media (min-width: ${theme.breakpoint.md - 0.5}px) {
-      .lv-root .lv-acct-row { grid-template-columns: 236px minmax(0, 1fr); gap: ${theme.space(6)}px; align-items: start; }
-      .lv-root .lv-acct-control { max-width: 440px; }
-    }
     .lv-root .lv-kpi-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: ${theme.space(2)}px; }
     /* The richer stat tile (one that carries a tinted glyph) lifts on hover
        when it is a filter control. Plain tiles are unaffected. */
     .lv-root .lv-kpi-tile { transition: border-color ${theme.motion.duration.normal}ms ${theme.motion.easing}, box-shadow ${theme.motion.duration.normal}ms ${theme.motion.easing}, transform ${theme.motion.duration.fast}ms ${theme.motion.easing}; }
     .lv-root button.lv-kpi-tile:hover:not(:disabled) { box-shadow: ${theme.shadow.md}; transform: translateY(-1px); }
-    @media (prefers-reduced-motion: reduce) {
-      .lv-root .lv-kpi-tile { transition: none; }
-      .lv-root button.lv-kpi-tile:hover:not(:disabled) { transform: none; }
-    }
     .lv-root .lv-two-col { display: grid; grid-template-columns: 1fr; gap: ${theme.space(3)}px; align-items: start; }
     .lv-root .lv-three-col { display: grid; grid-template-columns: 1fr; gap: ${theme.space(3)}px; align-items: start; }
     .lv-root .lv-sidebar-layout { display: grid; grid-template-columns: 1fr; gap: ${theme.space(4)}px; align-items: start; }
@@ -432,6 +416,10 @@ export const LvStyles = ({ theme }: { theme: LvTheme }) => (
     @keyframes lv-shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
     @keyframes lv-fade { from { opacity: 0; transform: translateY(2px); } to { opacity: 1; transform: none; } }
     @media (min-width: ${theme.breakpoint.md - 0.5}px) {
+      .lv-root .lv-ask-starter-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .lv-root .lv-ask-input { min-height: 68px; font-size: ${theme.font.size.lg - 2}px; }
+      .lv-root .lv-acct-row { grid-template-columns: 236px minmax(0, 1fr); gap: ${theme.space(6)}px; align-items: start; }
+      .lv-root .lv-acct-control { max-width: 440px; }
       .lv-root .lv-entry-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
       .lv-root .lv-map-row { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr) minmax(0, 1fr); gap: ${theme.space(4)}px; align-items: start; padding: ${theme.space(3)}px 0; }
       .lv-root .lv-import-row { flex-direction: row; align-items: flex-start; gap: ${theme.space(4)}px; }

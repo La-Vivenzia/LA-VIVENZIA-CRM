@@ -82,3 +82,6 @@ packages/twenty-server/seed_mock.js
 # deploy/aws script scratch files
 lv-null.tmp
 lv-index.tmp.html
+
+# Supabase credentials (never commit)
+.env.supabase

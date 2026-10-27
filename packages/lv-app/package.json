@@ -4,12 +4,30 @@
   "private": true,
   "type": "module",
   "description": "The La Vivenzia CRM interface. A standalone front-end that replaces Twenty's UI entirely and talks to it as a backend.",
+  "engines": {
+    "node": ">=22.12"
+  },
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
     "preview": "vite preview",
+    "start": "serve --single --no-clipboard dist",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "lint": "oxlint -c ../twenty-apps/internal/lavivenzia-crm/.oxlintrc.json src"
+  },
+  "dependencies": {
+    "react": "19.2.7",
+    "react-dom": "19.2.7",
+    "react-router-dom": "6.30.6",
+    "serve": "^14.2.4"
+  },
+  "devDependencies": {
+    "@types/react": "19.2.17",
+    "@types/react-dom": "19.2.3",
+    "@vitejs/plugin-react-swc": "4.3.1",
+    "typescript": "5.9.3",
+    "vite": "8.0.16",
+    "vitest": "4.1.10"
   }
 }

@@ -1,4 +1,4 @@
-﻿# La Vivenzia â€” Pune Pilot CRM Documentation Hub
+# La Vivenzia â€” Pune Pilot CRM Documentation Hub
 
 This directory contains the complete technical specifications, architectural decisions, testing records, and manual QA protocols for the **Pune Pilot CRM Sprint**.
 
@@ -27,9 +27,9 @@ docs/pune-pilot-crm/
 
 | Task | Name / Focus | Status | Branch | Primary Documentation |
 |---|---|---|---|---|
-| **Task 1** | **Pune Pilot Leads & Vibe Filters** | **`READY FOR REVIEW`** | `feature/shlok-pune-pilot-crm` | [Task 1 Implementation](./task-1/task-1-pune-pilot-crm-implementation.md) |
-| **Task 2** | **Onboarding Workflow & SLA Widget** | `UPCOMING` | TBD | [Task 2 Index](./task-2/README.md) |
-| **Task 3** | **Sandbox Importer & Visiting-Card OCR** | `UPCOMING` | TBD | [Task 3 Index](./task-3/README.md) |
+| **Task 1** | **Pune Pilot Leads & Vibe Filters** | **`COMMITTED (1c8492aa)`** | `feature/shlok-pune-pilot-crm` | [Task 1 Implementation](./task-1/task-1-pune-pilot-crm-implementation.md) |
+| **Task 2** | **Five-Stage Onboarding Tracker** | **`COMMITTED (89d8cb2d)`** | `feature/shlok-pune-pilot-crm` | [Task 2 Index](./task-2/README.md) |
+| **Task 3** | **Pune Pilot Sandbox Lead Import** | **`READY FOR REVIEW`** | `feature/shlok-pune-pilot-crm` | [Task 3 Index](./task-3/README.md) |
 
 ---
 

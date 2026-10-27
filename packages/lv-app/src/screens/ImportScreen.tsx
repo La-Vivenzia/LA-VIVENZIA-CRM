@@ -79,7 +79,17 @@ export const ImportScreen = ({ theme }: { theme: LvTheme }) => {
           theme={theme}
           title={isForbiddenMessage(error) ? 'Your role cannot import leads' : 'That did not go through'}
           text={error}
-          onRetry={isForbiddenMessage(error) ? undefined : phase === 'MAP' ? () => void state.validate() : phase === 'REVIEW' ? () => void state.commit() : undefined}
+          onRetry={
+            isForbiddenMessage(error)
+              ? undefined
+              : phase === 'MAP'
+                ? () => void state.validate()
+                : phase === 'REVIEW'
+                  ? () => void state.commit()
+                  : state.fileName === 'Pune Pilot Sandbox'
+                    ? () => void state.loadSandbox()
+                    : undefined
+          }
         />
       )}
 

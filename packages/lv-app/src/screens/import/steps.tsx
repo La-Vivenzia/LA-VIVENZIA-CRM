@@ -12,6 +12,8 @@ import {
   type ImportState,
   type ImportTargetKey,
 } from 'src/api/import';
+import { PUNE_PILOT_SANDBOX_RECORDS, punePilotSandboxCsv } from 'src/fixtures/pune-pilot-sandbox';
+import { PILOT_ZONE_LABELS } from 'src/domain/pilot-zones';
 import { LvUploadItem, LvUploadZone } from 'src/design/documents';
 import { LvBanner } from 'src/design/feedback';
 import { LvIcon } from 'src/design/icons';
@@ -67,8 +69,85 @@ export const SelectStep = ({ theme, state }: { theme: LvTheme; state: ImportStat
     URL.revokeObjectURL(url);
   };
 
+  const downloadSandboxCsv = () => {
+    const blob = new Blob([punePilotSandboxCsv()], { type: 'text/csv;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+
+    link.href = url;
+    link.download = 'pune-pilot-sandbox-leads.csv';
+    link.click();
+    URL.revokeObjectURL(url);
+  };
+
   return (
     <>
+      {/* ------------------------------------------------------------------
+          Pune Pilot Sandbox Card
+          ------------------------------------------------------------------ */}
+      <LvSectionCard theme={theme} title="Pune Pilot Sandbox" icon="leads">
+        <p style={{ ...theme.type.bodySmall, color: theme.color.text, margin: `0 0 ${theme.space(3)}px` }}>
+          Evaluating the Pune pilot? Load 12 fictional sandbox venues across Amanora Mall, Seasons Mall,
+          Magarpatta City, and Hadapsar with pre-classified pilot vibes (Gaming & Arcade, Brewery & Nightlife,
+          Work Cafe, Luxury Spa, and Fine Dining).
+        </p>
+
+        <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: theme.space(3), marginBottom: theme.space(3) }}>
+          <LvButton
+            theme={theme}
+            variant="primary"
+            onClick={() => void state.loadSandbox()}
+            disabled={state.isSandboxLoading}
+            icon={<LvIcon name="leads" size={16} />}
+          >
+            {state.isSandboxLoading ? 'Loading sandbox leads…' : 'Load Pune Pilot Sandbox'}
+          </LvButton>
+
+          <LvButton
+            theme={theme}
+            variant="secondary"
+            onClick={downloadSandboxCsv}
+            icon={<LvIcon name="download" size={16} />}
+          >
+            Download Sandbox CSV
+          </LvButton>
+        </div>
+
+        <InlineNotice theme={theme} tone="neutral">
+          <strong>Fictional demo data only:</strong> All names, phone numbers, and emails are synthetic test records
+          and will not contact real venues or overwrite existing customer records.
+        </InlineNotice>
+
+        <div style={{ marginTop: theme.space(3) }}>
+          <Disclosure theme={theme} label="View the 12 sandbox venues" hint="4 zones · 5 vibes · 12 records">
+            <ul style={{ display: 'flex', flexDirection: 'column', gap: theme.space(2), margin: `${theme.space(2)}px 0 0`, padding: 0, listStyle: 'none' }}>
+              {PUNE_PILOT_SANDBOX_RECORDS.map((venue) => (
+                <li
+                  key={venue.rowNumber}
+                  style={{
+                    display: 'flex',
+                    flexWrap: 'wrap',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    gap: theme.space(2),
+                    padding: `${theme.space(2)}px 0`,
+                    borderTop: `1px solid ${theme.color.border}`,
+                    fontFamily: theme.font.body,
+                    fontSize: 13,
+                  }}
+                >
+                  <span style={{ fontWeight: 600, color: theme.color.heading }}>{venue.name}</span>
+                  <div style={{ display: 'flex', gap: theme.space(2), flexWrap: 'wrap' }}>
+                    <LvBadge theme={theme} tone="info">{PILOT_ZONE_LABELS[venue.pilotZone]}</LvBadge>
+                    <LvBadge theme={theme} tone="neutral">{sentence(venue.subcategory)}</LvBadge>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          </Disclosure>
+        </div>
+      </LvSectionCard>
+
       <LvSectionCard theme={theme} title="Choose the file" icon="upload">
         <LvUploadZone
           theme={theme}

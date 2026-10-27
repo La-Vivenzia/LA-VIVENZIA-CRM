@@ -225,7 +225,9 @@ export type LeadListRow = {
   name: string | null;
   organisationName: string | null;
   location: string | null;
+  pilotZone: string | null;
   category: string | null;
+  subcategory: string | null;
   status: string | null;
   priority: string | null;
   nextAction: string | null;
@@ -244,7 +246,22 @@ const LIST_QUERY = `
   query LvLeadList($first: Int!) {
     lvLeads(orderBy: { lastInteractionAt: DescNullsLast }, first: $first) {
       edges { node {
-        id lvLeadId name organisationName location category status priority
+        id lvLeadId name organisationName location pilotZone category subcategory status priority
+        nextAction nextFollowUpAt lastInteractionAt opportunityScore
+        photoUrl rating reviewCount
+        owner { id name { firstName lastName } }
+        emails { primaryEmail }
+        phones { primaryPhoneNumber }
+      } }
+    }
+  }
+`;
+
+const FALLBACK_LIST_QUERY = `
+  query LvLeadListFallback($first: Int!) {
+    lvLeads(orderBy: { lastInteractionAt: DescNullsLast }, first: $first) {
+      edges { node {
+        id lvLeadId name organisationName location category subcategory status priority
         nextAction nextFollowUpAt lastInteractionAt opportunityScore
         photoUrl rating reviewCount
         owner { id name { firstName lastName } }
@@ -267,10 +284,28 @@ export const useLeadList = () => {
 
     const load = async () => {
       try {
-        const result = await graphql<{ lvLeads: { edges: { node: LeadListRow }[] } }>(LIST_QUERY, { first: 200 });
+        let loadedRows: LeadListRow[];
+
+        try {
+          const result = await graphql<{ lvLeads: { edges: { node: LeadListRow }[] } }>(LIST_QUERY, { first: 200 });
+
+          loadedRows = result.lvLeads.edges.map((edge) => edge.node);
+        } catch (cause) {
+          const message = cause instanceof Error ? cause.message : String(cause);
+
+          // Graceful degradation when metadata sync is pending on active DB instance:
+          // LvLead may not yet expose the pilotZone field in the GraphQL schema.
+          if (/Cannot query field ["']pilotZone["']/i.test(message)) {
+            const fallbackResult = await graphql<{ lvLeads: { edges: { node: Omit<LeadListRow, 'pilotZone'> }[] } }>(FALLBACK_LIST_QUERY, { first: 200 });
+
+            loadedRows = fallbackResult.lvLeads.edges.map((edge) => ({ ...edge.node, pilotZone: null }));
+          } else {
+            throw cause;
+          }
+        }
 
         if (!cancelled) {
-          setRows(result.lvLeads.edges.map((edge) => edge.node));
+          setRows(loadedRows);
         }
       } catch (cause) {
         if (!cancelled) {

@@ -165,6 +165,7 @@ const PRIORITY_COLORS = {
 };
 
 const categories = arrayOf(taxonomy, 'LEAD_CATEGORIES');
+const pilotZones = arrayOf(taxonomy, 'LEAD_PILOT_ZONES');
 const sources = arrayOf(taxonomy, 'LEAD_SOURCES');
 const modes = arrayOf(taxonomy, 'LEAD_CAPTURE_MODES');
 const provenances = arrayOf(taxonomy, 'FIELD_PROVENANCES');
@@ -250,6 +251,15 @@ ${block(
 
 export const LEAD_CATEGORY_OPTIONS: SelectOption[] = [
 ${block('leadCategory', categories, labelsOf(taxonomy, 'LEAD_CATEGORY_LABELS'))}
+];
+
+export const LEAD_PILOT_ZONE_OPTIONS: SelectOption[] = [
+${block(
+  'leadPilotZone',
+  pilotZones,
+  labelsOf(taxonomy, 'LEAD_PILOT_ZONE_LABELS'),
+  (value, index) => ['blue', 'turquoise', 'purple', 'amber'][index % 4],
+)}
 ];
 
 export const LEAD_SUBCATEGORY_OPTIONS: SelectOption[] = [

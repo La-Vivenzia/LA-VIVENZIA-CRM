@@ -2,6 +2,23 @@ import { useMemo, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 
 import { inView, isOverdue, LEAD_SORTS, LEAD_VIEWS, sortLeads, useLeadList, type LeadListRow, type LeadSort, type LeadView } from 'src/api/leads';
+import {
+  isPilotZoneFilter,
+  matchesPilotZone,
+  normalizePilotZone,
+  PILOT_ZONE_FILTER_OPTIONS,
+  PILOT_ZONE_LABELS,
+  type PilotZone,
+  type PilotZoneFilter,
+} from 'src/domain/pilot-zones';
+import {
+  matchesVibe,
+  normalizeVibeFilter,
+  VIBE_FILTER_OPTIONS,
+  VIBE_LABELS,
+  type VibeFilter,
+  type VibeKey,
+} from 'src/domain/vibe-taxonomy';
 import { contextLine, withoutSubject } from 'src/design/copy';
 import { LvFilterBar } from 'src/design/data';
 import { LvIcon } from 'src/design/icons';
@@ -134,6 +151,12 @@ export const LeadsScreen = ({ theme }: { theme: LvTheme }) => {
   const { rows, error, reload } = useLeadList();
   const query = params.get('q') ?? '';
   const view = (params.get('view') as LeadView | null) ?? 'all';
+  const zoneParam = params.get('zone');
+  const zone: PilotZoneFilter = isPilotZoneFilter(zoneParam)
+    ? (zoneParam as PilotZoneFilter)
+    : (normalizePilotZone(zoneParam) ?? 'all');
+  const vibeParam = params.get('vibe');
+  const vibe: VibeFilter = normalizeVibeFilter(vibeParam);
   const [sort, setSort] = useState<LeadSort>('urgent');
   const now = Date.now();
 
@@ -160,6 +183,14 @@ export const LeadsScreen = ({ theme }: { theme: LvTheme }) => {
         return false;
       }
 
+      if (!matchesPilotZone(lead.pilotZone, zone)) {
+        return false;
+      }
+
+      if (!matchesVibe(lead.subcategory, lead.category, vibe)) {
+        return false;
+      }
+
       if (needle === '') {
         return true;
       }
@@ -168,7 +199,7 @@ export const LeadsScreen = ({ theme }: { theme: LvTheme }) => {
     });
 
     return sortLeads(filtered, sort, now);
-  }, [rows, view, query, sort, now]);
+  }, [rows, view, zone, vibe, query, sort, now]);
 
   const viewDefinition = LEAD_VIEWS.find((candidate) => candidate.key === view) ?? LEAD_VIEWS[0];
   const counts = useMemo(
@@ -221,7 +252,7 @@ export const LeadsScreen = ({ theme }: { theme: LvTheme }) => {
     );
   }
 
-  const filtering = query.trim() !== '' || view !== 'all';
+  const filtering = query.trim() !== '' || view !== 'all' || zone !== 'all' || vibe !== 'all';
 
   return (
     <>
@@ -232,6 +263,8 @@ export const LeadsScreen = ({ theme }: { theme: LvTheme }) => {
         label="Filter leads"
         active={[
           ...(view !== 'all' ? [{ key: 'view', label: viewDefinition.label, onRemove: () => setParam('view', null) }] : []),
+          ...(zone !== 'all' ? [{ key: 'zone', label: PILOT_ZONE_LABELS[zone as PilotZone] ?? zone, onRemove: () => setParam('zone', null) }] : []),
+          ...(vibe !== 'all' ? [{ key: 'vibe', label: VIBE_LABELS[vibe as VibeKey] ?? vibe, onRemove: () => setParam('vibe', null) }] : []),
           ...(query.trim() !== '' ? [{ key: 'q', label: `“${query.trim()}”`, onRemove: () => setParam('q', null) }] : []),
         ]}
         onClearAll={
@@ -248,6 +281,20 @@ export const LeadsScreen = ({ theme }: { theme: LvTheme }) => {
           value={view}
           onChange={(key) => setParam('view', key)}
           options={LEAD_VIEWS.map((definition) => ({ key: definition.key, label: definition.label, count: counts[definition.key] }))}
+        />
+        <Segmented
+          theme={theme}
+          label="Pilot zone"
+          value={zone}
+          onChange={(key) => setParam('zone', key)}
+          options={PILOT_ZONE_FILTER_OPTIONS}
+        />
+        <Segmented
+          theme={theme}
+          label="Vibe"
+          value={vibe}
+          onChange={(key) => setParam('vibe', key)}
+          options={VIBE_FILTER_OPTIONS}
         />
         <label htmlFor="lv-lead-sort" style={{ display: 'inline-flex', alignItems: 'center', gap: theme.space(2), ...theme.type.bodySmall, color: theme.color.textMuted }}>
           Sort
@@ -296,6 +343,28 @@ export const LeadsScreen = ({ theme }: { theme: LvTheme }) => {
                 action={
                   <LvButton theme={theme} variant="secondary" onClick={() => setParam('q', null)}>
                     Clear the search
+                  </LvButton>
+                }
+              />
+            ) : zone !== 'all' || vibe !== 'all' ? (
+              <EmptyState
+                theme={theme}
+                quiet={false}
+                icon="filter"
+                title="No leads match the selected filters"
+                text="Try switching your zone or vibe filter to 'All' to see more leads."
+                action={
+                  <LvButton
+                    theme={theme}
+                    variant="secondary"
+                    onClick={() => {
+                      const next = new URLSearchParams(params);
+                      next.delete('zone');
+                      next.delete('vibe');
+                      setParams(next, { replace: true });
+                    }}
+                  >
+                    Reset zone &amp; vibe
                   </LvButton>
                 }
               />

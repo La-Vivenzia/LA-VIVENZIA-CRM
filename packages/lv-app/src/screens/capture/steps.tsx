@@ -13,7 +13,8 @@ import {
 import { LvIcon, type LvIconName } from 'src/design/icons';
 import { LvUploadZone } from 'src/design/documents';
 import { LvAiUnavailable, LvConfidence } from 'src/design/intelligence';
-import { EmptyState, Field, formatWhen, LvBadge, LvButton, LvCard, LvInput, LvSkeletonRow, Provenance, VisuallyHidden } from 'src/design/kit';
+import { EmptyState, Field, formatWhen, LvBadge, LvButton, LvCard, LvInput, LvSelect, LvSkeletonRow, Provenance, VisuallyHidden } from 'src/design/kit';
+import { PILOT_ZONE_SELECT_OPTIONS } from 'src/domain/pilot-zones';
 import { LvSectionCard } from 'src/design/profile';
 import { describeStatus } from 'src/design/status';
 import { type LvTheme, type LvTint } from 'src/design/theme';
@@ -426,6 +427,35 @@ export const ReviewStep = ({ theme, capture, method }: { theme: LvTheme; capture
                 </Field>
               );
             })}
+            {group.key === 'where' && (
+              <Field
+                theme={theme}
+                label="Pilot zone"
+                htmlFor="lv-capture-pilotZone"
+                required
+                help="Operational zone for the Pune pilot"
+                error={draft.pilotZone ? null : 'Pilot zone is required'}
+              >
+                <LvSelect
+                  theme={theme}
+                  id="lv-capture-pilotZone"
+                  name="pilotZone"
+                  required
+                  value={draft.pilotZone ?? ''}
+                  onChange={(event) => set('pilotZone', event.target.value)}
+                  invalid={!draft.pilotZone}
+                >
+                  <option value="" disabled>
+                    Select a Pune pilot zone…
+                  </option>
+                  {PILOT_ZONE_SELECT_OPTIONS.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
+                </LvSelect>
+              </Field>
+            )}
           </div>
         </LvSectionCard>
       ))}

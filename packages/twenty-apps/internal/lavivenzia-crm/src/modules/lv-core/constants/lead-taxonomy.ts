@@ -236,3 +236,23 @@ export const isLeadSource = (value: string): value is LeadSource =>
 
 export const isLeadCaptureMode = (value: string): value is LeadCaptureMode =>
   (LEAD_CAPTURE_MODES as readonly string[]).includes(value);
+
+// Pune Pilot Zones
+export const LEAD_PILOT_ZONES = [
+  'AMANORA_MALL',
+  'SEASONS_MALL',
+  'MAGARPATTA_CITY',
+  'HADAPSAR',
+] as const;
+
+export type LeadPilotZone = (typeof LEAD_PILOT_ZONES)[number];
+
+export const LEAD_PILOT_ZONE_LABELS: Record<LeadPilotZone, string> = {
+  AMANORA_MALL: 'Amanora Mall',
+  SEASONS_MALL: 'Seasons Mall',
+  MAGARPATTA_CITY: 'Magarpatta City',
+  HADAPSAR: 'Hadapsar',
+};
+
+export const isLeadPilotZone = (value: unknown): value is LeadPilotZone =>
+  typeof value === 'string' && (LEAD_PILOT_ZONES as readonly string[]).includes(value);

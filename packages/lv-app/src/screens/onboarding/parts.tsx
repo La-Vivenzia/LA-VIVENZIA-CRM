@@ -34,20 +34,18 @@ export const STATUS_TONE: Record<OnboardingStatus, Tone> = {
 };
 
 /**
- * The journey, drawn from the status the record actually holds.
- *
- * A stage is blocked rather than merely current when the server would refuse
- * the move out of it — an unverified document, a missing required answer, no
- * named reviewer. Nothing is marked done that the data does not say is done.
+ * Computes the visual steps for the five-stage onboarding journey.
+ * A stage is marked done if earlier than current; blocked if current and has
+ * stopping blockers; current if active without blockers; todo if future.
  */
-export const LvJourney = ({ theme, record, onOpenBlockers }: { theme: LvTheme; record: OnboardingRecord; onOpenBlockers?: () => void }) => {
+export const journeyStepsFor = (record: OnboardingRecord, onOpenBlockers?: () => void): LvStep[] => {
   const current = stageOf(record.status);
   const blockers = blockersFor(record);
   // A blocker that stops the partner moving on is the stage's problem; one
   // that only says "they can still edit" is not, it is the stage working.
   const stopping = blockers.filter((blocker) => blocker.kind !== 'PARTNER');
 
-  const steps: LvStep[] = ONBOARDING_JOURNEY.map((stage, index) => {
+  return ONBOARDING_JOURNEY.map((stage, index) => {
     const isCurrent = index === current;
     const state: LvStep['state'] = index < current ? 'done' : isCurrent ? (stopping.length > 0 ? 'blocked' : 'current') : 'todo';
 
@@ -59,6 +57,17 @@ export const LvJourney = ({ theme, record, onOpenBlockers }: { theme: LvTheme; r
       onOpen: isCurrent && stopping.length > 0 && onOpenBlockers ? onOpenBlockers : undefined,
     };
   });
+};
+
+/**
+ * The journey, drawn from the status the record actually holds.
+ *
+ * A stage is blocked rather than merely current when the server would refuse
+ * the move out of it — an unverified document, a missing required answer, no
+ * named reviewer. Nothing is marked done that the data does not say is done.
+ */
+export const LvJourney = ({ theme, record, onOpenBlockers }: { theme: LvTheme; record: OnboardingRecord; onOpenBlockers?: () => void }) => {
+  const steps = journeyStepsFor(record, onOpenBlockers);
 
   // Rejected is not a stage: the machine lets a rejected partner reapply, so
   // it is said beside the journey rather than drawn as its end.

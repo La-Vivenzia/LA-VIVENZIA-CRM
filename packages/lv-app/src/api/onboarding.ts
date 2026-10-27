@@ -348,7 +348,7 @@ export const DATA_BEARING_STEPS = ONBOARDING_STEPS.filter((step) => step !== 'FI
 // ---------------------------------------------------------------------------
 // The journey, as the state machine describes it.
 //
-// The eleven statuses are the truth; these six stages are a reading of them,
+// The eleven statuses are the truth; these five stages are a reading of them,
 // and each one names the statuses it contains so nothing is hidden behind a
 // friendlier word. REJECTED sits outside the journey because the machine lets
 // a rejected partner reapply rather than ending there.
@@ -356,17 +356,36 @@ export const DATA_BEARING_STEPS = ONBOARDING_STEPS.filter((step) => step !== 'FI
 export type JourneyStage = { key: string; label: string; statuses: readonly OnboardingStatus[]; meaning: string };
 
 export const ONBOARDING_JOURNEY: readonly JourneyStage[] = [
-  { key: 'invite', label: 'Invited', statuses: ['NOT_STARTED', 'INVITED'], meaning: 'The partner has been asked to fill in their profile.' },
+  {
+    key: 'invite',
+    label: 'Invited',
+    statuses: ['NOT_STARTED', 'INVITED'],
+    meaning: 'The partner has been asked to fill in their profile.',
+  },
   {
     key: 'partner',
-    label: 'With the partner',
+    label: 'With Partner',
     statuses: ['INITIATED', 'IN_PROGRESS', 'WAITING_FOR_PARTNER', 'CHANGES_REQUESTED'],
     meaning: 'The partner is filling the form in, and can still edit it.',
   },
-  { key: 'verification', label: 'Verification', statuses: ['VERIFICATION'], meaning: 'Submitted and locked. The documents are being checked.' },
-  { key: 'review', label: 'Internal review', statuses: ['INTERNAL_REVIEW'], meaning: 'Documents checked. The decision is with La Vivenzia.' },
-  { key: 'approved', label: 'Approved', statuses: ['APPROVED'], meaning: 'Approved and waiting to go live.' },
-  { key: 'live', label: 'Live', statuses: ['ACTIVATED'], meaning: 'The partner is live on La Vivenzia.' },
+  {
+    key: 'review',
+    label: 'Under Review',
+    statuses: ['VERIFICATION', 'INTERNAL_REVIEW'],
+    meaning: 'Submitted and locked. Verification and internal review in progress.',
+  },
+  {
+    key: 'approved',
+    label: 'Approved',
+    statuses: ['APPROVED'],
+    meaning: 'Approved and waiting to go live.',
+  },
+  {
+    key: 'live',
+    label: 'Live',
+    statuses: ['ACTIVATED'],
+    meaning: 'The partner is live on La Vivenzia.',
+  },
 ];
 
 export const stageOf = (status: OnboardingStatus): number => ONBOARDING_JOURNEY.findIndex((stage) => stage.statuses.includes(status));
@@ -749,7 +768,7 @@ export type Blocker = { kind: 'DOCUMENT' | 'ANSWER' | 'REVIEWER' | 'PARTNER'; te
  */
 export const blockersFor = (record: OnboardingRecord): Blocker[] => {
   const blockers: Blocker[] = [];
-  const next = ONBOARDING_TRANSITIONS[record.status];
+  const next = ONBOARDING_TRANSITIONS[record.status] ?? [];
 
   if (next.includes('APPROVED')) {
     if (record.reviewerId === null) {

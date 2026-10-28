@@ -1,8 +1,9 @@
-﻿import { describe, expect, it } from 'vitest';
+import { describe, expect, it } from 'vitest';
 
 import { inView, type LeadListRow } from 'src/api/leads';
 import { matchesPilotZone } from 'src/domain/pilot-zones';
 import { matchesVibe } from 'src/domain/vibe-taxonomy';
+import { PUNE_PILOT_SANDBOX_RECORDS } from 'src/fixtures/pune-pilot-sandbox';
 
 const makeLead = (overrides: Partial<LeadListRow>): LeadListRow => ({
   id: 'lead-1',
@@ -241,6 +242,68 @@ describe('LeadsScreen filtering composition', () => {
       expect(/Cannot query field ["']pilotZone["']/i.test(networkError.message)).toBe(false);
       expect(/Cannot query field ["']pilotZone["']/i.test(authError.message)).toBe(false);
       expect(/Cannot query field ["']pilotZone["']/i.test(syntaxError.message)).toBe(false);
+    });
+  });
+
+  describe('Sandbox imported leads filtering by zone and vibe', () => {
+    const sandboxLeads: LeadListRow[] = PUNE_PILOT_SANDBOX_RECORDS.map((rec) =>
+      makeLead({
+        id: `sandbox-${rec.rowNumber}`,
+        lvLeadId: `LV-SANDBOX-${rec.rowNumber}`,
+        name: rec.name,
+        organisationName: rec.organisationName,
+        location: rec.location,
+        pilotZone: rec.pilotZone,
+        category: rec.category,
+        subcategory: rec.subcategory,
+        status: 'NEW',
+      }),
+    );
+
+    it('filters all 12 sandbox leads correctly when selecting zone "all"', () => {
+      const filtered = sandboxLeads.filter((l) => matchesPilotZone(l.pilotZone, 'all'));
+      expect(filtered).toHaveLength(12);
+    });
+
+    it('filters exactly 3 sandbox leads per individual Pune Pilot Zone', () => {
+      const zones = ['AMANORA_MALL', 'SEASONS_MALL', 'MAGARPATTA_CITY', 'HADAPSAR'] as const;
+
+      for (const zone of zones) {
+        const filtered = sandboxLeads.filter((l) => matchesPilotZone(l.pilotZone, zone));
+        expect(filtered).toHaveLength(3);
+        for (const lead of filtered) {
+          expect(lead.pilotZone).toBe(zone);
+        }
+      }
+    });
+
+    it('produces the exact expected intersection when combining zone and vibe filters', () => {
+      // Amanora Mall + Gaming & Arcade => Neon Byte Arcade
+      const amanoraArcade = sandboxLeads.filter(
+        (l) => matchesPilotZone(l.pilotZone, 'AMANORA_MALL') && matchesVibe(l.subcategory, l.category, 'gaming_arcade'),
+      );
+      expect(amanoraArcade).toHaveLength(1);
+      expect(amanoraArcade[0].name).toBe('Neon Byte Arcade [Sandbox]');
+
+      // Magarpatta City + Brewery & Nightlife => The Hoppy Fox Craft Brewery
+      const magarpattaBrewery = sandboxLeads.filter(
+        (l) => matchesPilotZone(l.pilotZone, 'MAGARPATTA_CITY') && matchesVibe(l.subcategory, l.category, 'brewery_nightlife'),
+      );
+      expect(magarpattaBrewery).toHaveLength(1);
+      expect(magarpattaBrewery[0].name).toBe('The Hoppy Fox Craft Brewery [Sandbox]');
+
+      // Seasons Mall + Luxury Spa => Nirvana Ananda Luxury Spa
+      const seasonsSpa = sandboxLeads.filter(
+        (l) => matchesPilotZone(l.pilotZone, 'SEASONS_MALL') && matchesVibe(l.subcategory, l.category, 'luxury_spa'),
+      );
+      expect(seasonsSpa).toHaveLength(1);
+      expect(seasonsSpa[0].name).toBe('Nirvana Ananda Luxury Spa [Sandbox]');
+
+      // Hadapsar + Fine Dining => 0 records (Fine dining is in Amanora & Magarpatta)
+      const hadapsarDining = sandboxLeads.filter(
+        (l) => matchesPilotZone(l.pilotZone, 'HADAPSAR') && matchesVibe(l.subcategory, l.category, 'fine_dining'),
+      );
+      expect(hadapsarDining).toHaveLength(0);
     });
   });
 });

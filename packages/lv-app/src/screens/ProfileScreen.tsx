@@ -10,6 +10,7 @@ import { LvContextualActions, LvSectionNav } from 'src/design/page';
 import { LvNextBestAction } from 'src/design/profile';
 import { type LvTheme } from 'src/design/theme';
 import { LeadHeader, leadChannels, sentenceCase } from 'src/screens/lead/header';
+import { dispatchOutboundContact } from 'src/domain/telephony-isolation';
 import { GovernanceTab, IntelligenceTab } from 'src/screens/lead/insight';
 import { ConversationsTab, DocumentsTab, OnboardingTab, OverviewTab, TimelineTab } from 'src/screens/lead/tabs';
 import { LeadActionDialog, LEAD_ACTIONS, type LeadAction } from 'src/screens/lead/actions';
@@ -230,14 +231,19 @@ export const ProfileScreen = ({ theme }: { theme: LvTheme }) => {
           relationship lives in the overflow, not under a thumb. */}
       <LvContextualActions theme={theme}>
         {channels.phone && (
-          <LvButton theme={theme} variant="primary" icon={<LvIcon name="phone" size={16} />} onClick={() => window.open(`tel:${channels.phone}`)}>
+          <LvButton theme={theme} variant="primary" icon={<LvIcon name="phone" size={16} />} onClick={() => dispatchOutboundContact('phone', channels)}>
             Call
           </LvButton>
         )}
         {channels.whatsapp && (
-          <LvButton theme={theme} variant="secondary" icon={<LvIcon name="whatsapp" size={16} />} onClick={() => window.open(channels.whatsapp as string, '_blank', 'noreferrer')}>
+          <LvButton theme={theme} variant="secondary" icon={<LvIcon name="whatsapp" size={16} />} onClick={() => dispatchOutboundContact('whatsapp', channels)}>
             WhatsApp
           </LvButton>
+        )}
+        {channels.isSandbox && (
+          <span style={{ display: 'inline-flex', alignItems: 'center', padding: '6px 12px', borderRadius: theme.radius.pill, background: 'rgba(230, 81, 0, 0.1)', color: '#d84315', fontSize: '13px', fontWeight: 600 }}>
+            Telephony isolated (sandbox)
+          </span>
         )}
         {capabilities.canLogInteraction && (
           <LvButton theme={theme} variant={channels.phone ? 'secondary' : 'primary'} icon={<LvIcon name="messages" size={16} />} onClick={() => setAction('interaction')}>

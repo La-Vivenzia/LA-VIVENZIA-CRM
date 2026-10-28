@@ -60,6 +60,10 @@ export const deliverNotificationEmail = async ({
     return { status: 'FAILED', error: 'Recipient has no email address.' };
   }
 
+  if (recipient.email.toLowerCase().includes('.sandbox.lavivenzia.internal') || recipient.email.toLowerCase().endsWith('.internal')) {
+    return { status: 'SKIPPED_NO_PROVIDER', error: 'Sandbox email recipient: outbound delivery quarantined.' };
+  }
+
   const composed = composeNotificationEmail({
     notification,
     recipientFirstName: recipient.firstName,

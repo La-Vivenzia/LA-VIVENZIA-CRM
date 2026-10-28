@@ -72,6 +72,7 @@ describe('useImport: Pune Pilot Sandbox Workflow', () => {
     for (const row of rows) {
       expect(row.decision).toBe('CREATE');
       expect(row.fields.name).toContain('[Sandbox]');
+      expect(row.fields.pilotZone).toBeTruthy();
     }
 
     // Verifies result state

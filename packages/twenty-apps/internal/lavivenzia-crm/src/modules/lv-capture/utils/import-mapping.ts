@@ -13,6 +13,7 @@ export const IMPORT_TARGETS = [
   { key: 'instagramHandle', label: 'Instagram', required: false, synonyms: ['instagram', 'insta', 'ig', 'instagram handle', 'instagram url'] },
   { key: 'socialProfileUrl', label: 'Social profile', required: false, synonyms: ['linkedin', 'facebook', 'social', 'profile', 'social profile', 'youtube', 'twitter', 'x'] },
   { key: 'location', label: 'Location', required: false, synonyms: ['location', 'city', 'town', 'place', 'area', 'region', 'address', 'district'] },
+  { key: 'pilotZone', label: 'Pilot zone', required: false, synonyms: ['pilot zone', 'zone', 'pune zone', 'pilot area'] },
   { key: 'category', label: 'Category', required: false, synonyms: ['category', 'type', 'segment', 'lead type', 'partner type'] },
   { key: 'subcategory', label: 'Subcategory', required: false, synonyms: ['subcategory', 'sub category', 'sub-category', 'subtype'] },
   { key: 'source', label: 'Source', required: false, synonyms: ['source', 'lead source', 'channel', 'origin'] },

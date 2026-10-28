@@ -36,7 +36,14 @@ The purpose of this feature is to allow Experience Hunters, Lead Coordinators, a
 
 ## 3. Fictional Sandbox Dataset (12 Records)
 
-Every record is clearly marked with `[Sandbox]` in its title, uses non-deliverable `@*.sandbox.lavivenzia.internal` emails, test phone numbers (`+91 98220 000XX`), and internal sandbox URIs.
+Every record is clearly marked with `[Sandbox]` in its title, uses non-deliverable `@*.sandbox.lavivenzia.internal` emails, synthetic test phone numbers (`+91 98220 000XX`), and internal sandbox URIs.
+
+> [!CAUTION]
+> **Telephony & Messaging Quarantine:** In India, `9822` is an active cellular prefix allocated to Maharashtra/Pune circle. Because TRAI allocates no reserved test mobile range, sandbox fixtures are subject to strict technical isolation:
+> 1. **Client-Side Guard (`src/domain/telephony-isolation.ts`):** `resolveOutboundChannels()` automatically quarantines sandbox leads by nullifying `channels.phone` and `channels.whatsapp`, returning mock transports (`MOCK_SANDBOX`), and preventing `window.open('tel:...')` or `window.open('https://wa.me/...')`. Quick Actions render in a disabled state with a quarantine notice.
+> 2. **Server-Side Guard (`src/modules/lv-core/utils/sandbox-telephony-guard.ts`):** Validates outbound contact permissions, preventing AI drafts or server routes from providing real outbound transports.
+> 3. **Email Quarantine (`deliver-notification-email.ts`):** Skips delivery (`SKIPPED_NO_PROVIDER`) for `.sandbox.lavivenzia.internal` addresses.
+> 4. **Boundary Limitation:** This technical isolation strictly prevents in-app dispatch, window.open, protocol handlers, and automated logic functions. It cannot prevent an agent from manually reading digits from the screen and typing them into a separate personal device or external dialer hardware.
 
 | # | Venue Name | Pilot Zone | Category / Subcategory | Pilot Vibe | Safe Contact Email |
 |---|---|---|---|---|---|

@@ -33,6 +33,7 @@ export const IMPORT_TARGETS = [
   { key: 'instagramHandle', label: 'Instagram', required: false },
   { key: 'socialProfileUrl', label: 'Social profile', required: false },
   { key: 'location', label: 'Location', required: false },
+  { key: 'pilotZone', label: 'Pilot zone', required: false },
   { key: 'category', label: 'Category', required: false },
   { key: 'subcategory', label: 'Subcategory', required: false },
   { key: 'source', label: 'Source', required: false },
@@ -72,6 +73,7 @@ export type ImportDraft = {
   websiteUrl: string | null;
   instagramHandle: string | null;
   location: string | null;
+  pilotZone: string | null;
   category: string | null;
   subcategory: string | null;
   source: string | null;

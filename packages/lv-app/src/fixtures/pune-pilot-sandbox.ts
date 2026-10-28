@@ -9,7 +9,7 @@ import { type PilotZone } from 'src/domain/pilot-zones';
 // 1. All records carry "[Sandbox]" in their title and business identity.
 // 2. All email domains use non-deliverable "*.sandbox.lavivenzia.internal".
 // 3. All websites use internal sandbox URIs.
-// 4. All phone numbers use reserved non-allocated test sequences.
+// 4. Phone numbers are synthetic fixtures (+91 98220 00001-00012); external messaging/SMS triggers must be disabled in staging.
 // 5. Uses a fixed deterministic importKey for safe idempotency.
 
 export const PUNE_PILOT_SANDBOX_IMPORT_KEY = '7f9c2d18-3a81-4b72-9b04-8e1c64df3310';
@@ -283,6 +283,7 @@ export const punePilotSandboxRows = (): { rowNumber: number; fields: Record<stri
       websiteUrl: record.websiteUrl,
       instagramHandle: record.instagramHandle,
       location: record.location,
+      pilotZone: record.pilotZone,
       category: record.category,
       subcategory: record.subcategory,
       source: record.source,
@@ -305,6 +306,7 @@ export const punePilotSandboxCsv = (): string => {
     'Website',
     'Instagram',
     'Location',
+    'Pilot Zone',
     'Category',
     'Subcategory',
     'Source',
@@ -328,6 +330,7 @@ export const punePilotSandboxCsv = (): string => {
       rec.websiteUrl,
       rec.instagramHandle,
       rec.location,
+      rec.pilotZone,
       rec.category,
       rec.subcategory,
       rec.source,

@@ -19,7 +19,7 @@ const str = (value: unknown, max = 300): string | null => (typeof value === 'str
 const list = (value: unknown, max = 20): string[] | null =>
   Array.isArray(value) ? value.filter((item): item is string => typeof item === 'string' && item.trim().length > 0).map((item) => item.trim().slice(0, 60)).slice(0, max) : null;
 
-const normalizePilotZoneInput = (raw: unknown): { valid: true; value: LeadPilotZone | null } | { valid: false } => {
+export const normalizePilotZoneInput = (raw: unknown): { valid: true; value: LeadPilotZone | null } | { valid: false } => {
   if (raw === undefined || raw === null || raw === '') {
     return { valid: true, value: null };
   }

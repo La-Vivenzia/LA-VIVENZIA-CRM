@@ -1,7 +1,8 @@
-﻿import { describe, expect, it } from 'vitest';
+import { describe, expect, it } from 'vitest';
 
 import { readCaptureInput } from 'src/modules/lv-capture/services/capture-request';
 import { leadCreateData } from 'src/modules/lv-capture/services/capture-service';
+import { toCaptureInput } from 'src/modules/lv-capture/services/import-service';
 import { buildLeadDraft } from 'src/modules/lv-capture/utils/build-lead-draft';
 import { LEAD_PILOT_ZONES } from 'src/modules/lv-core/constants/lead-taxonomy';
 
@@ -226,10 +227,80 @@ describe('pilotZone draft building and persistence payload', () => {
       expect(data.jobTitle).toBe('General Manager');
       expect(data.category).toBe('BUSINESS_PARTNER');
       expect(data.subcategory).toBe('BAR_LOUNGE');
-      expect(data.phones.primaryPhoneNumber).toBe('+919876500000');
-      expect(data.emails.primaryEmail).toBe('gm@fullvenue.com');
-      expect(data.website.primaryLinkUrl).toBe('https://fullvenue.com');
-      expect(data.instagram.primaryLinkUrl).toBe('fullvenue_pune');
+      expect((data.phones as { primaryPhoneNumber: string }).primaryPhoneNumber).toBe('+919876500000');
+      expect((data.emails as { primaryEmail: string }).primaryEmail).toBe('gm@fullvenue.com');
+      expect((data.website as { primaryLinkUrl: string }).primaryLinkUrl).toBe('https://fullvenue.com');
+      expect((data.instagram as { primaryLinkUrl: string }).primaryLinkUrl).toBe('fullvenue_pune');
     }
+  });
+
+  it('correctly maps pilotZone in CSV import toCaptureInput for all canonical zones and labels', () => {
+    const zones = [
+      { input: 'AMANORA_MALL', expected: 'AMANORA_MALL' },
+      { input: 'Amanora Mall', expected: 'AMANORA_MALL' },
+      { input: 'SEASONS_MALL', expected: 'SEASONS_MALL' },
+      { input: 'Seasons Mall', expected: 'SEASONS_MALL' },
+      { input: 'MAGARPATTA_CITY', expected: 'MAGARPATTA_CITY' },
+      { input: 'Magarpatta City', expected: 'MAGARPATTA_CITY' },
+      { input: 'HADAPSAR', expected: 'HADAPSAR' },
+      { input: 'Hadapsar', expected: 'HADAPSAR' },
+    ];
+
+    for (const { input, expected } of zones) {
+      const { input: captureInput, warnings, errors } = toCaptureInput(
+        {
+          name: 'Import Venue',
+          pilotZone: input,
+          category: 'BUSINESS_PARTNER',
+        },
+        [],
+      );
+
+      expect(errors).toEqual([]);
+      expect(warnings).toEqual([]);
+      expect(captureInput.pilotZone).toBe(expected);
+
+      const built = buildLeadDraft(captureInput);
+      expect(built.ok).toBe(true);
+      if (built.ok) {
+        expect(built.draft.pilotZone).toBe(expected);
+      }
+    }
+  });
+
+  it('preserves backward compatibility for generic CSV imports without pilotZone', () => {
+    const { input: captureInput, warnings, errors } = toCaptureInput(
+      {
+        name: 'Generic Imported Lead',
+        location: 'Goa',
+        category: 'STAY',
+      },
+      [],
+    );
+
+    expect(errors).toEqual([]);
+    expect(warnings).toEqual([]);
+    expect(captureInput.pilotZone).toBeNull();
+
+    const built = buildLeadDraft(captureInput);
+    expect(built.ok).toBe(true);
+    if (built.ok) {
+      expect(built.draft.pilotZone).toBeNull();
+    }
+  });
+
+  it('records a safe warning and leaves pilotZone null when an unrecognized zone is imported', () => {
+    const { input: captureInput, warnings, errors } = toCaptureInput(
+      {
+        name: 'Venue With Unknown Zone',
+        pilotZone: 'Koregaon Park',
+        category: 'BUSINESS_PARTNER',
+      },
+      [],
+    );
+
+    expect(errors).toEqual([]);
+    expect(warnings).toContain('Pilot zone "Koregaon Park" is not one of the Pune pilot zones; left empty.');
+    expect(captureInput.pilotZone).toBeNull();
   });
 });

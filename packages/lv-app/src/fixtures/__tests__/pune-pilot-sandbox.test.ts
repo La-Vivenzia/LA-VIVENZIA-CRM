@@ -43,7 +43,7 @@ describe('Pune Pilot Sandbox Dataset Fixture', () => {
     }
   });
 
-  it('uses reserved test phone number format (+91 98220 000XX)', () => {
+  it('uses synthetic test phone numbers (+91 98220 000XX) requiring staging quarantine', () => {
     for (const record of PUNE_PILOT_SANDBOX_RECORDS) {
       expect(record.phone).toMatch(/^\+91 98220 000\d{2}$/);
     }
@@ -99,6 +99,9 @@ describe('Pune Pilot Sandbox Dataset Fixture', () => {
       expect(row.fields.phone).toBeTruthy();
       expect(row.fields.websiteUrl).toBeTruthy();
       expect(row.fields.location).toBeTruthy();
+      expect(row.fields.pilotZone).toBeTruthy();
+      const rec = PUNE_PILOT_SANDBOX_RECORDS.find((r) => r.rowNumber === row.rowNumber);
+      expect(row.fields.pilotZone).toBe(rec?.pilotZone);
       expect(row.fields.category).toBeTruthy();
       expect(row.fields.subcategory).toBeTruthy();
       expect(row.fields.priority).toBeTruthy();
@@ -106,7 +109,7 @@ describe('Pune Pilot Sandbox Dataset Fixture', () => {
     }
   });
 
-  it('generates valid CSV text conforming to import column headers', () => {
+  it('generates valid CSV text conforming to import column headers including Pilot Zone', () => {
     const csv = punePilotSandboxCsv();
     const lines = csv.trim().split('\n');
     expect(lines).toHaveLength(13); // 1 header + 12 rows
@@ -116,6 +119,7 @@ describe('Pune Pilot Sandbox Dataset Fixture', () => {
     expect(header).toContain('Organisation');
     expect(header).toContain('Email');
     expect(header).toContain('Location');
+    expect(header).toContain('Pilot Zone');
     expect(header).toContain('Category');
     expect(header).toContain('Subcategory');
 

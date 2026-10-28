@@ -6,6 +6,7 @@ import { DRAFT_KINDS, DRAFT_TONES, type DraftKind, PROMPT_VERSIONS } from 'src/m
 import { recordRun } from 'src/modules/lv-ai/runtime/ai-runner';
 import { assistOnboarding, generateClassification, generateDraft, generateLeadSummary, summarizeConversation } from 'src/modules/lv-intelligence/services/model-operations';
 import { beginLeadRoute, internalError, isRefusal, isUuid } from 'src/modules/lv-intelligence/services/route-support';
+import { isSandboxLead } from 'src/modules/lv-core/utils/sandbox-telephony-guard';
 
 // POST /ai/lead/generate { leadId, type, interactionId?, kind?, tone?, instructions?, field?, text? }
 //
@@ -87,8 +88,17 @@ export const handler = async (event: unknown): Promise<Record<string, unknown>> 
         const instructions = typeof input.instructions === 'string' ? input.instructions.slice(0, 400) : null;
         const senderFirstName = await firstNameOf(session.delegated, session.actorWorkspaceMemberId);
         const result = await generateDraft(common, { kind, tone, senderFirstName, instructions });
+        const isSandbox = isSandboxLead(session.context.lead);
+        const transport = isSandbox ? 'NONE' : kind === 'WHATSAPP_FOLLOW_UP' ? 'NONE' : 'MANUAL_EMAIL';
 
-        return { ...result, type, ai: session.availability, label: 'AI DRAFT', transport: kind === 'WHATSAPP_FOLLOW_UP' ? 'NONE' : 'MANUAL_EMAIL' };
+        return {
+          ...result,
+          type,
+          ai: session.availability,
+          label: 'AI DRAFT',
+          transport,
+          ...(isSandbox ? { sandboxIsolation: { quarantined: true, reason: 'Sandbox leads cannot reach external transports.' } } : {}),
+        };
       }
       case 'ONBOARDING_ASSIST': {
         const field = typeof input.field === 'string' && /^[A-Z_]+\.[a-zA-Z]+$/.test(input.field) ? input.field : null;

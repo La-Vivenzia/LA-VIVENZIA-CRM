@@ -1,4 +1,4 @@
-﻿// Vibe taxonomy mapping and filter definitions.
+// Vibe taxonomy mapping and filter definitions.
 //
 // Maps canonical CRM category and subcategory taxonomy to requested pilot vibes:
 // - All
@@ -63,49 +63,49 @@ export const VIBE_MAPPINGS: Record<VibeKey, VibeMappingDefinition> = {
     label: 'Brewery & Nightlife',
     defensibleSubcategories: ['BAR_LOUNGE', 'BREWERY', 'NIGHTLIFE'],
     rationale:
-      'BAR_LOUNGE is a canonical subcategory under BUSINESS_PARTNER specifically established for drinking and nightlife venues.',
+      'BAR_LOUNGE is the canonical subcategory under BUSINESS_PARTNER established for craft breweries, taprooms, drinking, and nightlife venues.',
     unsupportedBroaderCategories: [],
     taxonomyGapNote: null,
   },
   fine_dining: {
     vibe: 'fine_dining',
     label: 'Fine Dining',
-    defensibleSubcategories: ['FINE_DINING'],
+    defensibleSubcategories: ['RESTAURANT', 'FINE_DINING'],
     rationale:
-      'Only explicit FINE_DINING classification indicates a fine dining venue. Broad RESTAURANT encompasses casual, QSR, and family eateries.',
-    unsupportedBroaderCategories: ['RESTAURANT', 'FOOD_EXPERT'],
+      'Fine dining establishments map to RESTAURANT in the canonical schema, which is the supported backend subcategory for dining venues.',
+    unsupportedBroaderCategories: ['FOOD_EXPERT'],
     taxonomyGapNote:
-      'The legacy taxonomy provides RESTAURANT but does not differentiate fine dining from casual dining without a subcategory extension.',
+      'The backend schema represents dining via RESTAURANT without a separate FINE_DINING enum; fine dining pilot venues are represented by RESTAURANT in the CRM.',
   },
   luxury_spa: {
     vibe: 'luxury_spa',
     label: 'Luxury Spa',
-    defensibleSubcategories: ['LUXURY_SPA', 'SPA'],
+    defensibleSubcategories: ['WELLNESS_PROVIDER', 'LUXURY_SPA', 'SPA'],
     rationale:
-      'Only explicit LUXURY_SPA or SPA classification guarantees a spa venue. Broad WELLNESS_PROVIDER encompasses fitness, yoga, and therapy.',
-    unsupportedBroaderCategories: ['WELLNESS_PROVIDER', 'RETREAT'],
+      'Wellness and spa sanctuaries map to WELLNESS_PROVIDER under EXPERIENCE, which is the supported backend subcategory for holistic health and spa services.',
+    unsupportedBroaderCategories: ['RETREAT'],
     taxonomyGapNote:
-      'WELLNESS_PROVIDER covers all wellness practitioners; mapping it entirely to Luxury Spa would cause severe false positives.',
+      'The backend schema groups spas under WELLNESS_PROVIDER in the EXPERIENCE ecosystem without a dedicated LUXURY_SPA enum.',
   },
   work_cafe: {
     vibe: 'work_cafe',
     label: 'Work Cafe',
-    defensibleSubcategories: ['WORK_CAFE'],
+    defensibleSubcategories: ['CAFE', 'WORK_CAFE'],
     rationale:
-      'Only explicit WORK_CAFE classification denotes workspace amenities. Standard CAFE denotes general coffee shops and bakeries.',
-    unsupportedBroaderCategories: ['CAFE'],
+      'Work cafes and collaborative coffee lounges map to CAFE under BUSINESS_PARTNER, which is the supported backend subcategory for coffee shops and roasteries.',
+    unsupportedBroaderCategories: [],
     taxonomyGapNote:
-      'Standard CAFE includes casual tea stalls and bakeries; work cafe requires dedicated workspace amenities not tracked in legacy taxonomy.',
+      'The backend schema represents cafes through CAFE without a dedicated WORK_CAFE enum; work cafes are represented by CAFE in the CRM.',
   },
   gaming_arcade: {
     vibe: 'gaming_arcade',
     label: 'Gaming & Arcade',
-    defensibleSubcategories: ['GAMING_ARCADE', 'GAMING', 'ARCADE'],
+    defensibleSubcategories: ['EVENT_VENUE', 'GAMING_ARCADE', 'GAMING', 'ARCADE', 'ADVENTURE_PROVIDER'],
     rationale:
-      'Requires explicit gaming or arcade classification. No existing broad category can defensibly represent arcade venues.',
-    unsupportedBroaderCategories: ['EVENT_VENUE', 'ADVENTURE_PROVIDER'],
+      'Arcade, simulation, and VR gaming centers map to EVENT_VENUE under BUSINESS_PARTNER or ADVENTURE_PROVIDER under EXPERIENCE.',
+    unsupportedBroaderCategories: [],
     taxonomyGapNote:
-      'Legacy taxonomy lacks an arcade subcategory; ADVENTURE_PROVIDER and EVENT_VENUE cannot be presumed to be gaming facilities.',
+      'The backend schema represents entertainment and arcade venues under EVENT_VENUE or ADVENTURE_PROVIDER without a dedicated ARCADE enum.',
   },
 };
 

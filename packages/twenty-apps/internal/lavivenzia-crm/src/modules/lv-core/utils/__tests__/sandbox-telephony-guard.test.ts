@@ -34,10 +34,64 @@ describe('Server-side Sandbox Telephony Guard', () => {
       expect(isSandboxLead({ emails: { primaryEmail: 'test@gmail.com' } })).toBe(false);
     });
 
-    it('identifies sandbox leads via synthetic Pune pilot fixture phone numbers', () => {
-      expect(isSandboxLead({ phones: { primaryPhoneNumber: '+91 98220 00001' } })).toBe(true);
-      expect(isSandboxLead({ phones: { primaryPhoneNumber: '+91 98220 11012' } })).toBe(true);
-      expect(isSandboxLead({ phones: { primaryPhoneNumber: '+91 98220 99999' } })).toBe(false);
+    it('does not classify production leads as sandbox solely based on phone prefix', () => {
+      // Live Maharashtra subscriber number sharing the 9822 prefix
+      const liveCustomer = {
+        name: 'Maharashtra Agro Tourism',
+        phones: { primaryPhoneNumber: '+91 98220 00001' },
+        emails: { primaryEmail: 'contact@agrotourism.in' },
+      };
+      expect(isSandboxLead(liveCustomer)).toBe(false);
+      expect(assertOutboundTelephonyAllowed(liveCustomer, 'PHONE')).toEqual({ allowed: true });
+    });
+
+    it('identifies sandbox leads via explicit isSandbox flag', () => {
+      expect(isSandboxLead({ isSandbox: true, name: 'Normal Looking Name' })).toBe(true);
+      expect(isSandboxLead({ isSandbox: false, name: 'Normal Looking Name' })).toBe(false);
+    });
+
+    it('retains sandbox classification if name or email was edited, via durable captureKey', () => {
+      const editedRecord = {
+        name: 'The Saffron Table',
+        organisationName: 'Saffron Hospitality',
+        emails: { primaryEmail: 'contact@saffron-dining.com' },
+        phones: { primaryPhoneNumber: '+91 98220 00002' },
+        captureKey: '7f9c2d18-3a81-4b72-9b04-8e1c64df3310:3',
+      };
+      expect(isSandboxLead(editedRecord)).toBe(true);
+      expect(assertOutboundTelephonyAllowed(editedRecord, 'PHONE').allowed).toBe(false);
+    });
+
+    it('requires the colon delimiter on captureKey prefix so bare UUID or ordinary UUID is not classified as sandbox', () => {
+      // Bare UUID without row-colon delimiter must NOT trigger sandbox classification
+      const bareUuidLead = {
+        name: 'Legitimate Business Enterprise',
+        captureKey: '7f9c2d18-3a81-4b72-9b04-8e1c64df3310',
+        emails: { primaryEmail: 'contact@enterprise.com' },
+        phones: { primaryPhoneNumber: '+91 98220 12345' },
+      };
+      expect(isSandboxLead(bareUuidLead)).toBe(false);
+      expect(assertOutboundTelephonyAllowed(bareUuidLead, 'PHONE').allowed).toBe(true);
+
+      // Ordinary random UUID must NOT trigger sandbox classification
+      const randomUuidLead = {
+        name: 'Random Real Client',
+        captureKey: 'c8d9e0f1-2a3b-4c5d-6e7f-8a9b0c1d2e3f',
+        emails: { primaryEmail: 'info@randomclient.in' },
+        phones: { primaryPhoneNumber: '+91 98220 99999' },
+      };
+      expect(isSandboxLead(randomUuidLead)).toBe(false);
+      expect(assertOutboundTelephonyAllowed(randomUuidLead, 'PHONE').allowed).toBe(true);
+    });
+
+    it('does not classify generic non-sandbox .internal domain as sandbox lead', () => {
+      const corporateLead = {
+        name: 'Enterprise Solutions',
+        emails: { primaryEmail: 'desk@corp.internal' },
+        website: { primaryLinkUrl: 'https://intranet.corp.internal' },
+      };
+      expect(isSandboxLead(corporateLead)).toBe(false);
+      expect(assertOutboundTelephonyAllowed(corporateLead, 'PHONE').allowed).toBe(true);
     });
 
     it('returns false for production leads with no sandbox markers', () => {

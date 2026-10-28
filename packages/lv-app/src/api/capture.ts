@@ -85,6 +85,7 @@ export type CaptureDraft = {
   socialProfile: string | null;
   location: string | null;
   pilotZone: PilotZone | null;
+  isPunePilot?: boolean;
   category: string | null;
   subcategory: string | null;
   languages: string[] | null;
@@ -292,6 +293,19 @@ const uuid = (): string =>
 export type DuplicateDecision = 'CREATE_NEW' | 'IGNORED' | 'NONE';
 export type AssignmentMode = 'ENGINE' | 'SELF' | 'MEMBER' | 'NONE';
 
+export const canReviewDraft = (draft: { name: string; pilotZone?: string | null; isPunePilot?: boolean }): boolean => {
+  if (draft.name.trim().length <= 1) {
+    return false;
+  }
+  if (draft.isPunePilot) {
+    return Boolean(draft.pilotZone && isPilotZone(draft.pilotZone));
+  }
+  if (draft.pilotZone !== null && draft.pilotZone !== undefined && (draft.pilotZone as string) !== '') {
+    return isPilotZone(draft.pilotZone);
+  }
+  return true;
+};
+
 export const useCapture = () => {
   // One key for the whole capture. It is what makes creation idempotent: a
   // repeated create returns the lead that already exists rather than a second
@@ -450,8 +464,7 @@ export const useCapture = () => {
     }
   }, [captureKey, method, draft, assignmentMode, assignmentMemberId, duplicateDecision, preflight, extraction, confirmed]);
 
-  // The draft is not ready until it has a name and a required Pilot Zone.
-  const canReview = draft.name.trim().length > 1 && Boolean(draft.pilotZone && isPilotZone(draft.pilotZone));
+  const canReview = canReviewDraft(draft);
 
   const value = useMemo(
     () => ({

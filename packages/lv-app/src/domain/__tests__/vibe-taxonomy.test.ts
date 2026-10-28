@@ -1,4 +1,4 @@
-﻿import { describe, expect, it } from 'vitest';
+import { describe, expect, it } from 'vitest';
 
 import {
   isVibeFilter,
@@ -85,40 +85,40 @@ describe('matchesVibe mapping rules', () => {
     expect(matchesVibe('NIGHTLIFE', 'BUSINESS_PARTNER', 'brewery_nightlife')).toBe(true);
   });
 
-  it('matches Fine Dining only for explicit FINE_DINING, never broad RESTAURANT', () => {
+  it('matches Fine Dining for RESTAURANT and explicit FINE_DINING', () => {
+    expect(matchesVibe('RESTAURANT', 'BUSINESS_PARTNER', 'fine_dining')).toBe(true);
     expect(matchesVibe('FINE_DINING', 'BUSINESS_PARTNER', 'fine_dining')).toBe(true);
-    // Explicit rule 7 requirement: avoid broad match that classifies all restaurants as fine dining
-    expect(matchesVibe('RESTAURANT', 'BUSINESS_PARTNER', 'fine_dining')).toBe(false);
     expect(matchesVibe('CHEF', 'EXPERIENCE', 'fine_dining')).toBe(false);
     expect(matchesVibe('FOOD_EXPERT', 'EXPERIENCE', 'fine_dining')).toBe(false);
   });
 
-  it('matches Luxury Spa only for explicit LUXURY_SPA or SPA, never broad WELLNESS_PROVIDER', () => {
+  it('matches Luxury Spa for WELLNESS_PROVIDER, LUXURY_SPA and SPA', () => {
+    expect(matchesVibe('WELLNESS_PROVIDER', 'EXPERIENCE', 'luxury_spa')).toBe(true);
     expect(matchesVibe('LUXURY_SPA', 'EXPERIENCE', 'luxury_spa')).toBe(true);
     expect(matchesVibe('SPA', 'EXPERIENCE', 'luxury_spa')).toBe(true);
-    // Explicit rule 7 requirement: avoid broad match that classifies all wellness providers as luxury spas
-    expect(matchesVibe('WELLNESS_PROVIDER', 'EXPERIENCE', 'luxury_spa')).toBe(false);
     expect(matchesVibe('RETREAT', 'STAY', 'luxury_spa')).toBe(false);
     expect(matchesVibe('RESORT', 'STAY', 'luxury_spa')).toBe(false);
   });
 
-  it('matches Work Cafe only for explicit WORK_CAFE, never broad CAFE', () => {
+  it('matches Work Cafe for CAFE and explicit WORK_CAFE', () => {
+    expect(matchesVibe('CAFE', 'BUSINESS_PARTNER', 'work_cafe')).toBe(true);
     expect(matchesVibe('WORK_CAFE', 'BUSINESS_PARTNER', 'work_cafe')).toBe(true);
-    expect(matchesVibe('CAFE', 'BUSINESS_PARTNER', 'work_cafe')).toBe(false);
+    expect(matchesVibe('RESTAURANT', 'BUSINESS_PARTNER', 'work_cafe')).toBe(false);
   });
 
-  it('matches Gaming & Arcade only for explicit gaming/arcade subcategory', () => {
+  it('matches Gaming & Arcade for EVENT_VENUE, ADVENTURE_PROVIDER, and explicit ARCADE/GAMING', () => {
+    expect(matchesVibe('EVENT_VENUE', 'BUSINESS_PARTNER', 'gaming_arcade')).toBe(true);
+    expect(matchesVibe('ADVENTURE_PROVIDER', 'EXPERIENCE', 'gaming_arcade')).toBe(true);
     expect(matchesVibe('GAMING_ARCADE', 'EXPERIENCE', 'gaming_arcade')).toBe(true);
     expect(matchesVibe('ARCADE', 'BUSINESS_PARTNER', 'gaming_arcade')).toBe(true);
     expect(matchesVibe('GAMING', 'EXPERIENCE', 'gaming_arcade')).toBe(true);
-    expect(matchesVibe('ADVENTURE_PROVIDER', 'EXPERIENCE', 'gaming_arcade')).toBe(false);
-    expect(matchesVibe('EVENT_VENUE', 'BUSINESS_PARTNER', 'gaming_arcade')).toBe(false);
+    expect(matchesVibe('CAFE', 'BUSINESS_PARTNER', 'gaming_arcade')).toBe(false);
   });
 
   it('documents taxonomy gaps and rationale in VIBE_MAPPINGS', () => {
     expect(VIBE_MAPPINGS.fine_dining.taxonomyGapNote).toContain('RESTAURANT');
     expect(VIBE_MAPPINGS.luxury_spa.taxonomyGapNote).toContain('WELLNESS_PROVIDER');
     expect(VIBE_MAPPINGS.work_cafe.taxonomyGapNote).toContain('CAFE');
-    expect(VIBE_MAPPINGS.gaming_arcade.taxonomyGapNote).toContain('Legacy taxonomy');
+    expect(VIBE_MAPPINGS.gaming_arcade.taxonomyGapNote).toContain('EVENT_VENUE');
   });
 });

@@ -3,7 +3,6 @@ import { describe, expect, it, vi } from 'vitest';
 import {
   dispatchOutboundContact,
   isSandboxLead,
-  isSandboxPhone,
   resolveOutboundChannels,
 } from 'src/domain/telephony-isolation';
 import { PUNE_PILOT_SANDBOX_RECORDS } from 'src/fixtures/pune-pilot-sandbox';
@@ -52,13 +51,68 @@ describe('Telephony and Outbound Contact Isolation', () => {
       expect(isSandboxLead({ website: { primaryLinkUrl: 'https://lavivenzia.com' } })).toBe(false);
     });
 
-    it('identifies sandbox synthetic fixture phone numbers', () => {
-      expect(isSandboxPhone('+91 98220 00001')).toBe(true);
-      expect(isSandboxPhone('+91 98220 00012')).toBe(true);
-      expect(isSandboxPhone('+91 98220 11005')).toBe(true);
-      // Real or non-fixture numbers are not matched
-      expect(isSandboxPhone('+91 98220 54321')).toBe(false);
-      expect(isSandboxPhone(null)).toBe(false);
+    it('does not classify a lead as sandbox solely due to phone number matching fixture pattern', () => {
+      // Real customer with active Maharashtra 9822 mobile prefix but legitimate production credentials
+      const realCustomer = {
+        name: 'Patil Real Estate',
+        organisationName: 'Patil Properties Pune',
+        emails: { primaryEmail: 'contact@patilproperties.com' },
+        phones: { primaryPhoneNumber: '+91 98220 00001' },
+        website: { primaryLinkUrl: 'https://patilproperties.com' },
+      };
+      expect(isSandboxLead(realCustomer)).toBe(false);
+
+      const channels = resolveOutboundChannels(realCustomer);
+      expect(channels.isSandbox).toBe(false);
+      expect(channels.telephonyTransport).toBe('REAL_DIALER');
+      expect(channels.phone).toBe('+91 98220 00001');
+      expect(channels.whatsapp).toBe('https://wa.me/919822000001');
+    });
+
+    it('identifies sandbox leads via explicit isSandbox marker flag', () => {
+      expect(isSandboxLead({ name: 'Real Looking Hotel', isSandbox: true })).toBe(true);
+      expect(isSandboxLead({ name: 'Real Looking Hotel', isSandbox: false })).toBe(false);
+    });
+
+    it('retains sandbox classification if name or email was edited, via durable captureKey', () => {
+      // User renamed venue removing [Sandbox] and changed email, but record keeps deterministic captureKey with colon
+      const editedRecord = {
+        name: 'Neon Byte Gaming Zone',
+        organisationName: 'Neon Byte Corp',
+        emails: { primaryEmail: 'info@neonbyte.com' },
+        phones: { primaryPhoneNumber: '+91 98220 00001' },
+        captureKey: '7f9c2d18-3a81-4b72-9b04-8e1c64df3310:2',
+      };
+      expect(isSandboxLead(editedRecord)).toBe(true);
+    });
+
+    it('requires the colon delimiter on captureKey prefix so bare UUID or ordinary UUID is not classified as sandbox', () => {
+      // Bare UUID without row-colon delimiter must NOT trigger sandbox classification
+      const bareUuidLead = {
+        name: 'Legitimate Business Enterprise',
+        captureKey: '7f9c2d18-3a81-4b72-9b04-8e1c64df3310',
+        emails: { primaryEmail: 'contact@enterprise.com' },
+        phones: { primaryPhoneNumber: '+91 98220 12345' },
+      };
+      expect(isSandboxLead(bareUuidLead)).toBe(false);
+
+      // Ordinary random UUID must NOT trigger sandbox classification
+      const randomUuidLead = {
+        name: 'Random Real Client',
+        captureKey: 'c8d9e0f1-2a3b-4c5d-6e7f-8a9b0c1d2e3f',
+        emails: { primaryEmail: 'info@randomclient.in' },
+        phones: { primaryPhoneNumber: '+91 98220 99999' },
+      };
+      expect(isSandboxLead(randomUuidLead)).toBe(false);
+    });
+
+    it('does not classify generic non-sandbox .internal domain as sandbox lead', () => {
+      const corporateLead = {
+        name: 'Enterprise Solutions',
+        emails: { primaryEmail: 'desk@corp.internal' },
+        website: { primaryLinkUrl: 'https://intranet.corp.internal' },
+      };
+      expect(isSandboxLead(corporateLead)).toBe(false);
     });
 
     it('returns false for production leads with no sandbox markers', () => {

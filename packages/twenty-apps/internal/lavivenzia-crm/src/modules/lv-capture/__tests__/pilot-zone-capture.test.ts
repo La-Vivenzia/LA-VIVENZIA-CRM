@@ -303,4 +303,36 @@ describe('pilotZone draft building and persistence payload', () => {
     expect(warnings).toContain('Pilot zone "Koregaon Park" is not one of the Pune pilot zones; left empty.');
     expect(captureInput.pilotZone).toBeNull();
   });
+
+  it('normalizes informal subcategories to canonical backend enums without dropping to null', () => {
+    const cases = [
+      { category: 'BUSINESS_PARTNER', subcategory: 'FINE_DINING', expectedSub: 'RESTAURANT', expectedCat: 'BUSINESS_PARTNER' },
+      { category: 'BUSINESS_PARTNER', subcategory: 'WORK_CAFE', expectedSub: 'CAFE', expectedCat: 'BUSINESS_PARTNER' },
+      { category: 'BUSINESS_PARTNER', subcategory: 'BREWERY', expectedSub: 'BAR_LOUNGE', expectedCat: 'BUSINESS_PARTNER' },
+      { category: 'BUSINESS_PARTNER', subcategory: 'ARCADE', expectedSub: 'EVENT_VENUE', expectedCat: 'BUSINESS_PARTNER' },
+      { category: 'EXPERIENCE', subcategory: 'LUXURY_SPA', expectedSub: 'WELLNESS_PROVIDER', expectedCat: 'EXPERIENCE' },
+    ];
+
+    for (const testCase of cases) {
+      const { input: captureInput, warnings, errors } = toCaptureInput(
+        {
+          name: 'Mapped Venue',
+          category: testCase.category,
+          subcategory: testCase.subcategory,
+        },
+        [],
+      );
+
+      expect(errors).toEqual([]);
+      expect(warnings).toEqual([]);
+      expect(captureInput.category).toBe(testCase.expectedCat);
+      expect(captureInput.subcategory).toBe(testCase.expectedSub);
+
+      const built = buildLeadDraft(captureInput);
+      expect(built.ok).toBe(true);
+      if (built.ok) {
+        expect(built.draft.subcategory).toBe(testCase.expectedSub);
+      }
+    }
+  });
 });

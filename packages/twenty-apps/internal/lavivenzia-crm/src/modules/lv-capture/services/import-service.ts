@@ -38,6 +38,24 @@ export type MemberDirectory = { id: string; name: string; email: string | null }
 // "Restaurants" still lands.
 const canon = (value: string): string => value.trim().toUpperCase().replace(/[\s-]+/g, '_').replace(/S$/, '');
 
+const SUBCATEGORY_SYNONYMS: Record<string, { category: string; subcategory: string }> = {
+  FINE_DINING: { category: 'BUSINESS_PARTNER', subcategory: 'RESTAURANT' },
+  FINE_DINE: { category: 'BUSINESS_PARTNER', subcategory: 'RESTAURANT' },
+  WORK_CAFE: { category: 'BUSINESS_PARTNER', subcategory: 'CAFE' },
+  WORKCAFE: { category: 'BUSINESS_PARTNER', subcategory: 'CAFE' },
+  BREWERY: { category: 'BUSINESS_PARTNER', subcategory: 'BAR_LOUNGE' },
+  BREWERIE: { category: 'BUSINESS_PARTNER', subcategory: 'BAR_LOUNGE' },
+  MICROBREWERY: { category: 'BUSINESS_PARTNER', subcategory: 'BAR_LOUNGE' },
+  MICROBREWERIE: { category: 'BUSINESS_PARTNER', subcategory: 'BAR_LOUNGE' },
+  NIGHTLIFE: { category: 'BUSINESS_PARTNER', subcategory: 'BAR_LOUNGE' },
+  PUB: { category: 'BUSINESS_PARTNER', subcategory: 'BAR_LOUNGE' },
+  ARCADE: { category: 'BUSINESS_PARTNER', subcategory: 'EVENT_VENUE' },
+  GAMING_ARCADE: { category: 'BUSINESS_PARTNER', subcategory: 'EVENT_VENUE' },
+  GAMING: { category: 'BUSINESS_PARTNER', subcategory: 'EVENT_VENUE' },
+  LUXURY_SPA: { category: 'EXPERIENCE', subcategory: 'WELLNESS_PROVIDER' },
+  SPA: { category: 'EXPERIENCE', subcategory: 'WELLNESS_PROVIDER' },
+};
+
 const matchOption = (value: string, options: readonly string[]): string | null => {
   const wanted = canon(value);
 
@@ -77,6 +95,15 @@ export const toCaptureInput = (row: ImportRowInput['fields'], members: MemberDir
           break;
         }
       }
+
+      if (category === null) {
+        const synonymParent = SUBCATEGORY_SYNONYMS[canon(row.category)];
+
+        if (synonymParent) {
+          category = synonymParent.category;
+          subcategory = synonymParent.subcategory;
+        }
+      }
     }
 
     if (category === null) {
@@ -85,7 +112,16 @@ export const toCaptureInput = (row: ImportRowInput['fields'], members: MemberDir
       subcategory = matchOption(row.subcategory, LEAD_SUBCATEGORIES_BY_CATEGORY[category as keyof typeof LEAD_SUBCATEGORIES_BY_CATEGORY] ?? []);
 
       if (subcategory === null) {
-        warnings.push(`Subcategory "${row.subcategory}" is not under ${category}; left empty.`);
+        const synonymChild = SUBCATEGORY_SYNONYMS[canon(row.subcategory)];
+
+        if (synonymChild) {
+          subcategory = synonymChild.subcategory;
+          if (synonymChild.category && synonymChild.category !== category && category === 'BUSINESS_PARTNER') {
+            category = synonymChild.category;
+          }
+        } else {
+          warnings.push(`Subcategory "${row.subcategory}" is not under ${category}; left empty.`);
+        }
       }
     }
   } else if (row.subcategory) {

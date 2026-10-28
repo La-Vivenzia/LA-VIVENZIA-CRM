@@ -3,9 +3,13 @@
  *
  * Guarantees that sandbox leads cannot trigger real outbound calls, SMS, WhatsApp, or external dispatch.
  *
- * Boundary Notice:
- * This guard technically prevents server-side dispatch, logic function routes, and automated integrations.
- * It cannot prevent human operators from manually reading numbers on screen and dialing external devices.
+ * Architectural Boundary Note:
+ * Twenty CRM does not run native background telephony or SMS daemons. Supported outbound
+ * communications consist of:
+ * 1. Client-side browser protocols (tel:, https://wa.me/, mailto:) guarded in telephony-isolation.ts
+ * 2. Logic function AI draft generation (lead-generate.logic-function.ts) guarded via isSandboxLead
+ * 3. Transactional notification emails (deliver-notification-email.ts) guarded via sandbox email domain quarantine
+ * This guard provides the server-side boundary validation for logic functions and automated integrations.
  */
 
 export type OutboundChannel = 'PHONE' | 'WHATSAPP' | 'SMS' | 'EMAIL';
@@ -17,6 +21,9 @@ export type LeadSandboxCandidate = {
   phones?: { primaryPhoneNumber?: string | null } | null;
   website?: { primaryLinkUrl?: string | null } | null;
   rawCaptureInput?: string | null;
+  isSandbox?: boolean | null;
+  captureKey?: string | null;
+  captureProvenance?: Record<string, unknown> | null;
 };
 
 export type SandboxTelephonyConfig = {
@@ -24,11 +31,22 @@ export type SandboxTelephonyConfig = {
   failClosed?: boolean;
 };
 
-/** Identifies whether a lead record represents a Pune Pilot sandbox venue. */
+/**
+ * Identifies whether a lead record represents a Pune Pilot sandbox venue.
+ *
+ * Uses explicit markers (persisted isSandbox flag, [Sandbox] tag, internal sandbox
+ * domain/URIs) rather than phone numbers to avoid accidental quarantine of
+ * legitimate production customers.
+ */
 export const isSandboxLead = (lead: LeadSandboxCandidate | null | undefined): boolean => {
   if (!lead) return false;
 
-  // 1. Explicit [Sandbox] label in title or business identity
+  // 1. Explicit persisted or computed isSandbox boolean
+  if (lead.isSandbox === true) {
+    return true;
+  }
+
+  // 2. Explicit [Sandbox] label in title or business identity
   if (typeof lead.name === 'string' && /\[sandbox\]/i.test(lead.name)) {
     return true;
   }
@@ -36,32 +54,29 @@ export const isSandboxLead = (lead: LeadSandboxCandidate | null | undefined): bo
     return true;
   }
 
-  // 2. Reserved private TLD (.sandbox.lavivenzia.internal)
+  // 3. Reserved private TLD (.sandbox.lavivenzia.internal)
   const email = lead.emails?.primaryEmail;
   if (typeof email === 'string' && email.toLowerCase().includes('sandbox.lavivenzia.internal')) {
     return true;
   }
 
-  // 3. Website URI is in sandbox domain
+  // 4. Website URI is in sandbox domain
   const website = lead.website?.primaryLinkUrl;
   if (typeof website === 'string' && website.toLowerCase().includes('sandbox.lavivenzia.internal')) {
     return true;
   }
 
-  // 4. Raw capture input indicates sandbox provenance
+  // 5. Raw capture input indicates sandbox provenance
   if (typeof lead.rawCaptureInput === 'string' && /sandbox\.lavivenzia\.internal|\[sandbox\]/i.test(lead.rawCaptureInput)) {
     return true;
   }
 
-  // 5. Fixture phone number match (+91 98220 00001 - 00012 or 11001 - 11012)
-  const phone = lead.phones?.primaryPhoneNumber;
-  if (typeof phone === 'string') {
-    const digits = phone.replace(/\D/g, '');
-    if (/^9198220(000|110)\d{2}$/.test(digits)) {
-      return true;
-    }
+  // 6. Capture key or provenance indicates deterministic sandbox fixture (must be followed by row colon)
+  if (typeof lead.captureKey === 'string' && lead.captureKey.startsWith('7f9c2d18-3a81-4b72-9b04-8e1c64df3310:')) {
+    return true;
   }
 
+  // Phone numbers are never used for classification: 9822 is a live Maharashtra prefix.
   return false;
 };
 

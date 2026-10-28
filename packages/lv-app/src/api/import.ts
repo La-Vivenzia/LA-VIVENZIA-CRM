@@ -402,6 +402,7 @@ export const useImport = () => {
         summary?: ImportReportSummary;
         note?: string | null;
       }>('/capture/import/commit', {
+        mode: 'SANDBOX',
         importKey: PUNE_PILOT_SANDBOX_IMPORT_KEY,
         rows: payload,
       });

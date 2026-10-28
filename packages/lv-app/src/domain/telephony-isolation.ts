@@ -21,6 +21,8 @@ export type LeadContactInfo = {
   website?: { primaryLinkUrl: string | null } | null;
   rawCaptureInput?: string | null;
   source?: string | null;
+  isSandbox?: boolean | null;
+  captureKey?: string | null;
 };
 
 export type TelephonyIsolationConfig = {
@@ -46,20 +48,32 @@ export type DispatchResult = {
   reason?: string;
 };
 
-/** Identifies whether a phone number falls in the synthetic sandbox range. */
+/**
+ * Deprecated: Do not classify leads as sandbox based on phone prefixes, as 9822
+ * matches active Maharashtra mobile subscribers. Kept for test reference only.
+ */
 export const isSandboxPhone = (phone: string | null | undefined): boolean => {
   if (!phone || typeof phone !== 'string') return false;
   const digits = phone.replace(/\D/g, '');
-  // Matches Maharashtra/Pune sandbox fixture synthetic blocks:
-  // +91 98220 00001 - 00012 or +91 98220 11001 - 11012
   return /^9198220(000|110)\d{2}$/.test(digits);
 };
 
-/** Identifies whether a lead record represents a Pune Pilot sandbox venue. */
+/**
+ * Identifies whether a lead record represents a Pune Pilot sandbox venue.
+ *
+ * Uses explicit markers (persisted isSandbox flag, [Sandbox] tag, internal sandbox
+ * domain/URIs) rather than phone numbers to avoid accidental quarantine of
+ * legitimate production customers.
+ */
 export const isSandboxLead = (lead: LeadContactInfo | null | undefined): boolean => {
   if (!lead) return false;
 
-  // 1. Explicit [Sandbox] label in title or business identity
+  // 1. Explicit persisted or computed isSandbox boolean
+  if (lead.isSandbox === true) {
+    return true;
+  }
+
+  // 2. Explicit [Sandbox] label in title or business identity
   if (typeof lead.name === 'string' && /\[sandbox\]/i.test(lead.name)) {
     return true;
   }
@@ -67,28 +81,29 @@ export const isSandboxLead = (lead: LeadContactInfo | null | undefined): boolean
     return true;
   }
 
-  // 2. Reserved private TLD (.sandbox.lavivenzia.internal)
+  // 3. Reserved private TLD (.sandbox.lavivenzia.internal)
   const email = lead.emails?.primaryEmail;
   if (typeof email === 'string' && email.toLowerCase().includes('sandbox.lavivenzia.internal')) {
     return true;
   }
 
-  // 3. Sandbox internal URI in website link
+  // 4. Sandbox internal URI in website link
   const website = lead.website?.primaryLinkUrl;
   if (typeof website === 'string' && website.toLowerCase().includes('sandbox.lavivenzia.internal')) {
     return true;
   }
 
-  // 4. Sandbox provenance in raw capture input or notes
+  // 5. Sandbox provenance in raw capture input or notes
   if (typeof lead.rawCaptureInput === 'string' && /sandbox\.lavivenzia\.internal|\[sandbox\]/i.test(lead.rawCaptureInput)) {
     return true;
   }
 
-  // 5. Fixture phone number match
-  if (isSandboxPhone(lead.phones?.primaryPhoneNumber)) {
+  // 6. Capture key indicates deterministic sandbox fixture (must be followed by row colon)
+  if (typeof lead.captureKey === 'string' && lead.captureKey.startsWith('7f9c2d18-3a81-4b72-9b04-8e1c64df3310:')) {
     return true;
   }
 
+  // Phone numbers are never used for classification: 9822 is a live Maharashtra prefix.
   return false;
 };
 

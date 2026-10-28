@@ -14,7 +14,7 @@ import { LvIcon, type LvIconName } from 'src/design/icons';
 import { LvUploadZone } from 'src/design/documents';
 import { LvAiUnavailable, LvConfidence } from 'src/design/intelligence';
 import { EmptyState, Field, formatWhen, LvBadge, LvButton, LvCard, LvInput, LvSelect, LvSkeletonRow, Provenance, VisuallyHidden } from 'src/design/kit';
-import { PILOT_ZONE_SELECT_OPTIONS } from 'src/domain/pilot-zones';
+import { isPilotZone, PILOT_ZONE_SELECT_OPTIONS } from 'src/domain/pilot-zones';
 import { LvSectionCard } from 'src/design/profile';
 import { describeStatus } from 'src/design/status';
 import { type LvTheme, type LvTint } from 'src/design/theme';
@@ -432,21 +432,30 @@ export const ReviewStep = ({ theme, capture, method }: { theme: LvTheme; capture
                 theme={theme}
                 label="Pilot zone"
                 htmlFor="lv-capture-pilotZone"
-                required
-                help="Operational zone for the Pune pilot"
-                error={draft.pilotZone ? null : 'Pilot zone is required'}
+                required={Boolean(draft.isPunePilot)}
+                help="Operational zone for the Pune pilot (optional for leads outside Pune)"
+                error={
+                  draft.isPunePilot && !draft.pilotZone
+                    ? 'Pilot zone is required for Pune pilot leads'
+                    : draft.pilotZone && !isPilotZone(draft.pilotZone)
+                      ? 'Invalid Pune pilot zone'
+                      : null
+                }
               >
                 <LvSelect
                   theme={theme}
                   id="lv-capture-pilotZone"
                   name="pilotZone"
-                  required
+                  required={Boolean(draft.isPunePilot)}
                   value={draft.pilotZone ?? ''}
                   onChange={(event) => set('pilotZone', event.target.value)}
-                  invalid={!draft.pilotZone}
+                  invalid={Boolean(
+                    (draft.isPunePilot && !draft.pilotZone) ||
+                    (draft.pilotZone && !isPilotZone(draft.pilotZone)),
+                  )}
                 >
-                  <option value="" disabled>
-                    Select a Pune pilot zone…
+                  <option value="">
+                    None / Outside Pune Pilot
                   </option>
                   {PILOT_ZONE_SELECT_OPTIONS.map((option) => (
                     <option key={option.value} value={option.value}>

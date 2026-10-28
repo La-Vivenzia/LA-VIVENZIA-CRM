@@ -139,9 +139,19 @@ export const CaptureScreen = ({ theme }: { theme: LvTheme }) => {
                 ((capture.preflight?.duplicates ?? []).length > 0 && capture.duplicateDecision === 'NONE') ||
                 (capture.method?.requiresConfirmation === true && !capture.confirmed)
               }
-              onClick={() => void capture.create()}
+              onClick={() => {
+                if (capture.duplicateDecision === 'MERGE_EXISTING') {
+                  void capture.merge();
+                } else {
+                  void capture.create();
+                }
+              }}
             >
-              Create the lead
+              {capture.duplicateDecision === 'MERGE_EXISTING'
+                ? 'Merge Existing'
+                : capture.duplicateDecision === 'CREATE_NEW'
+                  ? 'Create New'
+                  : 'Create the lead'}
             </LvButton>
           )}
         </LvContextualActions>

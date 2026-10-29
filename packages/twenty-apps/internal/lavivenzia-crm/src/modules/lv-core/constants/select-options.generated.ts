@@ -275,6 +275,37 @@ export const LEAD_CATEGORY_OPTIONS: SelectOption[] = [
   },
 ];
 
+export const LEAD_PILOT_ZONE_OPTIONS: SelectOption[] = [
+  {
+    id: 'babddb01-7d76-5c21-bd6d-eb4d889feffa',
+    value: 'AMANORA_MALL',
+    label: "Amanora Mall",
+    position: 0,
+    color: 'blue',
+  },
+  {
+    id: 'e68bf18f-5ac6-5dd5-aafc-8af3502375da',
+    value: 'SEASONS_MALL',
+    label: "Seasons Mall",
+    position: 1,
+    color: 'turquoise',
+  },
+  {
+    id: 'e1f859a8-fd44-5d29-8451-3069f8279d43',
+    value: 'MAGARPATTA_CITY',
+    label: "Magarpatta City",
+    position: 2,
+    color: 'purple',
+  },
+  {
+    id: '6e82037b-f7a3-50d5-a85e-9a28e9b474a2',
+    value: 'HADAPSAR',
+    label: "Hadapsar",
+    position: 3,
+    color: 'amber',
+  },
+];
+
 export const LEAD_SUBCATEGORY_OPTIONS: SelectOption[] = [
   {
     id: '7f361e48-6d47-59d5-a212-0d5fe3b798c9',

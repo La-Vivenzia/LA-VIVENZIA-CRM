@@ -8,6 +8,7 @@ import { LvQuickActions } from 'src/design/page';
 import { describeStatus, statusBadgeTone } from 'src/design/status';
 import { type LvTheme } from 'src/design/theme';
 import { useLvTier } from 'src/design/use-tier';
+import { dispatchOutboundContact, resolveOutboundChannels, type LeadChannelsResult } from 'src/domain/telephony-isolation';
 
 // The identity of a relationship, as A4 and M3 draw it.
 //
@@ -38,16 +39,9 @@ export const leadMeta = (lead: Lead360['lead']): { icon: LvIconName; text: strin
   ...(lead.lvLeadId ? [{ icon: 'person' as const, text: lead.lvLeadId }] : []),
 ];
 
-/** The channels this lead can actually be reached on. Nothing else is offered. */
-export const leadChannels = (lead: Lead360['lead']) => {
-  const phone = lead.phones?.primaryPhoneNumber ?? null;
-  const email = lead.emails?.primaryEmail ?? null;
-
-  return {
-    phone,
-    email,
-    whatsapp: phone ? `https://wa.me/${phone.replace(/\D/g, '')}` : null,
-  };
+/** The channels this lead can actually be reached on. Enforces sandbox telephony quarantine. */
+export const leadChannels = (lead: Lead360['lead']): LeadChannelsResult => {
+  return resolveOutboundChannels(lead);
 };
 
 const MetaList = ({ theme, meta, inverse }: { theme: LvTheme; meta: { icon: LvIconName; text: string }[]; inverse?: boolean }) =>
@@ -269,14 +263,19 @@ export const LeadHeader = ({
 
             <div className="lv-lead-header-actions">
               {channels.phone && (
-                <LvButton theme={theme} variant="primary" icon={<LvIcon name="phone" size={16} />} onClick={() => window.open(`tel:${channels.phone}`)}>
+                <LvButton theme={theme} variant="primary" icon={<LvIcon name="phone" size={16} />} onClick={() => dispatchOutboundContact('phone', channels)}>
                   Call
                 </LvButton>
               )}
               {channels.whatsapp && (
-                <LvButton theme={theme} variant="secondary" icon={<LvIcon name="whatsapp" size={16} />} onClick={() => window.open(channels.whatsapp as string, '_blank', 'noreferrer')}>
+                <LvButton theme={theme} variant="secondary" icon={<LvIcon name="whatsapp" size={16} />} onClick={() => dispatchOutboundContact('whatsapp', channels)}>
                   WhatsApp
                 </LvButton>
+              )}
+              {channels.isSandbox && (
+                <LvBadge theme={theme} tone="neutral">
+                  Telephony isolated (sandbox)
+                </LvBadge>
               )}
             </div>
           </div>
@@ -287,15 +286,27 @@ export const LeadHeader = ({
           <LvQuickActions
             theme={theme}
             actions={[
-              { key: 'call', label: 'Call', icon: 'phone', disabled: !channels.phone, onSelect: () => channels.phone && window.open(`tel:${channels.phone}`) },
+              {
+                key: 'call',
+                label: 'Call',
+                icon: 'phone',
+                disabled: !channels.phone,
+                onSelect: () => dispatchOutboundContact('phone', channels),
+              },
               {
                 key: 'whatsapp',
                 label: 'WhatsApp',
                 icon: 'whatsapp',
                 disabled: !channels.whatsapp,
-                onSelect: () => channels.whatsapp && window.open(channels.whatsapp, '_blank', 'noreferrer'),
+                onSelect: () => dispatchOutboundContact('whatsapp', channels),
               },
-              { key: 'email', label: 'Email', icon: 'email', disabled: !channels.email, onSelect: () => channels.email && window.open(`mailto:${channels.email}`) },
+              {
+                key: 'email',
+                label: 'Email',
+                icon: 'email',
+                disabled: !channels.email,
+                onSelect: () => dispatchOutboundContact('email', channels),
+              },
               { key: 'log', label: 'Log', icon: 'note', disabled: !capabilities.canLogInteraction, onSelect: () => onAction('interaction') },
             ]}
           />

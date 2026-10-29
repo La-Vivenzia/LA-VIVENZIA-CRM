@@ -25,7 +25,25 @@ import { writeAuditEvent } from 'src/modules/lv-governance/services/audit-log';
 // lvLead.created path, which also allocates LV IDs, classifies and starts
 // SLAs. The report says per row what happened.
 
-type Input = { importKey?: unknown; rows?: unknown; mapping?: unknown; decisions?: unknown };
+type Input = { importKey?: unknown; rows?: unknown; mapping?: unknown; decisions?: unknown; mode?: unknown };
+
+const PUNE_PILOT_SANDBOX_IMPORT_KEY = '7f9c2d18-3a81-4b72-9b04-8e1c64df3310';
+
+const isSandboxFixtureRow = (fields: Record<string, unknown>): boolean => {
+  const email = typeof fields.email === 'string' ? fields.email.toLowerCase() : '';
+  const name = typeof fields.name === 'string' ? fields.name.toLowerCase() : '';
+  const website = typeof fields.websiteUrl === 'string' ? fields.websiteUrl.toLowerCase() : '';
+  const org = typeof fields.organisationName === 'string' ? fields.organisationName.toLowerCase() : '';
+  const notes = typeof fields.notes === 'string' ? fields.notes.toLowerCase() : '';
+  return (
+    email.includes('sandbox.lavivenzia.internal') ||
+    website.includes('sandbox.lavivenzia.internal') ||
+    name.includes('[sandbox]') ||
+    name.includes('[pune pilot sandbox]') ||
+    org.includes('[sandbox]') ||
+    notes.includes('sandbox lead')
+  );
+};
 
 export const handler = async (event: unknown): Promise<Record<string, unknown>> => {
   const { input, actorWorkspaceMemberId } = readRouteInput<Input>(event);
@@ -38,6 +56,15 @@ export const handler = async (event: unknown): Promise<Record<string, unknown>> 
     return { ok: false, refusal: 'INVALID_INPUT', error: 'importKey must be a UUID.' };
   }
 
+  // Reject standard imports that supply the reserved sandbox UUID before any database reads or writes
+  if (input.importKey === PUNE_PILOT_SANDBOX_IMPORT_KEY && input.mode !== 'SANDBOX') {
+    return {
+      ok: false,
+      refusal: 'INVALID_INPUT',
+      error: 'The reserved sandbox import key cannot be used for standard imports.',
+    };
+  }
+
   const application = new CoreApiClient({ runAs: 'application' });
   const resolved = await resolveImportRows(application, input.importKey, input);
 
@@ -46,6 +73,33 @@ export const handler = async (event: unknown): Promise<Record<string, unknown>> 
   }
 
   const { rows, mapping } = resolved;
+
+  // Validate sandbox mode requirements against server-side fixture criteria
+  if (input.mode === 'SANDBOX') {
+    if (input.importKey !== PUNE_PILOT_SANDBOX_IMPORT_KEY) {
+      return {
+        ok: false,
+        refusal: 'INVALID_INPUT',
+        error: 'Sandbox import mode requires the designated Pune pilot sandbox import key.',
+      };
+    }
+
+    if (input.mapping !== undefined || mapping !== null) {
+      return {
+        ok: false,
+        refusal: 'INVALID_INPUT',
+        error: 'Sandbox import mode cannot be used with uploaded CSV file mapping.',
+      };
+    }
+
+    if (rows.length === 0 || !rows.every((row) => isSandboxFixtureRow(row.fields))) {
+      return {
+        ok: false,
+        refusal: 'INVALID_INPUT',
+        error: 'Sandbox import mode requires verified sandbox fixture records.',
+      };
+    }
+  }
 
   // Decisions ride on the rows themselves (API shape) or come as a separate
   // list (screen shape). A row with no decision is skipped — never created
@@ -63,6 +117,26 @@ export const handler = async (event: unknown): Promise<Record<string, unknown>> 
   const delegated = new CoreApiClient();
   const now = new Date().toISOString();
   const caller = await resolveCaller(new DelegatedGraphqlClient());
+
+  const isSandboxImport =
+    input.mode === 'SANDBOX' ||
+    input.importKey === PUNE_PILOT_SANDBOX_IMPORT_KEY ||
+    rows.some((row) => isSandboxFixtureRow(row.fields));
+
+  const isProduction =
+    process.env.NODE_ENV === 'production' ||
+    process.env.LV_ENVIRONMENT === 'production' ||
+    process.env.STAGE === 'production' ||
+    process.env.STAGE === 'prod';
+
+  if (isSandboxImport && isProduction && !caller.isAdmin) {
+    return {
+      ok: false,
+      refusal: 'FORBIDDEN',
+      error: 'Sandbox fixture lead import is restricted to administrators in production environments.',
+    };
+  }
+
   const members = await listMembers(delegated);
   const report: { rowNumber: number; status: 'CREATED' | 'SKIPPED' | 'EXISTS' | 'ERROR'; leadId: string | null; lvLeadId: string | null; error: string | null; ownerApplied: boolean }[] = [];
   let ownerWarnings = 0;

@@ -1,7 +1,7 @@
 import { CAPTURE_METHOD_BY_KEY, isCaptureMethodKey } from 'src/modules/lv-capture/constants/capture-methods';
 import { type CaptureInput } from 'src/modules/lv-capture/types/capture.types';
 import { isLeadPriority } from 'src/modules/lv-core/constants/lead-lifecycle';
-import { isLeadSource, SOCIAL_PLATFORMS, type LeadCaptureMode, type SocialPlatform } from 'src/modules/lv-core/constants/lead-taxonomy';
+import { isLeadPilotZone, isLeadSource, LEAD_PILOT_ZONE_LABELS, SOCIAL_PLATFORMS, type LeadCaptureMode, type LeadPilotZone, type SocialPlatform } from 'src/modules/lv-core/constants/lead-taxonomy';
 
 // Reads the fields a capture request carries into the one CaptureInput the
 // draft builder understands. Anything not a string is dropped; identity
@@ -19,6 +19,30 @@ const str = (value: unknown, max = 300): string | null => (typeof value === 'str
 const list = (value: unknown, max = 20): string[] | null =>
   Array.isArray(value) ? value.filter((item): item is string => typeof item === 'string' && item.trim().length > 0).map((item) => item.trim().slice(0, 60)).slice(0, max) : null;
 
+export const normalizePilotZoneInput = (raw: unknown): { valid: true; value: LeadPilotZone | null } | { valid: false } => {
+  if (raw === undefined || raw === null || raw === '') {
+    return { valid: true, value: null };
+  }
+
+  if (typeof raw !== 'string') {
+    return { valid: false };
+  }
+
+  const trimmed = raw.trim();
+
+  if (isLeadPilotZone(trimmed)) {
+    return { valid: true, value: trimmed };
+  }
+
+  for (const [key, label] of Object.entries(LEAD_PILOT_ZONE_LABELS)) {
+    if (label.toLowerCase() === trimmed.toLowerCase()) {
+      return { valid: true, value: key as LeadPilotZone };
+    }
+  }
+
+  return { valid: false };
+};
+
 export type CaptureFieldsInput = {
   method?: unknown;
   fields?: unknown;
@@ -35,6 +59,12 @@ export const readCaptureInput = (body: CaptureFieldsInput): { ok: true; method: 
   const source = str(fields.source, 40);
   const priority = str(fields.priority, 20);
 
+  const parsedPilotZone = normalizePilotZoneInput(fields.pilotZone);
+
+  if (!parsedPilotZone.valid) {
+    return { ok: false, error: 'pilotZone must be one of: AMANORA_MALL, SEASONS_MALL, MAGARPATTA_CITY, HADAPSAR.' };
+  }
+
   const input: CaptureInput = {
     captureMode: method,
     rawInput: str(fields.rawInput, 2_000),
@@ -48,6 +78,7 @@ export const readCaptureInput = (body: CaptureFieldsInput): { ok: true; method: 
     socialPlatform: platform && (SOCIAL_PLATFORMS as readonly string[]).includes(platform) ? (platform as SocialPlatform) : (CAPTURE_METHOD_BY_KEY[method].platform ?? null),
     jobTitle: str(fields.jobTitle, 120),
     location: str(fields.location, 200),
+    pilotZone: parsedPilotZone.value,
     category: str(fields.category, 60),
     subcategory: str(fields.subcategory, 60),
     languages: list(fields.languages),

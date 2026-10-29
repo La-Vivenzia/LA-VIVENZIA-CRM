@@ -29,6 +29,7 @@ import {
   LEAD_NEXT_FOLLOW_UP_FIELD_ID,
   LEAD_OBJECT_ID,
   LEAD_PHOTO_FIELD_ID,
+  LEAD_PILOT_ZONE_FIELD_ID,
   LEAD_RATING_FIELD_ID,
   LEAD_REVIEW_COUNT_FIELD_ID,
   LEAD_YEARS_EXPERIENCE_FIELD_ID,
@@ -49,6 +50,7 @@ import {
 import {
   LEAD_CAPTURE_MODE_OPTIONS,
   LEAD_CATEGORY_OPTIONS,
+  LEAD_PILOT_ZONE_OPTIONS,
   LEAD_PRIORITY_OPTIONS,
   LEAD_SOURCE_OPTIONS,
   LEAD_STATUS_OPTIONS,
@@ -127,6 +129,16 @@ export default defineObject({
       label: 'Location',
       icon: 'IconMapPin',
       isNullable: true,
+    },
+    {
+      universalIdentifier: LEAD_PILOT_ZONE_FIELD_ID,
+      type: FieldType.SELECT,
+      name: 'pilotZone',
+      label: 'Pilot Zone',
+      description: 'Pune pilot operational zone',
+      icon: 'IconMapPin',
+      isNullable: true,
+      options: LEAD_PILOT_ZONE_OPTIONS,
     },
     {
       universalIdentifier: LEAD_SOURCE_FIELD_ID,

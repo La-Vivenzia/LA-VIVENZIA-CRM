@@ -47,6 +47,7 @@ export const LEAD_DUPLICATE_KEYS_FIELD_ID =
   'daae7e35-9875-44a1-92ad-96f517d71751';
 export const LEAD_ASSIGNED_AT_FIELD_ID = 'd8aef69c-92b5-4e74-816b-e6a121f76610';
 export const LEAD_COMPLETENESS_FIELD_ID = '178768d1-383a-494a-9adc-cc86117cb9af';
+export const LEAD_PILOT_ZONE_FIELD_ID = '9f223515-83d3-5708-8d6d-16b0e39affac';
 
 // --- lvAssignmentHistory ---------------------------------------------------
 export const ASSIGNMENT_HISTORY_OBJECT_ID =

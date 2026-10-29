@@ -6,6 +6,7 @@ import {
   DOCUMENT_TYPE_LABELS,
   reviewDocument,
   summariseDocuments,
+  transitionOnboarding,
   type DocumentFlag,
   type DocumentVerificationState,
   type OnboardingDocument,
@@ -97,6 +98,185 @@ const DocumentHistory = ({ theme, document: file, now }: { theme: LvTheme; docum
         </ol>
       )}
     </div>
+  );
+};
+
+// ---------------------------------------------------------------------------
+// Pune Pilot Corridor Verification Card — 7.10
+//
+// Four manual checks a reviewer must complete before the fast-track approve
+// button becomes available. The checks are client-side only: the backend has
+// no persistence for them, so they reset when the page is refreshed. This is
+// stated plainly in the UI. Pressing the button uses the same
+// `transitionOnboarding` → APPROVED path the transition dialog uses; all
+// server-side guards (reviewer assigned, all docs verified, valid transition)
+// still apply and can refuse the request.
+// ---------------------------------------------------------------------------
+
+const PUNE_CHECKS = [
+  {
+    key: 'identity_pan',
+    label: 'Identity & PAN Check',
+    detail: 'Valid government-issued photo ID and PAN card verified.',
+  },
+  {
+    key: 'corridor_location',
+    label: 'Corridor Location Verified',
+    detail: 'Amanora, Seasons Mall, Magarpatta, Hadapsar',
+  },
+  {
+    key: 'safety_license',
+    label: 'Safety & License Audit',
+    detail: 'FSSAI, Fire NOC, liquor/entertainment license',
+  },
+  {
+    key: 'bank_payout',
+    label: 'Bank Payout Account Setup',
+    detail: 'Account number and IFSC verified for Razorpay Route',
+  },
+] as const;
+
+type PuneCheckKey = (typeof PUNE_CHECKS)[number]['key'];
+
+export const LvPuneVerificationCard = ({
+  theme,
+  record,
+  onReload,
+}: {
+  theme: LvTheme;
+  record: OnboardingRecord;
+  onReload: () => void;
+}) => {
+  const [checked, setChecked] = useState<Set<PuneCheckKey>>(new Set());
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [applied, setApplied] = useState(false);
+
+  const allChecked = checked.size === PUNE_CHECKS.length;
+  const isAlreadyApproved = record.status === 'APPROVED' || record.status === 'ACTIVATED';
+
+  const toggle = (key: PuneCheckKey) =>
+    setChecked((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) {
+        next.delete(key);
+      } else {
+        next.add(key);
+      }
+      return next;
+    });
+
+  const fastTrackApprove = async () => {
+    setBusy(true);
+    setError(null);
+
+    try {
+      await transitionOnboarding({
+        onboardingId: record.id,
+        to: 'APPROVED',
+        note: 'Fast-tracked via Pune Pilot Corridor checklist (all four checks completed by reviewer).',
+      });
+      setApplied(true);
+      onReload();
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : 'Approval was not applied.');
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <LvSectionCard theme={theme} title="Pune Pilot Corridor Verification" icon="check">
+      <div style={{ display: 'flex', flexDirection: 'column', gap: theme.space(3) }}>
+        <p style={{ ...theme.type.bodySmall, color: theme.color.textMuted, margin: 0 }}>
+          Complete all four checks before fast-track approval. These checks are{' '}
+          <strong style={{ color: theme.color.heading }}>not persisted</strong> by the server — they
+          reset on page refresh and do not replace the server-side approval guards.
+        </p>
+
+        <ul style={{ display: 'flex', flexDirection: 'column', gap: theme.space(2), margin: 0, padding: 0, listStyle: 'none' }}>
+          {PUNE_CHECKS.map((item) => {
+            const isChecked = checked.has(item.key);
+
+            return (
+              <li key={item.key}>
+                <label
+                  style={{
+                    display: 'flex',
+                    alignItems: 'flex-start',
+                    gap: theme.space(3),
+                    minHeight: 44,
+                    padding: theme.space(3),
+                    borderRadius: theme.radius.md,
+                    border: `1px solid ${isChecked ? theme.color.success : theme.color.border}`,
+                    background: isChecked ? theme.color.successMuted : 'transparent',
+                    cursor: 'pointer',
+                  }}
+                >
+                  <input
+                    type="checkbox"
+                    checked={isChecked}
+                    onChange={() => toggle(item.key)}
+                    style={{ marginTop: 3, width: 18, height: 18, flex: '0 0 auto', accentColor: theme.color.success }}
+                  />
+                  <span style={{ minWidth: 0 }}>
+                    <span style={{ display: 'block', ...theme.type.bodySmall, fontWeight: theme.font.weight.medium, color: theme.color.heading }}>
+                      {item.label}
+                    </span>
+                    <span style={{ display: 'block', ...theme.type.caption, color: theme.color.textMuted }}>{item.detail}</span>
+                  </span>
+                  {isChecked && (
+                    <span aria-hidden="true" style={{ color: theme.color.success, display: 'inline-flex', flex: '0 0 auto', marginTop: 2 }}>
+                      <LvIcon name="check" size={16} />
+                    </span>
+                  )}
+                </label>
+              </li>
+            );
+          })}
+        </ul>
+
+        {applied && <InlineNotice theme={theme} tone="success">Approved. Refreshing the record…</InlineNotice>}
+        {error !== null && (
+          <InlineNotice theme={theme} tone="danger">
+            {isForbiddenMessage(error)
+              ? `${error} Only the reviewer assigned to this onboarding can approve it.`
+              : error}
+          </InlineNotice>
+        )}
+
+        <div style={{ display: 'flex', flexDirection: 'column', gap: theme.space(2) }}>
+          <LvButton
+            theme={theme}
+            variant="primary"
+            disabled={!allChecked || busy || isAlreadyApproved}
+            busy={busy}
+            onClick={() => void fastTrackApprove()}
+            style={
+              allChecked && !busy && !isAlreadyApproved
+                ? {
+                    background: theme.color.success,
+                    borderColor: theme.color.success,
+                    color: theme.color.textInverse,
+                  }
+                : undefined
+            }
+          >
+            Fast-Track Approve for Launch
+          </LvButton>
+          {!allChecked && !isAlreadyApproved && (
+            <p style={{ ...theme.type.caption, color: theme.color.textMuted, margin: 0 }}>
+              {PUNE_CHECKS.length - checked.size} of {PUNE_CHECKS.length} checks still needed.
+            </p>
+          )}
+          {isAlreadyApproved && (
+            <p style={{ ...theme.type.caption, color: theme.color.success, margin: 0 }}>
+              This partner onboarding is already {record.status.toLowerCase()}.
+            </p>
+          )}
+        </div>
+      </div>
+    </LvSectionCard>
   );
 };
 

@@ -16,13 +16,13 @@ import { LvSectionCard } from 'src/design/profile';
 import { type LvTheme } from 'src/design/theme';
 import { LvQueueCounts, STATUS_TONE } from 'src/screens/onboarding/parts';
 
-// 7.1 — the onboarding queue.
+// 7.1 â€” the onboarding queue.
 //
 // A partner in onboarding is a person waiting on La Vivenzia, so the list is
 // ordered by what is waiting rather than alphabetically, and every row says
 // where that partner is and what state their documents are in.
 
-type Filter = 'ALL' | 'MINE' | 'WAITING' | 'REVIEW' | 'LIVE';
+type Filter = 'ALL' | 'MINE' | 'WAITING' | 'REVIEW' | 'LIVE' | 'AMANORA' | 'SEASONS' | 'MAGARPATTA' | 'HADAPSAR';
 
 const FILTERS: { key: Filter; label: string; matches: (row: OnboardingSummary, viewerId: string | null) => boolean }[] = [
   { key: 'ALL', label: 'Everything', matches: () => true },
@@ -30,6 +30,10 @@ const FILTERS: { key: Filter; label: string; matches: (row: OnboardingSummary, v
   { key: 'WAITING', label: 'With the partner', matches: (row) => ONBOARDING_JOURNEY[1].statuses.includes(row.status) },
   { key: 'REVIEW', label: 'Needs a decision', matches: (row) => row.status === 'VERIFICATION' || row.status === 'INTERNAL_REVIEW' },
   { key: 'LIVE', label: 'Live', matches: (row) => row.status === 'ACTIVATED' },
+  { key: 'AMANORA', label: 'Amanora', matches: (row) => (row.leadLocation ?? '').toLowerCase().includes('amanora') },
+  { key: 'SEASONS', label: 'Seasons Mall', matches: (row) => (row.leadLocation ?? '').toLowerCase().includes('seasons mall') },
+  { key: 'MAGARPATTA', label: 'Magarpatta', matches: (row) => (row.leadLocation ?? '').toLowerCase().includes('magarpatta') },
+  { key: 'HADAPSAR', label: 'Hadapsar', matches: (row) => (row.leadLocation ?? '').toLowerCase().includes('hadapsar') },
 ];
 
 export const OnboardingScreen = ({ theme, viewerId }: { theme: LvTheme; viewerId: string | null }) => {
@@ -84,7 +88,7 @@ export const OnboardingScreen = ({ theme, viewerId }: { theme: LvTheme; viewerId
     {
       key: 'progress',
       label: 'Form',
-      render: (row) => (row.progressPercentage === null ? <span style={{ color: theme.color.textSubtle }}>—</span> : `${row.progressPercentage}%`),
+      render: (row) => (row.progressPercentage === null ? <span style={{ color: theme.color.textSubtle }}>â€”</span> : `${row.progressPercentage}%`),
     },
     {
       key: 'documents',
@@ -159,7 +163,7 @@ export const OnboardingScreen = ({ theme, viewerId }: { theme: LvTheme; viewerId
                   icon="filter"
                   tint="blue"
                   title="Nothing matches this view"
-                  text="The onboardings exist — this filter or search just does not match them."
+                  text="The onboardings exist â€” this filter or search just does not match them."
                   action={
                     <LvButton
                       theme={theme}

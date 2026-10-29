@@ -253,6 +253,7 @@ describe('SelectStep UI: Pune Pilot Sandbox Controls', () => {
     decideAll: vi.fn(),
     commit: vi.fn(),
     loadSandbox: vi.fn(),
+    autoMap: vi.fn(),
     reset: vi.fn(),
     dismissError: vi.fn(),
     ...overrides,

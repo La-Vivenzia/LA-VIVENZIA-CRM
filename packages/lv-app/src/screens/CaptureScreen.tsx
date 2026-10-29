@@ -141,7 +141,7 @@ export const CaptureScreen = ({ theme }: { theme: LvTheme }) => {
               }
               onClick={() => void capture.create()}
             >
-              Create the lead
+              {capture.duplicateDecision === 'CREATE_NEW' ? 'Create New' : 'Create the lead'}
             </LvButton>
           )}
         </LvContextualActions>

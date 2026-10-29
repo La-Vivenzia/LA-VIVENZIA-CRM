@@ -6,6 +6,7 @@ import {
   IMPORT_TARGETS,
   MAX_IMPORT_BYTES,
   MAX_IMPORT_ROWS,
+  SAMPLE_CSV_TEMPLATE,
   TARGET_LABEL,
   type ImportRow,
   type ImportRowStatus,
@@ -51,20 +52,14 @@ const plural = (count: number, one: string, many: string): string => `${count.to
 // 6.1 SELECT FILE — and the two waits that follow it
 // ---------------------------------------------------------------------------
 
-/**
- * A header row of the names the server already knows. It is generated from
- * the real target list, so every column in it auto-maps.
- */
-const templateCsv = (): string => `${IMPORT_TARGETS.map((target) => (target.key === 'owner' ? 'Owner' : target.label)).join(',')}\n`;
-
 export const SelectStep = ({ theme, state }: { theme: LvTheme; state: ImportState }) => {
   const download = () => {
-    const blob = new Blob([templateCsv()], { type: 'text/csv;charset=utf-8' });
+    const blob = new Blob([SAMPLE_CSV_TEMPLATE], { type: 'text/csv;charset=utf-8' });
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
 
     link.href = url;
-    link.download = 'la-vivenzia-leads-template.csv';
+    link.download = 'la-vivenzia-leads-sample.csv';
     link.click();
     URL.revokeObjectURL(url);
   };
@@ -165,10 +160,24 @@ export const SelectStep = ({ theme, state }: { theme: LvTheme; state: ImportStat
 
         {/* Said before anything is picked, because the reassurance is only
             worth something while there is still a decision to make. */}
-        <p style={{ ...theme.type.bodySmall, color: theme.color.textMuted, margin: `${theme.space(3)}px 0 0` }}>
-          Nothing is created by choosing a file. You will see every column, every row and every lead that already looks like one of them before anything is
-          written.
-        </p>
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            flexWrap: 'wrap',
+            gap: theme.space(3),
+            marginTop: theme.space(3),
+          }}
+        >
+          <p style={{ ...theme.type.bodySmall, color: theme.color.textMuted, margin: 0, flex: '1 1 280px' }}>
+            Nothing is created by choosing a file. You will see every column, every row and every lead that already looks like one of them before anything is
+            written.
+          </p>
+          <LvButton theme={theme} variant="secondary" size="sm" onClick={download} icon={<LvIcon name="download" size={16} />}>
+            Download Sample CSV Template
+          </LvButton>
+        </div>
       </LvSectionCard>
 
       <LvCard theme={theme} padding={5}>
@@ -241,9 +250,14 @@ export const MapStep = ({ theme, state }: { theme: LvTheme; state: ImportState }
         title={state.fileName ?? 'The file'}
         icon="document"
         action={
-          <LvButton theme={theme} variant="ghost" size="sm" onClick={state.reset}>
-            Choose another file
-          </LvButton>
+          <div style={{ display: 'flex', gap: theme.space(2) }}>
+            <LvButton theme={theme} variant="secondary" size="sm" onClick={state.autoMap}>
+              Auto-map columns
+            </LvButton>
+            <LvButton theme={theme} variant="ghost" size="sm" onClick={state.reset}>
+              Choose another file
+            </LvButton>
+          </div>
         }
       >
         <dl style={{ display: 'flex', flexWrap: 'wrap', gap: theme.space(5), margin: 0 }}>

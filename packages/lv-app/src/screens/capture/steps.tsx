@@ -11,9 +11,10 @@ import {
   type DuplicateCandidate,
 } from 'src/api/capture';
 import { LvIcon, type LvIconName } from 'src/design/icons';
+import { LvBanner } from 'src/design/feedback';
 import { LvUploadZone } from 'src/design/documents';
 import { LvAiUnavailable, LvConfidence } from 'src/design/intelligence';
-import { EmptyState, Field, formatWhen, LvBadge, LvButton, LvCard, LvInput, LvSelect, LvSkeletonRow, Provenance, VisuallyHidden } from 'src/design/kit';
+import { EmptyState, Field, formatWhen, LvBadge, LvButton, LvCard, LvInput, LvSelect, LvSkeletonRow, LvTextarea, Provenance, VisuallyHidden } from 'src/design/kit';
 import { isPilotZone, PILOT_ZONE_SELECT_OPTIONS } from 'src/domain/pilot-zones';
 import { LvSectionCard } from 'src/design/profile';
 import { describeStatus } from 'src/design/status';
@@ -41,6 +42,7 @@ const ICON_FOR: Record<string, LvIconName> = {
   WALK_IN: 'leads',
   PHONE: 'phone',
   MANUAL: 'note',
+  OTHER: 'messages',
 };
 
 const TINTS: LvTint[] = ['mint', 'blue', 'peach', 'lavender', 'pink'];
@@ -115,7 +117,12 @@ const SourceTile = ({
 export const ChooseStep = ({ theme, capture, onImport }: { theme: LvTheme; capture: CaptureState; onImport: () => void }) => (
   <>
     {CAPTURE_SOURCES.map((group, groupIndex) => (
-      <LvSectionCard key={group.key} theme={theme} title={group.title} icon={groupIndex === 0 ? 'camera' : groupIndex === 1 ? 'website' : 'person'}>
+      <LvSectionCard
+        key={group.key}
+        theme={theme}
+        title={group.title}
+        icon={group.key === 'message' ? 'messages' : group.key === 'image' ? 'camera' : group.key === 'link' ? 'website' : 'person'}
+      >
         <ul className="lv-source-grid">
           {group.methods.map((entry, index) => (
             <SourceTile
@@ -207,6 +214,12 @@ export const InputStep = ({ theme, capture, method }: { theme: LvTheme; capture:
       return;
     }
 
+    if (method.input === 'TEXT') {
+      await capture.extract({ text: text.trim() });
+
+      return;
+    }
+
     if (method.input === 'URL') {
       await capture.extract({ url: text.trim() });
 
@@ -262,6 +275,23 @@ export const InputStep = ({ theme, capture, method }: { theme: LvTheme; capture:
             </p>
           )}
         </div>
+      ) : method.input === 'TEXT' ? (
+        <Field
+          theme={theme}
+          label="Message or conversation text"
+          htmlFor="lv-capture-input"
+          required
+          help="Paste the WhatsApp chat, enquiry message or email thread. Contact details and requirements will be parsed."
+        >
+          <LvTextarea
+            theme={theme}
+            id="lv-capture-input"
+            rows={7}
+            value={text}
+            onChange={(event) => setText(event.target.value)}
+            placeholder={'e.g.\n[10/24/26, 2:45 PM] Rajesh Sharma: Hi team, looking for a 3BHK villa in Lonavala. Budget 3.5 Cr. Contact: +91 98765 43210, rajesh@example.com'}
+          />
+        </Field>
       ) : (
         <Field
           theme={theme}
@@ -285,7 +315,7 @@ export const InputStep = ({ theme, capture, method }: { theme: LvTheme; capture:
           Choose a different source
         </LvButton>
         <LvButton theme={theme} variant="primary" disabled={!ready} busy={reading} onClick={() => void send()}>
-          {method.input === 'IMAGE' ? 'Read this picture' : 'Read this link'}
+          {method.input === 'IMAGE' ? 'Read this picture' : method.input === 'TEXT' ? 'Extract details' : 'Read this link'}
         </LvButton>
       </div>
     </LvSectionCard>
@@ -314,12 +344,14 @@ export const ExtractingStep = ({ theme, method }: { theme: LvTheme; method: Capt
         <LvIcon name="sparkle" size={26} />
       </span>
       <p style={{ ...theme.type.subheading, fontSize: 18, color: theme.color.heading, margin: 0 }}>
-        {method.input === 'IMAGE' ? 'Reading the picture' : 'Reading the page'}
+        {method.input === 'IMAGE' ? 'Reading the picture' : method.input === 'TEXT' ? 'Reading the message' : 'Reading the page'}
       </p>
       <p style={{ ...theme.type.body, color: theme.color.textMuted, margin: 0, maxWidth: 420 }}>
         {method.input === 'IMAGE'
           ? 'Looking for a name, an organisation, a phone number, an email and an address. You will see everything it finds before anything is created.'
-          : 'Reading what the page publishes about itself. Nothing is scraped, and nothing is created until you have reviewed it.'}
+          : method.input === 'TEXT'
+            ? 'Extracting contact details, location and requirements from the message. You will see everything it finds before anything is created.'
+            : 'Reading what the page publishes about itself. Nothing is scraped, and nothing is created until you have reviewed it.'}
       </p>
       <VisuallyHidden>Extraction in progress</VisuallyHidden>
       {/* The shape of what is coming. The route reports no percentage, so no
@@ -351,6 +383,17 @@ export const ReviewStep = ({ theme, capture, method }: { theme: LvTheme; capture
 
   return (
     <>
+      {/* Early duplicate warning if background preflight or prior check found duplicates */}
+      {(capture.preflight?.duplicates ?? []).length > 0 && (
+        <LvBanner
+          theme={theme}
+          tone="warning"
+          title={`${capture.preflight!.duplicates.length} likely duplicate${capture.preflight!.duplicates.length === 1 ? '' : 's'} found in CRM`}
+        >
+          An existing record matches this contact ({capture.preflight!.duplicates.map((d) => d.name || d.lvLeadId).filter(Boolean).join(', ')}). You will be able to merge with the existing lead or create a new lead on the next step.
+        </LvBanner>
+      )}
+
       {/* 5.10 — the read did not happen, said plainly, with what is still usable. */}
       {extraction && extraction.status !== 'EXTRACTED' && (
         <LvAiUnavailable
@@ -385,7 +428,7 @@ export const ReviewStep = ({ theme, capture, method }: { theme: LvTheme; capture
             </span>
             <span style={{ flex: 1, minWidth: 180 }}>
               <span style={{ display: 'block', ...theme.type.subheading, fontSize: 16, color: theme.color.heading }}>
-                {found} field{found === 1 ? '' : 's'} read from the {method.input === 'IMAGE' ? 'picture' : 'page'}
+                {found} field{found === 1 ? '' : 's'} read from the {method.input === 'IMAGE' ? 'picture' : method.input === 'TEXT' ? 'message' : 'page'}
               </span>
               <span style={{ display: 'block', ...theme.type.bodySmall, color: theme.color.textMuted }}>
                 {lowConfidence.length > 0 ? `${lowConfidence.length} of them need a look — they are marked below.` : 'Check them over and correct anything that is wrong.'}
@@ -469,6 +512,24 @@ export const ReviewStep = ({ theme, capture, method }: { theme: LvTheme; capture
         </LvSectionCard>
       ))}
 
+      <LvSectionCard theme={theme} title="Requirements & Notes" icon="note">
+        <Field theme={theme} label="Requirements summary" htmlFor="lv-capture-notes" help="Extracted from the message or added by hand.">
+          <LvTextarea
+            theme={theme}
+            id="lv-capture-notes"
+            rows={3}
+            value={(draft.notes as string | null) ?? ''}
+            onChange={(event) => set('notes', event.target.value)}
+            placeholder="e.g. Looking for a 3BHK luxury villa with pool in Lonavala, budget 2-3 Cr"
+          />
+          {byField.get('notes') && byField.get('notes')?.value !== null && (
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: theme.space(2), marginTop: 4, flexWrap: 'wrap' }}>
+              <LvConfidence theme={theme} value={byField.get('notes')!.confidence} label="the requirements" />
+            </span>
+          )}
+        </Field>
+      </LvSectionCard>
+
       {/* 5.6 — the classification suggestion, once preflight has run. */}
       {preflight?.classification && (
         <LvSectionCard theme={theme} title="Suggested category" icon="sparkle">
@@ -507,7 +568,17 @@ export const ReviewStep = ({ theme, capture, method }: { theme: LvTheme; capture
 // ---------------------------------------------------------------------------
 // 5.7 / 5.8 DECIDE
 // ---------------------------------------------------------------------------
-const MatchCard = ({ theme, candidate, now, onOpen }: { theme: LvTheme; candidate: DuplicateCandidate; now: string; onOpen: () => void }) => (
+const MatchCard = ({
+  theme,
+  candidate,
+  now,
+  onOpen,
+}: {
+  theme: LvTheme;
+  candidate: DuplicateCandidate;
+  now: string;
+  onOpen: () => void;
+}) => (
   <li
     className="lv-action-row"
     style={{ listStyle: 'none', display: 'flex', alignItems: 'center', gap: theme.space(3), border: `1px solid ${theme.color.border}`, borderRadius: theme.radius.lg, padding: theme.space(4) }}
@@ -529,7 +600,7 @@ const MatchCard = ({ theme, candidate, now, onOpen }: { theme: LvTheme; candidat
         <span style={{ display: 'block', ...theme.type.bodySmall, color: theme.color.text, marginTop: 4 }}>Same {(candidate.matchingFields ?? []).join(', ')}.</span>
       )}
     </span>
-    <span className="lv-action-row-cta">
+    <span className="lv-action-row-cta" style={{ display: 'flex', gap: theme.space(2), flexWrap: 'wrap' }}>
       <LvButton theme={theme} variant="secondary" size="sm" onClick={onOpen}>
         Open it
       </LvButton>
@@ -588,17 +659,29 @@ export const DecideStep = ({ theme, capture, onOpenLead }: { theme: LvTheme; cap
           <EmptyState theme={theme} quiet={false} icon="check" title="No existing record matches this" text="Nothing in the CRM looks like the same person or business." />
         ) : (
           <>
-            <p style={{ ...theme.type.body, color: theme.color.text, margin: `0 0 ${theme.space(3)}px` }}>
-              {duplicates.length} possible match{duplicates.length === 1 ? '' : 'es'}. Open one to check, or tell us what to do.
+            <LvBanner
+              theme={theme}
+              tone="warning"
+              title={`${duplicates.length} likely duplicate lead${duplicates.length === 1 ? '' : 's'} found`}
+            >
+              A lead with matching details already exists in the CRM. You can open the existing record or create a new separate lead.
+            </LvBanner>
+
+            <p style={{ ...theme.type.body, color: theme.color.text, margin: `${theme.space(3)}px 0 ${theme.space(3)}px` }}>
+              {duplicates.length} possible match{duplicates.length === 1 ? '' : 'es'}. Open one to check, or choose what to do below.
             </p>
             <ul style={{ display: 'flex', flexDirection: 'column', gap: theme.space(3), margin: 0, padding: 0, listStyle: 'none' }}>
               {duplicates.map((candidate) => (
-                <MatchCard key={candidate.leadId} theme={theme} candidate={candidate} now={now} onOpen={() => onOpenLead(candidate.leadId)} />
+                <MatchCard
+                  key={candidate.leadId}
+                  theme={theme}
+                  candidate={candidate}
+                  now={now}
+                  onOpen={() => onOpenLead(candidate.leadId)}
+                />
               ))}
             </ul>
 
-            {/* The two outcomes the backend actually supports. There is no
-                merge in the API, so nothing here offers to merge. */}
             <fieldset style={{ border: 'none', margin: `${theme.space(4)}px 0 0`, padding: 0 }}>
               <legend style={{ ...theme.type.label, color: theme.color.textMuted, marginBottom: theme.space(2) }}>What would you like to do?</legend>
               <div style={{ display: 'flex', flexDirection: 'column', gap: theme.space(2) }}>
@@ -606,16 +689,16 @@ export const DecideStep = ({ theme, capture, onOpenLead }: { theme: LvTheme; cap
                   theme={theme}
                   name="lv-duplicate-decision"
                   chosen={capture.duplicateDecision === 'CREATE_NEW'}
-                  title="Create it as a new lead"
-                  detail="They are different. A separate record is created and the match is recorded as reviewed."
+                  title="Create New"
+                  detail="They are different contacts or businesses. Create a separate lead record and record the match as reviewed."
                   onChoose={() => capture.setDuplicateDecision('CREATE_NEW')}
                 />
                 <Choice
                   theme={theme}
                   name="lv-duplicate-decision"
                   chosen={capture.duplicateDecision === 'IGNORED'}
-                  title="The match is wrong — ignore it"
-                  detail="The record is created and this match will not be raised against it again."
+                  title="Ignore match"
+                  detail="The match is wrong. Create the lead and this match will not be raised against it again."
                   onChoose={() => capture.setDuplicateDecision('IGNORED')}
                 />
               </div>
@@ -695,7 +778,7 @@ export const DecideStep = ({ theme, capture, onOpenLead }: { theme: LvTheme; cap
             <span style={{ minWidth: 0 }}>
               <span style={{ display: 'block', ...theme.type.body, color: theme.color.heading }}>I have checked these details</span>
               <span style={{ display: 'block', ...theme.type.bodySmall, color: theme.color.textMuted }}>
-                They were read off a {capture.method.input === 'IMAGE' ? 'picture' : 'link'}, so they are proposals until you say otherwise. The CRM will not create the lead without this.
+                They were read off a {capture.method.input === 'IMAGE' ? 'picture' : capture.method.input === 'TEXT' ? 'message' : 'link'}, so they are proposals until you say otherwise. The CRM will not create the lead without this.
               </span>
             </span>
           </label>
@@ -708,6 +791,11 @@ export const DecideStep = ({ theme, capture, onOpenLead }: { theme: LvTheme; cap
         <p style={{ ...theme.type.bodySmall, color: theme.color.textMuted, margin: `${theme.space(1)}px 0 0` }}>
           {[draft.organisationName, draft.location, draft.phone, draft.email].filter(Boolean).join(' · ') || 'No other details recorded.'}
         </p>
+        {draft.notes && (
+          <p style={{ ...theme.type.bodySmall, color: theme.color.text, margin: `${theme.space(1)}px 0 0` }}>
+            {draft.notes}
+          </p>
+        )}
         {(preflight?.draft.warnings ?? []).length > 0 && (
           <ul style={{ margin: `${theme.space(3)}px 0 0`, padding: 0, listStyle: 'none', display: 'flex', flexDirection: 'column', gap: theme.space(1) }}>
             {(preflight?.draft.warnings ?? []).map((warning) => (

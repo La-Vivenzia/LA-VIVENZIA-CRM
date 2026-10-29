@@ -58,6 +58,7 @@ export const readCaptureInput = (body: CaptureFieldsInput): { ok: true; method: 
   const platform = str(fields.socialPlatform, 20);
   const source = str(fields.source, 40);
   const priority = str(fields.priority, 20);
+  const notes = str(fields.notes, 8_000);
 
   const parsedPilotZone = normalizePilotZoneInput(fields.pilotZone);
 
@@ -67,7 +68,8 @@ export const readCaptureInput = (body: CaptureFieldsInput): { ok: true; method: 
 
   const input: CaptureInput = {
     captureMode: method,
-    rawInput: str(fields.rawInput, 2_000),
+    rawInput: str(fields.rawInput, 2_000) ?? (notes ? notes.slice(0, 2_000) : null),
+    notes,
     name: str(fields.name, 200),
     organisationName: str(fields.organisationName, 200),
     email: str(fields.email, 200),

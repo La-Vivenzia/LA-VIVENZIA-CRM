@@ -104,7 +104,7 @@ export const handler = async (event: unknown): Promise<Record<string, unknown>> 
       classification = await classifyDraft(
         createAiProvider(config),
         applicationClient(),
-        { name: draft.name, organisationName: draft.organisationName, location: draft.location, source: draft.source, websiteUrl: draft.websiteUrl, instagramHandle: draft.instagramHandle, hasEmail: draft.email !== null, hasPhone: draft.phone !== null, languages: draft.languages, notes: null },
+        { name: draft.name, organisationName: draft.organisationName, location: draft.location, source: draft.source, websiteUrl: draft.websiteUrl, instagramHandle: draft.instagramHandle, hasEmail: draft.email !== null, hasPhone: draft.phone !== null, languages: draft.languages, notes: draft.notes },
         { actorWorkspaceMemberId, captureKey: input.captureKey },
       );
     } catch (error) {

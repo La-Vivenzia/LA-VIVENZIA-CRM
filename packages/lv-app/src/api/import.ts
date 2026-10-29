@@ -22,26 +22,48 @@ import { PUNE_PILOT_SANDBOX_IMPORT_KEY, punePilotSandboxRows } from 'src/fixture
 // import batch's own FILES field and each route reads it back from this
 // server, so every step sees exactly the same rows.
 
-/** Mirrors `utils/import-mapping.ts` on the server, labels included. */
+/** Mirrors `utils/import-mapping.ts` on the server, labels and synonyms included. */
 export const IMPORT_TARGETS = [
-  { key: 'name', label: 'Name', required: true },
-  { key: 'organisationName', label: 'Organisation', required: false },
-  { key: 'jobTitle', label: 'Job title', required: false },
-  { key: 'email', label: 'Email', required: false },
-  { key: 'phone', label: 'Phone', required: false },
-  { key: 'websiteUrl', label: 'Website', required: false },
-  { key: 'instagramHandle', label: 'Instagram', required: false },
-  { key: 'socialProfileUrl', label: 'Social profile', required: false },
-  { key: 'location', label: 'Location', required: false },
-  { key: 'pilotZone', label: 'Pilot zone', required: false },
-  { key: 'category', label: 'Category', required: false },
-  { key: 'subcategory', label: 'Subcategory', required: false },
-  { key: 'source', label: 'Source', required: false },
-  { key: 'priority', label: 'Priority', required: false },
-  { key: 'languages', label: 'Languages', required: false },
-  { key: 'owner', label: 'Owner (email or name)', required: false },
-  { key: 'notes', label: 'Notes', required: false },
+  { key: 'name', label: 'Name', required: true, synonyms: ['name', 'lead', 'lead name', 'contact', 'contact name', 'full name', 'person'] },
+  { key: 'organisationName', label: 'Organisation', required: false, synonyms: ['organisation', 'organization', 'org', 'company', 'business', 'property', 'venue', 'brand'] },
+  { key: 'jobTitle', label: 'Job title', required: false, synonyms: ['job title', 'title', 'role', 'designation', 'position'] },
+  { key: 'email', label: 'Email', required: false, synonyms: ['email', 'e-mail', 'email address', 'mail'] },
+  { key: 'phone', label: 'Phone', required: false, synonyms: ['phone', 'mobile', 'phone number', 'contact number', 'whatsapp', 'tel', 'telephone', 'cell'] },
+  { key: 'websiteUrl', label: 'Website', required: false, synonyms: ['website', 'web', 'url', 'site', 'homepage', 'link'] },
+  { key: 'instagramHandle', label: 'Instagram', required: false, synonyms: ['instagram', 'insta', 'ig', 'instagram handle', 'instagram url'] },
+  { key: 'socialProfileUrl', label: 'Social profile', required: false, synonyms: ['linkedin', 'facebook', 'social', 'profile', 'social profile', 'youtube', 'twitter', 'x'] },
+  { key: 'location', label: 'Location', required: false, synonyms: ['location', 'city', 'town', 'place', 'area', 'region', 'address', 'district'] },
+  { key: 'pilotZone', label: 'Pilot zone', required: false, synonyms: ['pilot zone', 'zone', 'pune zone', 'pilot area'] },
+  { key: 'category', label: 'Category', required: false, synonyms: ['category', 'type', 'segment', 'lead type', 'partner type'] },
+  { key: 'subcategory', label: 'Subcategory', required: false, synonyms: ['subcategory', 'sub category', 'sub-category', 'subtype'] },
+  { key: 'source', label: 'Source', required: false, synonyms: ['source', 'lead source', 'channel', 'origin'] },
+  { key: 'priority', label: 'Priority', required: false, synonyms: ['priority', 'importance'] },
+  { key: 'languages', label: 'Languages', required: false, synonyms: ['language', 'languages', 'lang'] },
+  { key: 'owner', label: 'Owner (email or name)', required: false, synonyms: ['owner', 'assigned to', 'assignee', 'hunter', 'account owner', 'handled by'] },
+  { key: 'notes', label: 'Notes', required: false, synonyms: ['notes', 'note', 'comment', 'comments', 'remarks', 'description'] },
 ] as const;
+
+export const SAMPLE_CSV_HEADERS = [
+  'Full Name',
+  'Phone Number',
+  'Email',
+  'City',
+  'Lead Source',
+  'Estimated Budget',
+  'Notes',
+] as const;
+
+export const SAMPLE_CSV_ROW = [
+  'Aarav Mehta',
+  '9876543210',
+  'aarav.mehta@example.com',
+  'Bangalore',
+  'Website',
+  '50 Lakhs - 1 Crore',
+  'Looking for 3BHK luxury apartment',
+] as const;
+
+export const SAMPLE_CSV_TEMPLATE = `${SAMPLE_CSV_HEADERS.join(',')}\n${SAMPLE_CSV_ROW.join(',')}\n`;
 
 export type ImportTargetKey = (typeof IMPORT_TARGETS)[number]['key'];
 
@@ -122,6 +144,72 @@ const uuid = (): string =>
 
 export const formatBytes = (bytes: number): string =>
   bytes >= 1024 * 1024 ? `${(bytes / (1024 * 1024)).toFixed(1)} MB` : `${Math.max(1, Math.round(bytes / 1024))} KB`;
+
+const normaliseHeader = (header: string): string => header.toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
+
+// Matches column headers to CRM fields automatically using exact synonyms first,
+// followed by sub-word matches. Each target field is assigned at most once.
+// When initialMapping is provided, valid mappings take priority and their targets are marked taken.
+export const autoMapColumns = (
+  headers: readonly string[],
+  initialMapping: ColumnMapping = {},
+): ColumnMapping => {
+  const mapping: ColumnMapping = {};
+  const taken = new Set<ImportTargetKey>();
+
+  for (const [column, target] of Object.entries(initialMapping)) {
+    if (target !== null && target !== undefined) {
+      mapping[Number(column)] = target;
+      taken.add(target);
+    }
+  }
+
+  const normalised = headers.map(normaliseHeader);
+
+  // Pass 1: Exact synonym matches (left-to-right)
+  normalised.forEach((header, index) => {
+    if (mapping[index] !== undefined) {
+      return;
+    }
+
+    const matchingTarget = IMPORT_TARGETS.find((target) =>
+      (target.synonyms as readonly string[]).includes(header),
+    );
+
+    if (matchingTarget) {
+      if (!taken.has(matchingTarget.key)) {
+        mapping[index] = matchingTarget.key;
+        taken.add(matchingTarget.key);
+      } else {
+        mapping[index] = null;
+      }
+    }
+  });
+
+  // Pass 2: Sub-word matches for remaining untaken targets
+  normalised.forEach((header, index) => {
+    if (mapping[index] !== undefined) {
+      return;
+    }
+
+    const words = header.split(' ');
+    const target = IMPORT_TARGETS.find(
+      (candidate) =>
+        !taken.has(candidate.key) &&
+        (candidate.synonyms as readonly string[]).some((synonym) =>
+          synonym.split(' ').every((part) => words.includes(part)),
+        ),
+    );
+
+    mapping[index] = target?.key ?? null;
+
+    if (target) {
+      taken.add(target.key);
+    }
+  });
+
+  return mapping;
+};
 
 /**
  * What stops the mapping step going forward. The server needs enough of an
@@ -237,13 +325,16 @@ export const useImport = () => {
           file: { fileId: uploaded.fileId, url: uploaded.url, name: uploaded.name, mimeType: uploaded.mimeType, size: uploaded.size },
         });
 
+        const inspectedHeaders = inspected.headers ?? [];
+        const resolvedMapping = autoMapColumns(inspectedHeaders, inspected.mapping ?? {});
+
         setFileName(inspected.fileName ?? file.name);
-        setHeaders(inspected.headers ?? []);
+        setHeaders(inspectedHeaders);
         setSample(inspected.sample ?? []);
         setRowCount(inspected.rowCount ?? 0);
         setSkippedEmptyRows(inspected.skippedEmptyRows ?? 0);
         setTruncated(inspected.truncated === true);
-        setMappingState(inspected.mapping ?? {});
+        setMappingState(resolvedMapping);
         setPhase('MAP');
       } catch (cause) {
         setError(cause instanceof Error ? cause.message : 'That file could not be read.');
@@ -270,6 +361,11 @@ export const useImport = () => {
     });
     setError(null);
   }, []);
+
+  const autoMap = useCallback(() => {
+    setMappingState(autoMapColumns(headers));
+    setError(null);
+  }, [headers]);
 
   const validate = useCallback(async () => {
     const problems = mappingProblems(mapping);
@@ -468,6 +564,7 @@ export const useImport = () => {
     setPhase,
     selectFile,
     setColumn,
+    autoMap,
     validate,
     decide,
     decideAll,

@@ -318,6 +318,8 @@ export const buildLeadDraft = (input: CaptureInput): CaptureResult => {
     .map((language) => nullIfBlank(language))
     .filter((language): language is string => language !== null);
 
+  const notes = nullIfBlank(input.notes);
+
   const base = {
     name: name as string,
     organisationName,
@@ -343,6 +345,7 @@ export const buildLeadDraft = (input: CaptureInput): CaptureResult => {
     referrerWorkspaceMemberId,
     attachmentPath,
     rawInput,
+    notes,
     provenance: provenance as FieldProvenanceMap,
     requiresHumanConfirmation,
   };

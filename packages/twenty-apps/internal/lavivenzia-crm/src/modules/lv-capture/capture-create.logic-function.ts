@@ -210,6 +210,22 @@ export const handler = async (event: unknown): Promise<Record<string, unknown>> 
 
   steps.created = 'DONE';
 
+  // ---- notes persistence --------------------------------------------------
+  if (draft.notes && draft.notes.trim().length > 0) {
+    try {
+      const createdNote = await delegated.mutation({
+        createNote: { __args: { data: { title: `Capture notes: ${label}`, bodyV2: { markdown: draft.notes.trim() } } }, id: true },
+      });
+      const noteId = (createdNote as { createNote?: { id?: string } })?.createNote?.id ?? null;
+
+      if (noteId) {
+        await delegated.mutation({ createNoteTarget: { __args: { data: { noteId, targetLvLeadId: leadId } }, id: true } });
+      }
+    } catch (noteError) {
+      console.warn('[lv-capture] capture note creation failed:', describeError(noteError));
+    }
+  }
+
   // ---- classification decision trail --------------------------------------
   if (classificationStatus === 'ACCEPTED' || classificationStatus === 'EDITED' || classificationStatus === 'REJECTED') {
     await writeAuditEvent(application, {

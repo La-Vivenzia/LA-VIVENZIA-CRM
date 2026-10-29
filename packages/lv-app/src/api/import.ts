@@ -166,21 +166,27 @@ export const autoMapColumns = (
 
   const normalised = headers.map(normaliseHeader);
 
-  for (const target of IMPORT_TARGETS) {
-    if (taken.has(target.key)) {
-      continue;
+  // Pass 1: Exact synonym matches (left-to-right)
+  normalised.forEach((header, index) => {
+    if (mapping[index] !== undefined) {
+      return;
     }
 
-    const exact = normalised.findIndex(
-      (header, index) => mapping[index] === undefined && (target.synonyms as readonly string[]).includes(header),
+    const matchingTarget = IMPORT_TARGETS.find((target) =>
+      (target.synonyms as readonly string[]).includes(header),
     );
 
-    if (exact !== -1) {
-      mapping[exact] = target.key;
-      taken.add(target.key);
+    if (matchingTarget) {
+      if (!taken.has(matchingTarget.key)) {
+        mapping[index] = matchingTarget.key;
+        taken.add(matchingTarget.key);
+      } else {
+        mapping[index] = null;
+      }
     }
-  }
+  });
 
+  // Pass 2: Sub-word matches for remaining untaken targets
   normalised.forEach((header, index) => {
     if (mapping[index] !== undefined) {
       return;

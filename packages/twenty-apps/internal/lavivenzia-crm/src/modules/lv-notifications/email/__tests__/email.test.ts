@@ -150,6 +150,27 @@ describe('deliverNotificationEmail', () => {
     expect(result).toEqual({ status: 'FAILED', error: 'Recipient has no email address.' });
   });
 
+  it('quarantines delivery when recipient email is in sandbox domain', async () => {
+    let transportCreated = false;
+
+    const result = await deliverNotificationEmail({
+      notification: aNotification(),
+      recipient: { email: 'contact@neonbyte.sandbox.lavivenzia.internal', firstName: 'Neon' },
+      smtp: readSmtpConfig({ LV_SMTP_HOST: 'h', LV_EMAIL_FROM: 'f' }),
+      createTransport: () => {
+        transportCreated = true;
+        throw new Error('must not be called');
+      },
+      now: NOW,
+    });
+
+    expect(result.status).toBe('SKIPPED_NO_PROVIDER');
+    if (result.status === 'SKIPPED_NO_PROVIDER') {
+      expect(result.error).toContain('Sandbox email recipient');
+    }
+    expect(transportCreated).toBe(false);
+  });
+
   it('passes a real nodemailer message through the transport (jsonTransport, no network)', async () => {
     const captured: unknown[] = [];
     const transport = nodemailer.createTransport({ jsonTransport: true });

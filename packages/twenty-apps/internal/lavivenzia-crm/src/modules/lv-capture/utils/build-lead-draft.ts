@@ -333,6 +333,7 @@ export const buildLeadDraft = (input: CaptureInput): CaptureResult => {
     socialProfile,
     jobTitle,
     location,
+    pilotZone: input.pilotZone ?? null,
     category,
     subcategory,
     languages,

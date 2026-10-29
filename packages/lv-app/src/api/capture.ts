@@ -1,6 +1,7 @@
 import { useCallback, useMemo, useRef, useState } from 'react';
 
 import { callRoute, RouteRefusal } from 'src/api/client';
+import { isPilotZone, type PilotZone } from 'src/domain/pilot-zones';
 
 // Capture — the workflow, and the three routes behind it.
 //
@@ -83,6 +84,8 @@ export type CaptureDraft = {
   instagramHandle: string | null;
   socialProfile: string | null;
   location: string | null;
+  pilotZone: PilotZone | null;
+  isPunePilot?: boolean;
   category: string | null;
   subcategory: string | null;
   languages: string[] | null;
@@ -553,6 +556,7 @@ const emptyDraft = (): CaptureDraft => ({
   instagramHandle: null,
   socialProfile: null,
   location: null,
+  pilotZone: null,
   category: null,
   subcategory: null,
   languages: null,
@@ -577,6 +581,7 @@ const draftPayload = (draft: CaptureDraft) => ({
   instagramHandle: draft.instagramHandle,
   socialProfile: draft.socialProfile,
   location: draft.location,
+  pilotZone: draft.pilotZone,
   category: draft.category,
   subcategory: draft.subcategory,
   languages: draft.languages,
@@ -597,6 +602,19 @@ const uuid = (): string =>
 
 export type DuplicateDecision = 'CREATE_NEW' | 'IGNORED' | 'NONE';
 export type AssignmentMode = 'ENGINE' | 'SELF' | 'MEMBER' | 'NONE';
+
+export const canReviewDraft = (draft: { name: string; pilotZone?: string | null; isPunePilot?: boolean }): boolean => {
+  if (draft.name.trim().length <= 1) {
+    return false;
+  }
+  if (draft.isPunePilot) {
+    return Boolean(draft.pilotZone && isPilotZone(draft.pilotZone));
+  }
+  if (draft.pilotZone !== null && draft.pilotZone !== undefined && (draft.pilotZone as string) !== '') {
+    return isPilotZone(draft.pilotZone);
+  }
+  return true;
+};
 
 export const useCapture = () => {
   // One key for the whole capture. It is what makes creation idempotent: a
@@ -880,9 +898,7 @@ export const useCapture = () => {
     }
   }, [captureKey, method, draft, assignmentMode, assignmentMemberId, duplicateDecision, preflight, extraction, confirmed]);
 
-  // The draft is not ready until it has a name — the one field the server
-  // refuses to build a lead without.
-  const canReview = draft.name.trim().length > 1;
+  const canReview = canReviewDraft(draft);
 
   const value = useMemo(
     () => ({

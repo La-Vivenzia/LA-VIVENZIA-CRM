@@ -7,6 +7,7 @@ import {
   type SmtpConfigResult,
 } from 'src/modules/lv-notifications/email/smtp-config';
 import { describeError } from 'src/modules/lv-core/utils/describe-error';
+import { assertOutboundTelephonyAllowed } from 'src/modules/lv-core/utils/sandbox-telephony-guard';
 
 // Delivery of one queued notification email, with the outcome reported
 // honestly. Three results are possible and each is written back to the row:
@@ -58,6 +59,15 @@ export const deliverNotificationEmail = async ({
 
   if (!recipient.email) {
     return { status: 'FAILED', error: 'Recipient has no email address.' };
+  }
+
+  const outboundCheck = assertOutboundTelephonyAllowed(
+    { emails: { primaryEmail: recipient.email } },
+    'EMAIL',
+  );
+
+  if (!outboundCheck.allowed || recipient.email.toLowerCase().includes('.sandbox.lavivenzia.internal') || recipient.email.toLowerCase().endsWith('.internal')) {
+    return { status: 'SKIPPED_NO_PROVIDER', error: 'Sandbox email recipient: outbound delivery quarantined.' };
   }
 
   const composed = composeNotificationEmail({

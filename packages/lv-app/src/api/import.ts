@@ -2,6 +2,7 @@ import { useCallback, useMemo, useState } from 'react';
 
 import { callRoute } from 'src/api/client';
 import { uploadToFilesField } from 'src/api/files';
+import { PUNE_PILOT_SANDBOX_IMPORT_KEY, punePilotSandboxRows } from 'src/fixtures/pune-pilot-sandbox';
 
 // Bringing in a spreadsheet of leads.
 //
@@ -32,6 +33,7 @@ export const IMPORT_TARGETS = [
   { key: 'instagramHandle', label: 'Instagram', required: false, synonyms: ['instagram', 'insta', 'ig', 'instagram handle', 'instagram url'] },
   { key: 'socialProfileUrl', label: 'Social profile', required: false, synonyms: ['linkedin', 'facebook', 'social', 'profile', 'social profile', 'youtube', 'twitter', 'x'] },
   { key: 'location', label: 'Location', required: false, synonyms: ['location', 'city', 'town', 'place', 'area', 'region', 'address', 'district'] },
+  { key: 'pilotZone', label: 'Pilot zone', required: false, synonyms: ['pilot zone', 'zone', 'pune zone', 'pilot area'] },
   { key: 'category', label: 'Category', required: false, synonyms: ['category', 'type', 'segment', 'lead type', 'partner type'] },
   { key: 'subcategory', label: 'Subcategory', required: false, synonyms: ['subcategory', 'sub category', 'sub-category', 'subtype'] },
   { key: 'source', label: 'Source', required: false, synonyms: ['source', 'lead source', 'channel', 'origin'] },
@@ -93,6 +95,7 @@ export type ImportDraft = {
   websiteUrl: string | null;
   instagramHandle: string | null;
   location: string | null;
+  pilotZone: string | null;
   category: string | null;
   subcategory: string | null;
   source: string | null;
@@ -223,6 +226,7 @@ export const useImport = () => {
   const [importKey, setImportKey] = useState(uuid);
   const [phase, setPhase] = useState<ImportPhase>('SELECT');
   const [error, setError] = useState<string | null>(null);
+  const [isSandboxLoading, setIsSandboxLoading] = useState(false);
 
   const [fileName, setFileName] = useState<string | null>(null);
   const [fileSize, setFileSize] = useState<number | null>(null);
@@ -250,6 +254,7 @@ export const useImport = () => {
     setImportKey(uuid());
     setPhase('SELECT');
     setError(null);
+    setIsSandboxLoading(false);
     setFileName(null);
     setFileSize(null);
     setUploadFraction(null);
@@ -458,8 +463,70 @@ export const useImport = () => {
     }
   }, [decisions, importKey, mapping, rows]);
 
+  /**
+   * One-action load of the Pune Pilot Sandbox dataset.
+   *
+   * Submits the 12 deterministic fictional records directly to the commit endpoint
+   * using the deterministic PUNE_PILOT_SANDBOX_IMPORT_KEY to guarantee idempotency.
+   */
+  const loadSandbox = useCallback(async () => {
+    if (isSandboxLoading) {
+      return;
+    }
+
+    setIsSandboxLoading(true);
+    setError(null);
+    setFileName('Pune Pilot Sandbox');
+    setPhase('IMPORTING');
+
+    try {
+      const sandboxRows = punePilotSandboxRows();
+      const payload = sandboxRows.map((row) => ({
+        rowNumber: row.rowNumber,
+        fields: row.fields,
+        decision: 'CREATE' as ImportDecision,
+      }));
+
+      const result = await callRoute<{
+        report?: ImportReportRow[];
+        summary?: ImportReportSummary;
+        note?: string | null;
+      }>('/capture/import/commit', {
+        mode: 'SANDBOX',
+        importKey: PUNE_PILOT_SANDBOX_IMPORT_KEY,
+        rows: payload,
+      });
+
+      setImportKey(PUNE_PILOT_SANDBOX_IMPORT_KEY);
+      setRowCount(sandboxRows.length);
+      setReport(result.report ?? []);
+      setReportSummary(
+        result.summary ?? {
+          total: sandboxRows.length,
+          created: (result.report ?? []).filter((r) => r.status === 'CREATED').length,
+          skipped: (result.report ?? []).filter((r) => r.status === 'SKIPPED').length,
+          existing: (result.report ?? []).filter((r) => r.status === 'EXISTS').length,
+          errors: (result.report ?? []).filter((r) => r.status === 'ERROR').length,
+          ownerWarnings: 0,
+        },
+      );
+      setNote(result.note ?? null);
+      setPhase('RESULT');
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : 'The sandbox import did not run.');
+      setPhase('SELECT');
+    } finally {
+      setIsSandboxLoading(false);
+    }
+  }, [isSandboxLoading]);
+
   /** How many leads the button is about to create — the real number, always. */
-  const willCreate = useMemo(() => rows.filter((row) => row.status !== 'ERROR' && decisions[row.rowNumber] === 'CREATE').length, [decisions, rows]);
+  const willCreate = useMemo(() => {
+    if (rows.length > 0) {
+      return rows.filter((row) => row.status !== 'ERROR' && decisions[row.rowNumber] === 'CREATE').length;
+    }
+    return rowCount;
+  }, [decisions, rowCount, rows]);
 
   const mappedTargets = useMemo(() => Object.values(mapping).filter((target): target is ImportTargetKey => target !== null), [mapping]);
 
@@ -467,6 +534,7 @@ export const useImport = () => {
     importKey,
     phase,
     error,
+    isSandboxLoading,
     fileName,
     fileSize,
     uploadFraction,
@@ -495,6 +563,7 @@ export const useImport = () => {
     decide,
     decideAll,
     commit,
+    loadSandbox,
     reset,
     dismissError: () => setError(null),
   };

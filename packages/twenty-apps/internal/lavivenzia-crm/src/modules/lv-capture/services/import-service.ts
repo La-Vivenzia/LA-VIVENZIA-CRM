@@ -1,8 +1,9 @@
+import { normalizePilotZoneInput } from 'src/modules/lv-capture/services/capture-request';
 import { type CaptureInput, type LeadDraft } from 'src/modules/lv-capture/types/capture.types';
 import { buildLeadDraft } from 'src/modules/lv-capture/utils/build-lead-draft';
 import { type ImportTargetKey } from 'src/modules/lv-capture/utils/import-mapping';
 import { isLeadPriority } from 'src/modules/lv-core/constants/lead-lifecycle';
-import { isLeadCategory, isLeadSource, LEAD_CATEGORIES, LEAD_SUBCATEGORIES_BY_CATEGORY, LEAD_SOURCES } from 'src/modules/lv-core/constants/lead-taxonomy';
+import { isLeadCategory, isLeadSource, LEAD_CATEGORIES, LEAD_SUBCATEGORIES_BY_CATEGORY, LEAD_SOURCES, type LeadPilotZone } from 'src/modules/lv-core/constants/lead-taxonomy';
 import { type GraphqlClient } from 'src/modules/lv-ai/runtime/clients';
 import { findDuplicates } from 'src/modules/lv-core/utils/duplicate-detection';
 import { escapeLike } from 'src/modules/lv-intelligence/engines/duplicate-scan';
@@ -19,7 +20,7 @@ export type ImportRowResult = {
   status: 'VALID' | 'WARNING' | 'ERROR' | 'DUPLICATE';
   errors: string[];
   warnings: string[];
-  draft: Pick<LeadDraft, 'name' | 'organisationName' | 'email' | 'phone' | 'websiteUrl' | 'instagramHandle' | 'location' | 'category' | 'subcategory' | 'source' | 'priority' | 'completeness'> | null;
+  draft: Pick<LeadDraft, 'name' | 'organisationName' | 'email' | 'phone' | 'websiteUrl' | 'instagramHandle' | 'location' | 'pilotZone' | 'category' | 'subcategory' | 'source' | 'priority' | 'completeness'> | null;
   ownerId: string | null;
   duplicateOfRow: number | null;
   duplicateOf: { leadId: string; lvLeadId: string | null; name: string | null; percent: number; matchingFields: string[] } | null;
@@ -37,6 +38,24 @@ export type MemberDirectory = { id: string; name: string; email: string | null }
 // "Restaurants" still lands.
 const canon = (value: string): string => value.trim().toUpperCase().replace(/[\s-]+/g, '_').replace(/S$/, '');
 
+const SUBCATEGORY_SYNONYMS: Record<string, { category: string; subcategory: string }> = {
+  FINE_DINING: { category: 'BUSINESS_PARTNER', subcategory: 'RESTAURANT' },
+  FINE_DINE: { category: 'BUSINESS_PARTNER', subcategory: 'RESTAURANT' },
+  WORK_CAFE: { category: 'BUSINESS_PARTNER', subcategory: 'CAFE' },
+  WORKCAFE: { category: 'BUSINESS_PARTNER', subcategory: 'CAFE' },
+  BREWERY: { category: 'BUSINESS_PARTNER', subcategory: 'BAR_LOUNGE' },
+  BREWERIE: { category: 'BUSINESS_PARTNER', subcategory: 'BAR_LOUNGE' },
+  MICROBREWERY: { category: 'BUSINESS_PARTNER', subcategory: 'BAR_LOUNGE' },
+  MICROBREWERIE: { category: 'BUSINESS_PARTNER', subcategory: 'BAR_LOUNGE' },
+  NIGHTLIFE: { category: 'BUSINESS_PARTNER', subcategory: 'BAR_LOUNGE' },
+  PUB: { category: 'BUSINESS_PARTNER', subcategory: 'BAR_LOUNGE' },
+  ARCADE: { category: 'BUSINESS_PARTNER', subcategory: 'EVENT_VENUE' },
+  GAMING_ARCADE: { category: 'BUSINESS_PARTNER', subcategory: 'EVENT_VENUE' },
+  GAMING: { category: 'BUSINESS_PARTNER', subcategory: 'EVENT_VENUE' },
+  LUXURY_SPA: { category: 'EXPERIENCE', subcategory: 'WELLNESS_PROVIDER' },
+  SPA: { category: 'EXPERIENCE', subcategory: 'WELLNESS_PROVIDER' },
+};
+
 const matchOption = (value: string, options: readonly string[]): string | null => {
   const wanted = canon(value);
 
@@ -46,6 +65,18 @@ const matchOption = (value: string, options: readonly string[]): string | null =
 export const toCaptureInput = (row: ImportRowInput['fields'], members: MemberDirectory): { input: CaptureInput; ownerId: string | null; errors: string[]; warnings: string[] } => {
   const errors: string[] = [];
   const warnings: string[] = [];
+  let pilotZone: LeadPilotZone | null = null;
+
+  if (row.pilotZone) {
+    const parsedZone = normalizePilotZoneInput(row.pilotZone);
+
+    if (parsedZone.valid) {
+      pilotZone = parsedZone.value;
+    } else {
+      warnings.push(`Pilot zone "${row.pilotZone}" is not one of the Pune pilot zones; left empty.`);
+    }
+  }
+
   let category: string | null = null;
   let subcategory: string | null = null;
 
@@ -64,6 +95,15 @@ export const toCaptureInput = (row: ImportRowInput['fields'], members: MemberDir
           break;
         }
       }
+
+      if (category === null) {
+        const synonymParent = SUBCATEGORY_SYNONYMS[canon(row.category)];
+
+        if (synonymParent) {
+          category = synonymParent.category;
+          subcategory = synonymParent.subcategory;
+        }
+      }
     }
 
     if (category === null) {
@@ -72,7 +112,16 @@ export const toCaptureInput = (row: ImportRowInput['fields'], members: MemberDir
       subcategory = matchOption(row.subcategory, LEAD_SUBCATEGORIES_BY_CATEGORY[category as keyof typeof LEAD_SUBCATEGORIES_BY_CATEGORY] ?? []);
 
       if (subcategory === null) {
-        warnings.push(`Subcategory "${row.subcategory}" is not under ${category}; left empty.`);
+        const synonymChild = SUBCATEGORY_SYNONYMS[canon(row.subcategory)];
+
+        if (synonymChild) {
+          subcategory = synonymChild.subcategory;
+          if (synonymChild.category && synonymChild.category !== category && category === 'BUSINESS_PARTNER') {
+            category = synonymChild.category;
+          }
+        } else {
+          warnings.push(`Subcategory "${row.subcategory}" is not under ${category}; left empty.`);
+        }
       }
     }
   } else if (row.subcategory) {
@@ -125,6 +174,7 @@ export const toCaptureInput = (row: ImportRowInput['fields'], members: MemberDir
     instagramHandle: row.instagramHandle ?? null,
     socialProfileUrl: row.socialProfileUrl ?? null,
     location: row.location ?? null,
+    pilotZone,
     category: category && isLeadCategory(category) ? category : null,
     subcategory,
     languages: row.languages ? row.languages.split(/[,;/]/).map((part) => part.trim()).filter((part) => part.length > 0) : null,
@@ -196,7 +246,7 @@ export const validateImportRows = (rows: ImportRowInput[], members: MemberDirect
       status,
       errors,
       warnings,
-      draft: { name: draft.name, organisationName: draft.organisationName, email: draft.email, phone: draft.phone, websiteUrl: draft.websiteUrl, instagramHandle: draft.instagramHandle, location: draft.location, category: draft.category, subcategory: draft.subcategory, source: draft.source, priority: draft.priority, completeness: draft.completeness },
+      draft: { name: draft.name, organisationName: draft.organisationName, email: draft.email, phone: draft.phone, websiteUrl: draft.websiteUrl, instagramHandle: draft.instagramHandle, location: draft.location, pilotZone: draft.pilotZone, category: draft.category, subcategory: draft.subcategory, source: draft.source, priority: draft.priority, completeness: draft.completeness },
       ownerId,
       duplicateOfRow,
       duplicateOf: null,

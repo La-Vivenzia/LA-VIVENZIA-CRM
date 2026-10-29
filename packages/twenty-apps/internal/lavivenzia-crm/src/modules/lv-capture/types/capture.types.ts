@@ -2,6 +2,7 @@ import { type SocialProfile } from 'src/modules/lv-capture/utils/normalize-input
 import {
   type FieldProvenance,
   type LeadCaptureMode,
+  type LeadPilotZone,
   type LeadSource,
   type SocialPlatform,
 } from 'src/modules/lv-core/constants/lead-taxonomy';
@@ -29,6 +30,7 @@ export type CaptureInput = {
   socialPlatform?: SocialPlatform | null;
   jobTitle?: string | null;
   location?: string | null;
+  pilotZone?: LeadPilotZone | null;
   category?: string | null;
   subcategory?: string | null;
   languages?: readonly string[] | null;
@@ -66,6 +68,7 @@ export type LeadDraft = {
   socialProfile: SocialProfile | null;
   jobTitle: string | null;
   location: string | null;
+  pilotZone: LeadPilotZone | null;
   category: string | null;
   subcategory: string | null;
   languages: readonly string[];

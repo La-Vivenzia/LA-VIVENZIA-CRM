@@ -48,6 +48,8 @@ export type CaptureInput = {
   extractionKind?: 'OCR' | 'PAGE_METADATA' | null;
   // Set when the category came from the classifier and was accepted as-is.
   classificationOrigin?: 'AI' | 'USER' | null;
+  // Free-form requirements or reviewer notes from the capture input.
+  notes?: string | null;
 };
 
 export type FieldProvenanceMap = Readonly<Record<string, FieldProvenance>>;
@@ -75,6 +77,7 @@ export type LeadDraft = {
   referrerWorkspaceMemberId: string | null;
   attachmentPath: string | null;
   rawInput: string | null;
+  notes: string | null;
   provenance: FieldProvenanceMap;
   // 0-100, deterministic: share of the fields that matter for qualification.
   completeness: number;

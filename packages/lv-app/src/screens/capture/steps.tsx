@@ -534,13 +534,11 @@ const MatchCard = ({
   candidate,
   now,
   onOpen,
-  onMerge,
 }: {
   theme: LvTheme;
   candidate: DuplicateCandidate;
   now: string;
   onOpen: () => void;
-  onMerge?: () => void;
 }) => (
   <li
     className="lv-action-row"
@@ -564,11 +562,6 @@ const MatchCard = ({
       )}
     </span>
     <span className="lv-action-row-cta" style={{ display: 'flex', gap: theme.space(2), flexWrap: 'wrap' }}>
-      {onMerge && (
-        <LvButton theme={theme} variant="primary" size="sm" onClick={onMerge}>
-          Merge Existing
-        </LvButton>
-      )}
       <LvButton theme={theme} variant="secondary" size="sm" onClick={onOpen}>
         Open it
       </LvButton>
@@ -632,11 +625,11 @@ export const DecideStep = ({ theme, capture, onOpenLead }: { theme: LvTheme; cap
               tone="warning"
               title={`${duplicates.length} likely duplicate lead${duplicates.length === 1 ? '' : 's'} found`}
             >
-              A lead with matching details already exists in the CRM. You can merge this captured information into the existing record or create a new separate lead.
+              A lead with matching details already exists in the CRM. You can open the existing record or create a new separate lead.
             </LvBanner>
 
             <p style={{ ...theme.type.body, color: theme.color.text, margin: `${theme.space(3)}px 0 ${theme.space(3)}px` }}>
-              {duplicates.length} possible match{duplicates.length === 1 ? '' : 'es'}. Open one to check, merge directly, or choose what to do below.
+              {duplicates.length} possible match{duplicates.length === 1 ? '' : 'es'}. Open one to check, or choose what to do below.
             </p>
             <ul style={{ display: 'flex', flexDirection: 'column', gap: theme.space(3), margin: 0, padding: 0, listStyle: 'none' }}>
               {duplicates.map((candidate) => (
@@ -646,11 +639,6 @@ export const DecideStep = ({ theme, capture, onOpenLead }: { theme: LvTheme; cap
                   candidate={candidate}
                   now={now}
                   onOpen={() => onOpenLead(candidate.leadId)}
-                  onMerge={() => {
-                    capture.setSelectedDuplicateLeadId(candidate.leadId);
-                    capture.setDuplicateDecision('MERGE_EXISTING');
-                    void capture.merge(candidate.leadId);
-                  }}
                 />
               ))}
             </ul>
@@ -658,14 +646,6 @@ export const DecideStep = ({ theme, capture, onOpenLead }: { theme: LvTheme; cap
             <fieldset style={{ border: 'none', margin: `${theme.space(4)}px 0 0`, padding: 0 }}>
               <legend style={{ ...theme.type.label, color: theme.color.textMuted, marginBottom: theme.space(2) }}>What would you like to do?</legend>
               <div style={{ display: 'flex', flexDirection: 'column', gap: theme.space(2) }}>
-                <Choice
-                  theme={theme}
-                  name="lv-duplicate-decision"
-                  chosen={capture.duplicateDecision === 'MERGE_EXISTING'}
-                  title="Merge Existing"
-                  detail="Attach these captured details, source, and notes to the existing lead record rather than creating a duplicate."
-                  onChoose={() => capture.setDuplicateDecision('MERGE_EXISTING')}
-                />
                 <Choice
                   theme={theme}
                   name="lv-duplicate-decision"
@@ -802,8 +782,6 @@ export const SuccessStep = ({ theme, capture, onOpenLead }: { theme: LvTheme; ca
     return null;
   }
 
-  const isMerged = created.merged === true;
-
   return (
     <LvCard theme={theme} padding={7}>
       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', gap: theme.space(3) }} role="status">
@@ -822,13 +800,9 @@ export const SuccessStep = ({ theme, capture, onOpenLead }: { theme: LvTheme; ca
         >
           <LvIcon name="check" size={30} />
         </span>
-        <p style={{ ...theme.type.title, color: theme.color.heading, margin: 0 }}>
-          {isMerged ? 'Merged into existing lead' : created.replayed ? 'Already captured' : 'Lead captured'}
-        </p>
+        <p style={{ ...theme.type.title, color: theme.color.heading, margin: 0 }}>{created.replayed ? 'Already captured' : 'Lead captured'}</p>
         <p style={{ ...theme.type.body, color: theme.color.textMuted, margin: 0, maxWidth: 460 }}>
-          {isMerged
-            ? `Captured details for ${capture.draft.name || 'this contact'} were attached to the existing lead${created.ownerName ? `, owned by ${created.ownerName}` : ''}.`
-            : created.replayed
+          {created.replayed
             ? 'This capture had already been created, so the existing record is shown rather than a second copy.'
             : `${capture.draft.name} is in the CRM${created.ownerName ? `, owned by ${created.ownerName}` : ''}.`}
         </p>

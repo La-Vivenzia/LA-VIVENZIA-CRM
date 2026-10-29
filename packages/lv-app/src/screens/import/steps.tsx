@@ -112,11 +112,6 @@ export const SelectStep = ({ theme, state }: { theme: LvTheme; state: ImportStat
               </li>
             ))}
           </ul>
-          <div style={{ marginTop: theme.space(4) }}>
-            <LvButton theme={theme} variant="secondary" size="sm" onClick={download} icon={<LvIcon name="download" size={16} />}>
-              Download Sample CSV Template
-            </LvButton>
-          </div>
         </Disclosure>
       </LvCard>
     </>

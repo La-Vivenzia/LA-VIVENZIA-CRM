@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useMemo, useRef, useState } from 'react';
 
 import { callRoute, RouteRefusal } from 'src/api/client';
 
@@ -118,7 +118,6 @@ export type CreateResult = {
   error?: string;
   refusal?: string;
   replayed?: boolean;
-  merged?: boolean;
   leadId: string;
   lvLeadId: string | null;
   ownerId?: string | null;
@@ -247,8 +246,8 @@ export const normalizeEmail = (raw: string | null | undefined): string | null =>
 const cleanName = (raw: string): string | null => {
   const line = raw.split(/[\r\n]/)[0] ?? '';
   const stripped = line
-    .replace(/(?:from|here|contact|phone|email|interested|looking).*/i, '')
-    .replace(/[^\w\s.'-]/g, '')
+    .replace(/\b(?:from|here|contact|phone|email|interested|looking)\b.*/iu, '')
+    .replace(/[^\p{L}\p{M}\p{N}\s.'-]/gu, '')
     .trim();
 
   return stripped.length >= 2 && stripped.length <= 60 && !/^\d+$/.test(stripped) ? stripped : null;
@@ -291,12 +290,15 @@ export type ParsedMessageResult = {
   rawText: string;
 };
 
+const WHATSAPP_TIMESTAMP_PATTERN =
+  '(?:\\[\\d{1,2}\\/\\d{1,2}\\/\\d{2,4},?\\s+\\d{1,2}:\\d{2}(?::\\d{2})?(?:[\\s\\u202F\\u00A0]*[ap]\\.?m\\.?)?\\]|\\d{1,2}\\/\\d{1,2}\\/\\d{2,4},?\\s+\\d{1,2}:\\d{2}(?::\\d{2})?(?:[\\s\\u202F\\u00A0]*[ap]\\.?m\\.?)?\\s*-\\s*)';
+
 export const parseRawMessage = (text: string): ParsedMessageResult => {
   const rawText = text.trim();
 
   // 1. Phone extraction (Indian 10-digit, 0-prefixed, or +91 format)
   let phone: string | null = null;
-  const labeledPhone = rawText.match(/(?:phone|whatsapp|mobile|contact|call|tel)\s*[:=-]\s*([+\d\s().-]{8,22})/i);
+  const labeledPhone = rawText.match(/\b(?:phone|whatsapp|mobile|contact|call|tel)\b\s*[:=-]\s*([+\d\s().-]{8,22})/iu);
 
   if (labeledPhone && labeledPhone[1]) {
     phone = normalizePhone(labeledPhone[1]);
@@ -304,7 +306,7 @@ export const parseRawMessage = (text: string): ParsedMessageResult => {
 
   if (!phone) {
     const senderPhoneHeader = rawText.match(
-      /(?:\[\d{1,2}\/\d{1,2}\/\d{2,4},?\s+\d{1,2}:\d{2}(?::\d{2})?(?:\s+[AP]M)?\]|\d{1,2}\/\d{1,2}\/\d{2,4},?\s+\d{1,2}:\d{2}\s*-\s*)([+\d\s()-]{10,22}):/i,
+      new RegExp(`${WHATSAPP_TIMESTAMP_PATTERN}([+\\d\\s()-]{10,22}):`, 'iu'),
     );
 
     if (senderPhoneHeader && senderPhoneHeader[1]) {
@@ -333,7 +335,7 @@ export const parseRawMessage = (text: string): ParsedMessageResult => {
   // 3. Name extraction
   let name: string | null = null;
   const labeledName = rawText.match(
-    /(?:^|\n)\s*(?:name|client(?:\s+name)?|lead(?:\s+name)?|contact(?:\s+person)?|customer(?:\s+name)?)\s*[:=-]\s*([A-Za-z][A-Za-z \t.'-]{1,50})/i,
+    /(?:^|\n|[;,])\s*(?:\b(?:name|client(?:\s+name)?|lead(?:\s+name)?|contact(?:\s+person)?|customer(?:\s+name)?)\b)\s*[:=-]\s*([\p{L}\p{M}][\p{L}\p{M}\s.'-]{1,50})/iu,
   );
 
   if (labeledName && labeledName[1]) {
@@ -342,7 +344,7 @@ export const parseRawMessage = (text: string): ParsedMessageResult => {
 
   if (!name) {
     const headerSender = rawText.match(
-      /(?:\[\d{1,2}\/\d{1,2}\/\d{2,4},?\s+\d{1,2}:\d{2}(?::\d{2})?(?:\s+[AP]M)?\]|\d{1,2}\/\d{1,2}\/\d{2,4},?\s+\d{1,2}:\d{2}\s*-\s*)([^:\n]+):/,
+      new RegExp(`${WHATSAPP_TIMESTAMP_PATTERN}([^:\\n]+):`, 'iu'),
     );
 
     if (headerSender && headerSender[1]) {
@@ -355,7 +357,7 @@ export const parseRawMessage = (text: string): ParsedMessageResult => {
   }
 
   if (!name) {
-    const introMatch = rawText.match(/(?:i am|i'm|this is|my name is)\s+([A-Z][a-z]+(?:\s+[A-Z][a-z]+){1,3})/i);
+    const introMatch = rawText.match(/(?:\bi am\b|\bi'm\b|\bthis is\b|\bmy name is\b)\s+([\p{L}\p{M}]+(?:\s+[\p{L}\p{M}]+){0,3})/iu);
 
     if (introMatch && introMatch[1]) {
       name = cleanName(introMatch[1]);
@@ -364,7 +366,7 @@ export const parseRawMessage = (text: string): ParsedMessageResult => {
 
   if (!name) {
     const signoffMatch = rawText.match(
-      /(?:regards|thanks(?:\s+and\s+regards)?|best|sincerely)\s*,?\s*\n+([A-Za-z][A-Za-z\s.'-]{2,40})/i,
+      /(?:\bregards\b|\bthanks(?:\s+and\s+regards)?\b|\bbest\b|\bsincerely\b)\s*,?\s*\n+([\p{L}\p{M}][\p{L}\p{M}\s.'-]{1,40})/iu,
     );
 
     if (signoffMatch && signoffMatch[1]) {
@@ -380,12 +382,16 @@ export const parseRawMessage = (text: string): ParsedMessageResult => {
       .slice(0, 3);
 
     for (const line of firstLines) {
-      if (/^[A-Z][a-z]+(?:\s+[A-Z][a-z]+){1,2}$/.test(line)) {
+      if (/^[\p{L}\p{M}]+(?:\s+[\p{L}\p{M}]+){1,3}$/u.test(line)) {
         const lower = line.toLowerCase();
 
-        if (!['hello', 'hi team', 'dear team', 'good morning', 'good evening', 'inquiry'].includes(lower)) {
-          name = line;
-          break;
+        if (!['hello', 'hi team', 'dear team', 'good morning', 'good evening', 'inquiry', 'namaste'].includes(lower)) {
+          const cleaned = cleanName(line);
+
+          if (cleaned) {
+            name = cleaned;
+            break;
+          }
         }
       }
     }
@@ -393,7 +399,7 @@ export const parseRawMessage = (text: string): ParsedMessageResult => {
 
   // 4. Location extraction
   let location: string | null = null;
-  const labeledLoc = rawText.match(/(?:location|city|town|place|area)\s*[:=-]\s*([A-Za-z\s,.-]{2,50})/i);
+  const labeledLoc = rawText.match(/\b(?:location|city|town|place|area)\b\s*[:=-]\s*([\p{L}\p{M}\s,.-]{2,50})/iu);
 
   if (labeledLoc && labeledLoc[1]) {
     const val = labeledLoc[1].split(/[\n,]/)[0]?.trim();
@@ -418,7 +424,7 @@ export const parseRawMessage = (text: string): ParsedMessageResult => {
   // 5. Requirements extraction
   let requirements: string | null = null;
   const labeledReq = rawText.match(
-    /(?:requirements?|details|enquiry|query|requirement\s+details?|notes?)\s*[:=-]\s*([^\n\r]+(?:\n[^\n\r]+)?)/i,
+    /\b(?:requirements?|details|enquiry|query|requirement\s+details?|notes?)\b\s*[:=-]\s*([^\n\r]+(?:\n[^\n\r]+)?)/iu,
   );
 
   if (labeledReq && labeledReq[1]) {
@@ -431,10 +437,7 @@ export const parseRawMessage = (text: string): ParsedMessageResult => {
 
   if (!requirements) {
     const cleanedText = rawText
-      .replace(
-        /(?:\[\d{1,2}\/\d{1,2}\/\d{2,4},?\s+\d{1,2}:\d{2}(?::\d{2})?(?:\s+[AP]M)?\]|\d{1,2}\/\d{1,2}\/\d{2,4},?\s+\d{1,2}:\d{2}\s*-\s*)[^:]*:\s*/gi,
-        '',
-      )
+      .replace(new RegExp(`${WHATSAPP_TIMESTAMP_PATTERN}[^:]*:\\s*`, 'giu'), '')
       .replace(/\r\n/g, '\n');
 
     const sentences = cleanedText
@@ -592,7 +595,7 @@ const uuid = (): string =>
         return (c === 'x' ? r : (r & 0x3) | 0x8).toString(16);
       });
 
-export type DuplicateDecision = 'MERGE_EXISTING' | 'CREATE_NEW' | 'IGNORED' | 'NONE';
+export type DuplicateDecision = 'CREATE_NEW' | 'IGNORED' | 'NONE';
 export type AssignmentMode = 'ENGINE' | 'SELF' | 'MEMBER' | 'NONE';
 
 export const useCapture = () => {
@@ -608,14 +611,15 @@ export const useCapture = () => {
   const [created, setCreated] = useState<CreateResult | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [duplicateDecision, setDuplicateDecision] = useState<DuplicateDecision>('NONE');
-  const [selectedDuplicateLeadId, setSelectedDuplicateLeadId] = useState<string | null>(null);
   const [assignmentMode, setAssignmentMode] = useState<AssignmentMode>('ENGINE');
   const [assignmentMemberId, setAssignmentMemberId] = useState<string | null>(null);
   // The server will not create from an extracted draft until a person says
   // they checked it. This is that statement, made once, on the Confirm step.
   const [confirmed, setConfirmed] = useState(false);
+  const preflightRequestIdRef = useRef(0);
 
   const reset = useCallback(() => {
+    preflightRequestIdRef.current += 1;
     setCaptureKey(uuid());
     setPhase('CHOOSE');
     setMethod(null);
@@ -625,7 +629,6 @@ export const useCapture = () => {
     setCreated(null);
     setError(null);
     setDuplicateDecision('NONE');
-    setSelectedDuplicateLeadId(null);
     setAssignmentMode('ENGINE');
     setAssignmentMemberId(null);
     setConfirmed(false);
@@ -716,6 +719,7 @@ export const useCapture = () => {
         };
 
         if (nextDraft.name.trim().length > 1) {
+          const reqId = ++preflightRequestIdRef.current;
           callRoute<Preflight>('/capture/preflight', {
             captureKey,
             method: method.key,
@@ -725,7 +729,9 @@ export const useCapture = () => {
             stage: 'REVIEW',
           })
             .then((res) => {
-              setPreflight(res);
+              if (reqId === preflightRequestIdRef.current) {
+                setPreflight(res);
+              }
             })
             .catch(() => {});
         }
@@ -748,6 +754,7 @@ export const useCapture = () => {
               (quickDraft as unknown as Record<string, unknown>)[f.field] = f.value;
             }
           }
+          const reqId = ++preflightRequestIdRef.current;
           callRoute<Preflight>('/capture/preflight', {
             captureKey,
             method: method.key,
@@ -757,7 +764,9 @@ export const useCapture = () => {
             stage: 'REVIEW',
           })
             .then((res) => {
-              setPreflight(res);
+              if (reqId === preflightRequestIdRef.current) {
+                setPreflight(res);
+              }
             })
             .catch(() => {});
         }
@@ -779,6 +788,7 @@ export const useCapture = () => {
 
     setPhase('CHECKING');
     setError(null);
+    const reqId = ++preflightRequestIdRef.current;
 
     try {
       const result = await callRoute<Preflight>('/capture/preflight', {
@@ -790,76 +800,21 @@ export const useCapture = () => {
         stage: 'REVIEW',
       });
 
-      setPreflight(result);
-      setDraft((current) => ({ ...current, ...result.draft }));
-      setPhase('DECIDE');
+      if (reqId === preflightRequestIdRef.current) {
+        setPreflight(result);
+        setDraft((current) => ({ ...current, ...result.draft }));
+        setPhase('DECIDE');
+      }
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : 'That draft could not be checked.');
-      setPhase('REVIEW');
+      if (reqId === preflightRequestIdRef.current) {
+        setError(cause instanceof Error ? cause.message : 'That draft could not be checked.');
+        setPhase('REVIEW');
+      }
     }
   }, [captureKey, method, draft]);
 
-  const merge = useCallback(
-    async (targetLeadIdOverride?: string) => {
-      const targetLeadId = targetLeadIdOverride ?? selectedDuplicateLeadId ?? preflight?.duplicates?.[0]?.leadId;
-
-      if (!targetLeadId) {
-        setError('Please select an existing lead to merge into.');
-        return;
-      }
-
-      setPhase('CREATING');
-      setError(null);
-
-      try {
-        const candidate = preflight?.duplicates?.find((c) => c.leadId === targetLeadId);
-        const details = [
-          '### Merged Information from Capture',
-          method ? `- **Method**: ${method.label}` : null,
-          draft.source ? `- **Source**: ${draft.source}` : null,
-          draft.name ? `- **Contact Name**: ${draft.name}` : null,
-          draft.organisationName ? `- **Organisation**: ${draft.organisationName}` : null,
-          draft.jobTitle ? `- **Role**: ${draft.jobTitle}` : null,
-          draft.phone ? `- **Phone**: ${draft.phone}` : null,
-          draft.email ? `- **Email**: ${draft.email}` : null,
-          draft.location ? `- **Location**: ${draft.location}` : null,
-          draft.websiteUrl ? `- **Website**: ${draft.websiteUrl}` : null,
-          draft.instagramHandle ? `- **Instagram**: @${draft.instagramHandle}` : null,
-          draft.notes ? `\n**Requirements & Notes**:\n${draft.notes}` : null,
-          draft.rawInput && draft.rawInput !== draft.notes ? `\n**Raw Input**:\n\`\`\`\n${draft.rawInput}\n\`\`\`` : null,
-        ]
-          .filter(Boolean)
-          .join('\n');
-
-        await callRoute('/notes/create', {
-          leadId: targetLeadId,
-          title: `Captured info merged: ${draft.name || method?.label || 'Duplicate lead'}`,
-          body: details.length >= 2 ? details : 'Captured duplicate lead details attached to this record.',
-        });
-
-        setCreated({
-          ok: true,
-          leadId: targetLeadId,
-          lvLeadId: candidate?.lvLeadId ?? null,
-          merged: true,
-          ownerName: candidate?.ownerName ?? null,
-        });
-        setPhase('SUCCESS');
-      } catch (cause) {
-        setError(cause instanceof Error ? cause.message : 'Could not merge into existing lead.');
-        setPhase('DECIDE');
-      }
-    },
-    [method, draft, selectedDuplicateLeadId, preflight],
-  );
-
   const create = useCallback(async () => {
     if (!method) {
-      return;
-    }
-
-    if (duplicateDecision === 'MERGE_EXISTING') {
-      await merge();
       return;
     }
 
@@ -897,6 +852,7 @@ export const useCapture = () => {
       setPhase('SUCCESS');
     } catch (cause) {
       if (cause instanceof RouteRefusal && cause.refusal === 'DUPLICATE_UNDECIDED') {
+        preflightRequestIdRef.current += 1;
         const dups = Array.isArray(cause.body?.duplicates) ? (cause.body.duplicates as DuplicateCandidate[]) : [];
         if (dups.length > 0) {
           setPreflight((current) =>
@@ -922,7 +878,7 @@ export const useCapture = () => {
       setError(cause instanceof Error ? cause.message : 'That lead could not be created.');
       setPhase('DECIDE');
     }
-  }, [captureKey, method, draft, assignmentMode, assignmentMemberId, duplicateDecision, preflight, extraction, confirmed, merge]);
+  }, [captureKey, method, draft, assignmentMode, assignmentMemberId, duplicateDecision, preflight, extraction, confirmed]);
 
   // The draft is not ready until it has a name — the one field the server
   // refuses to build a lead without.
@@ -940,7 +896,6 @@ export const useCapture = () => {
       error,
       canReview,
       duplicateDecision,
-      selectedDuplicateLeadId,
       assignmentMode,
       assignmentMemberId,
       confirmed,
@@ -949,13 +904,11 @@ export const useCapture = () => {
       setDraft,
       setError,
       setDuplicateDecision,
-      setSelectedDuplicateLeadId,
       setAssignmentMode,
       setAssignmentMemberId,
       chooseMethod,
       extract,
       check,
-      merge,
       create,
       reset,
     }),
@@ -970,14 +923,12 @@ export const useCapture = () => {
       error,
       canReview,
       duplicateDecision,
-      selectedDuplicateLeadId,
       assignmentMode,
       assignmentMemberId,
       confirmed,
       chooseMethod,
       extract,
       check,
-      merge,
       create,
       reset,
     ],

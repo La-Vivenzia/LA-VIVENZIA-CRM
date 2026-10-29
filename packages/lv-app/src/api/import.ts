@@ -53,7 +53,7 @@ export const SAMPLE_CSV_HEADERS = [
 
 export const SAMPLE_CSV_ROW = [
   'Aarav Mehta',
-  '+91 98765 43210',
+  '9876543210',
   'aarav.mehta@example.com',
   'Bangalore',
   'Website',

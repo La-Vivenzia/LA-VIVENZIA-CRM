@@ -21,6 +21,7 @@ import {
   InlineNotice,
   LvBadge,
   LvButton,
+  LvSelect,
   LvTextarea,
   VisuallyHidden,
   type Tone,
@@ -316,6 +317,14 @@ export const LvDocumentCard = ({
 // it is applied, and a reason box appears only where the server requires one,
 // where it is genuinely mandatory rather than decorative.
 // ---------------------------------------------------------------------------
+/** Predefined rejection reasons for partner document verification. */
+export const PREDEFINED_REJECTION_REASONS = [
+  'Document blurred / illegible / cut off',
+  'FSSAI / Business license expired',
+  'Address does not match Pune pilot corridor (Amanora/Hadapsar)',
+  'Bank passbook/cheque missing account number or IFSC',
+] as const;
+
 export const LvDecisionPanel = ({
   theme,
   document: file,
@@ -330,11 +339,18 @@ export const LvDecisionPanel = ({
   error?: string | null;
 }) => {
   const [choice, setChoice] = useState<DocumentVerificationState | null>(null);
-  const [reason, setReason] = useState('');
+  const [selectedReason, setSelectedReason] = useState('');
+  const [reviewerNotes, setReviewerNotes] = useState('');
+  const [freeReason, setFreeReason] = useState('');
   const [flags, setFlags] = useState<DocumentFlag[]>([]);
   const allowed = DOCUMENT_TRANSITIONS[file.verificationState];
+  const isRejection = choice === 'REJECTED' || choice === 'NEEDS_REPLACEMENT';
   const needsReason = choice !== null && documentRequiresReason(choice);
-  const ready = choice !== null && (!needsReason || reason.trim().length > 0);
+  const ready =
+    choice !== null &&
+    (isRejection
+      ? selectedReason.trim().length > 0
+      : !needsReason || freeReason.trim().length > 0);
 
   const toggleFlag = (flag: DocumentFlag) => setFlags((current) => (current.includes(flag) ? current.filter((entry) => entry !== flag) : [...current, flag]));
 
@@ -372,7 +388,9 @@ export const LvDecisionPanel = ({
                   checked={active}
                   onChange={() => {
                     setChoice(state);
-                    setReason('');
+                    setSelectedReason('');
+                    setReviewerNotes('');
+                    setFreeReason('');
                   }}
                   style={{ marginTop: 3, width: 18, height: 18, flex: '0 0 auto', accentColor: theme.color.brand }}
                 />
@@ -425,26 +443,80 @@ export const LvDecisionPanel = ({
         </fieldset>
       )}
 
-      {needsReason && (
-        <Field
-          theme={theme}
-          label="Reason"
-          htmlFor={`reason-${file.id}`}
-          required
-          help="The partner is shown this. Say what is wrong with the document and what would fix it."
-        >
-          <LvTextarea theme={theme} id={`reason-${file.id}`} value={reason} rows={3} onChange={(event) => setReason(event.target.value)} />
-        </Field>
+      {isRejection ? (
+        <>
+          <Field
+            theme={theme}
+            label="Rejection reason"
+            htmlFor={`reason-select-${file.id}`}
+            required
+            help="Select the primary reason for returning this document to the partner."
+          >
+            <LvSelect
+              theme={theme}
+              id={`reason-select-${file.id}`}
+              value={selectedReason}
+              onChange={(event) => setSelectedReason(event.target.value)}
+            >
+              <option value="">Select a reason…</option>
+              {PREDEFINED_REJECTION_REASONS.map((option) => (
+                <option key={option} value={option}>
+                  {option}
+                </option>
+              ))}
+            </LvSelect>
+          </Field>
+
+          <Field
+            theme={theme}
+            label="Reviewer notes"
+            htmlFor={`notes-${file.id}`}
+            help="Optional notes or instructions for the partner and the internal review trail."
+          >
+            <LvTextarea
+              theme={theme}
+              id={`notes-${file.id}`}
+              value={reviewerNotes}
+              rows={3}
+              placeholder="Add any specific observations or corrections needed…"
+              onChange={(event) => setReviewerNotes(event.target.value)}
+            />
+          </Field>
+        </>
+      ) : (
+        needsReason && (
+          <Field
+            theme={theme}
+            label="Reason"
+            htmlFor={`reason-${file.id}`}
+            required
+            help="The partner is shown this. Say what is wrong with the document and what would fix it."
+          >
+            <LvTextarea theme={theme} id={`reason-${file.id}`} value={freeReason} rows={3} onChange={(event) => setFreeReason(event.target.value)} />
+          </Field>
+        )
       )}
 
       {error && <InlineNotice theme={theme} tone="danger">{error}</InlineNotice>}
 
       <LvButton
         theme={theme}
-        variant={choice === 'REJECTED' || choice === 'NEEDS_REPLACEMENT' ? 'danger' : 'primary'}
+        variant={isRejection ? 'danger' : 'primary'}
         disabled={!ready}
         busy={busy}
-        onClick={() => choice !== null && onDecide(choice, reason.trim() === '' ? null : reason.trim(), flags)}
+        onClick={() => {
+          if (choice === null) {
+            return;
+          }
+          const reasonToSend = isRejection
+            ? reviewerNotes.trim().length > 0
+              ? `${selectedReason.trim()} — ${reviewerNotes.trim()}`
+              : selectedReason.trim()
+            : freeReason.trim() === ''
+              ? null
+              : freeReason.trim();
+          onDecide(choice, reasonToSend, flags);
+        }}
       >
         {choice === null ? 'Choose a decision' : DOCUMENT_DECISION_COPY[choice].verb}
       </LvButton>

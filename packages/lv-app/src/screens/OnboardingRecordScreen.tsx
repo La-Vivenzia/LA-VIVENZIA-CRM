@@ -16,7 +16,7 @@ import { LvSectionCard } from 'src/design/profile';
 import { type LvTheme } from 'src/design/theme';
 import { DocumentCollection } from 'src/screens/onboarding/documents';
 import { LvBlockers, LvJourney, LvReadiness, LvStatusLine } from 'src/screens/onboarding/parts';
-import { ReviewWorkspace } from 'src/screens/onboarding/review';
+import { LvPuneVerificationCard, ReviewWorkspace } from 'src/screens/onboarding/review';
 import { StepsSection } from 'src/screens/onboarding/steps';
 import { TransitionDialog } from 'src/screens/onboarding/transition';
 
@@ -237,7 +237,10 @@ export const OnboardingRecordScreen = ({ theme }: { theme: LvTheme }) => {
       )}
 
       {active === 'review' && (
-        <ReviewWorkspace theme={theme} record={record} now={now} selectedId={selectedDocument} onSelect={setSelectedDocument} onReload={() => void reload()} />
+        <div style={{ display: 'flex', flexDirection: 'column', gap: theme.space(4) }}>
+          <LvPuneVerificationCard theme={theme} record={record} onReload={() => void reload()} />
+          <ReviewWorkspace theme={theme} record={record} now={now} selectedId={selectedDocument} onSelect={setSelectedDocument} onReload={() => void reload()} />
+        </div>
       )}
 
       {active === 'form' && <StepsSection theme={theme} record={record} />}

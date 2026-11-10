@@ -243,6 +243,7 @@ export const LEAD_PILOT_ZONES = [
   'SEASONS_MALL',
   'MAGARPATTA_CITY',
   'HADAPSAR',
+  'VIMAN_NAGAR',
 ] as const;
 
 export type LeadPilotZone = (typeof LEAD_PILOT_ZONES)[number];
@@ -252,6 +253,7 @@ export const LEAD_PILOT_ZONE_LABELS: Record<LeadPilotZone, string> = {
   SEASONS_MALL: 'Seasons Mall',
   MAGARPATTA_CITY: 'Magarpatta City',
   HADAPSAR: 'Hadapsar',
+  VIMAN_NAGAR: 'Viman Nagar',
 };
 
 export const isLeadPilotZone = (value: unknown): value is LeadPilotZone =>

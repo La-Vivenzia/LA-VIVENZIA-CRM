@@ -728,3 +728,7 @@ export const LEAD_YEARS_EXPERIENCE_FIELD_ID = '36728b12-f161-47c4-921f-c84317c62
 
 /** POST /ai/diagnostics — the administrator's configuration read-out and probe. */
 export const FN_AI_DIAGNOSTICS_ID = 'fb7c7cbd-6cef-4685-8a67-214ac44794ff';
+
+// --- Meta WhatsApp Business Cloud API webhook (LA-10 / LA-11) ---------------
+export const FN_WHATSAPP_WEBHOOK_ID = 'e3e5b3c2-19e4-4d87-8bc1-12c82305a411';
+

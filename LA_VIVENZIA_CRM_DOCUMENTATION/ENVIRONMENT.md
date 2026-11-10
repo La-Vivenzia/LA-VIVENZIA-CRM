@@ -233,3 +233,21 @@ ignored) and, only when dispatched with `build-image: true`, **image** (builds
 the production `twenty-server` Docker target without pushing). Integration and
 browser suites need a running workspace with the dev users and are run locally
 before each Day commit (TESTING-QA.md); they are not in CI.
+
+## Meta WhatsApp Business Cloud API (LA-10, LA-11, LA-13)
+
+The WhatsApp integration runs as a logic function with universal identifier `e3e5b3c2-19e4-4d87-8bc1-12c82305a411`.
+
+- **Native Callback Route:** `/webhooks/server/e3e5b3c2-19e4-4d87-8bc1-12c82305a411`
+- **Reverse Proxy Route:** If desired, an ingress proxy (Nginx, Caddy, Cloudflare) can map `/api/webhooks/whatsapp` to the native Twenty path above, forwarding query parameters and `x-hub-signature-256`. No public domain or proxy is pre-configured.
+- **Environment Variables:**
+  - `WHATSAPP_VERIFY_TOKEN`: Verification token matching Meta App Dashboard webhook config.
+  - `WHATSAPP_APP_SECRET`: App secret for HMAC-SHA256 signature validation of incoming POST webhooks.
+  - `WHATSAPP_ACCESS_TOKEN`: System User access token with `whatsapp_business_messaging` permissions.
+  - `WHATSAPP_PHONE_NUMBER_ID`: Sender phone number ID from Meta Business Manager.
+  - `WHATSAPP_API_URL`: Optional (default: `https://graph.facebook.com`).
+- **Deployment Prerequisites:**
+  1. Production Twenty server deployed with public HTTPS URL or reverse proxy.
+  2. Meta Business Manager account with WhatsApp Business Cloud API enabled and configured phone number.
+  3. Webhook subscription pointed to callback URL with `messages` field enabled.
+  4. Environment variables set on the server runtime.

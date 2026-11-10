@@ -16,6 +16,8 @@ describe('createWhatsAppLead', () => {
     rawText: 'Looking for 4 guests in Amanora Mall with budget 10000 for nightlife',
     zone: 'AMANORA_MALL',
     zoneLabel: 'Amanora Mall',
+    destination: 'Amanora Mall, Pune',
+    destinationCorridor: 'Pune East Pilot Corridor',
     guestCount: 4,
     budget: 10000,
     budgetFormatted: '₹10,000',
@@ -149,6 +151,155 @@ describe('createWhatsAppLead', () => {
         expect(result.error).toBe('Failed to save lead in CRM');
         expect(result.detail).toContain('Internal database error');
       }
+    });
+
+    it('creates lead with Viman Nagar pilot zone and links or creates Person record', async () => {
+      const vimanMessage: ParsedWhatsAppMessage = {
+        wamid: 'wamid.VIMAN_MSG_001',
+        fromPhone: '919876543999',
+        senderName: 'Tanvi Deshmukh',
+        timestamp: '1730005000',
+        rawText: 'Looking for rooftop dining in Viman Nagar for 4 guests with budget 8000',
+        zone: 'VIMAN_NAGAR',
+        zoneLabel: 'Viman Nagar',
+        destination: 'Viman Nagar, Pune',
+        destinationCorridor: 'Pune East Pilot Corridor',
+        guestCount: 4,
+        budget: 8000,
+        budgetFormatted: '₹8,000',
+        cravings: ['Rooftop Dining'],
+      };
+
+      const mockApplicationClient = {
+        query: vi.fn().mockImplementation((args: Record<string, unknown>) => {
+          if ('lvLeads' in args) {
+            return Promise.resolve({ lvLeads: { edges: [] } });
+          }
+          if ('people' in args) {
+            return Promise.resolve({ people: { edges: [] } });
+          }
+          return Promise.resolve({});
+        }),
+        mutation: vi.fn().mockImplementation((args: Record<string, unknown>) => {
+          if ('createLvLead' in args) {
+            return Promise.resolve({
+              createLvLead: { id: 'viman-lead-101' },
+            });
+          }
+          if ('createPerson' in args) {
+            return Promise.resolve({
+              createPerson: { id: 'person-tanvi-202' },
+            });
+          }
+          return Promise.resolve({});
+        }),
+      } as unknown as CoreApiClient;
+
+      const result = await createWhatsAppLead({
+        parsedMessage: vimanMessage,
+        applicationClient: mockApplicationClient,
+      });
+
+      expect(result.ok).toBe(true);
+      if (result.ok) {
+        expect(result.leadId).toBe('viman-lead-101');
+        expect(result.personId).toBe('person-tanvi-202');
+      }
+
+      expect(mockApplicationClient.mutation).toHaveBeenCalledWith(
+        expect.objectContaining({
+          createLvLead: expect.objectContaining({
+            __args: expect.objectContaining({
+              data: expect.objectContaining({
+                source: 'WHATSAPP',
+                pilotZone: 'VIMAN_NAGAR',
+                location: 'Viman Nagar, Pune',
+              }),
+            }),
+          }),
+        }),
+      );
+
+      expect(mockApplicationClient.mutation).toHaveBeenCalledWith(
+        expect.objectContaining({
+          createPerson: expect.objectContaining({
+            __args: expect.objectContaining({
+              data: expect.objectContaining({
+                name: { firstName: 'Tanvi', lastName: 'Deshmukh' },
+                phones: expect.objectContaining({
+                  primaryPhoneNumber: '919876543999',
+                }),
+              }),
+            }),
+          }),
+        }),
+      );
+    });
+
+    it('processes curated trip confirmation with high priority and butler notes', async () => {
+      const tripMessage: ParsedWhatsAppMessage = {
+        wamid: 'wamid.TRIP_CONFIRM_777',
+        fromPhone: '919811223344',
+        senderName: 'Aditya Roy',
+        timestamp: '1730010000',
+        rawText: 'Trip: Pune Sunset Trail\nReference: LV-REF-42\nParty Size: 6',
+        zone: 'HADAPSAR',
+        zoneLabel: 'Hadapsar',
+        destination: 'Hadapsar, Pune',
+        destinationCorridor: 'Pune East Pilot Corridor',
+        guestCount: 6,
+        budget: null,
+        budgetFormatted: null,
+        cravings: ['Beer'],
+        isTripConfirmation: true,
+        bookingReference: 'LV-REF-42',
+        tripTitle: 'Pune Sunset Trail',
+        tripRegion: 'Hadapsar',
+      };
+
+      const mockApplicationClient = {
+        query: vi.fn().mockImplementation((args: Record<string, unknown>) => {
+          if ('lvLeads' in args) {
+            return Promise.resolve({ lvLeads: { edges: [] } });
+          }
+          if ('people' in args) {
+            return Promise.resolve({
+              people: { edges: [{ node: { id: 'existing-person-aditya' } }] },
+            });
+          }
+          return Promise.resolve({});
+        }),
+        mutation: vi.fn().mockResolvedValue({
+          createLvLead: { id: 'trip-lead-555' },
+        }),
+      } as unknown as CoreApiClient;
+
+      const result = await createWhatsAppLead({
+        parsedMessage: tripMessage,
+        applicationClient: mockApplicationClient,
+      });
+
+      expect(result.ok).toBe(true);
+      if (result.ok) {
+        expect(result.leadId).toBe('trip-lead-555');
+        expect(result.personId).toBe('existing-person-aditya');
+      }
+
+      expect(mockApplicationClient.mutation).toHaveBeenCalledWith(
+        expect.objectContaining({
+          createLvLead: expect.objectContaining({
+            __args: expect.objectContaining({
+              data: expect.objectContaining({
+                source: 'WHATSAPP',
+                priority: 'HIGH',
+                category: 'EXPERIENCE',
+                subcategory: 'CURATOR',
+                pilotZone: 'HADAPSAR',
+              }),
+            }),
+          }),
+        }),
+      );
     });
   });
 });

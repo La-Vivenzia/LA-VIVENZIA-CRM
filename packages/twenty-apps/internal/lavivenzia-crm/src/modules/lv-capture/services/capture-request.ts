@@ -1,7 +1,7 @@
 import { CAPTURE_METHOD_BY_KEY, isCaptureMethodKey } from 'src/modules/lv-capture/constants/capture-methods';
 import { type CaptureInput } from 'src/modules/lv-capture/types/capture.types';
 import { isLeadPriority } from 'src/modules/lv-core/constants/lead-lifecycle';
-import { isLeadPilotZone, isLeadSource, LEAD_PILOT_ZONE_LABELS, SOCIAL_PLATFORMS, type LeadCaptureMode, type LeadPilotZone, type SocialPlatform } from 'src/modules/lv-core/constants/lead-taxonomy';
+import { isLeadPilotZone, isLeadSource, LEAD_PILOT_ZONES, LEAD_PILOT_ZONE_LABELS, SOCIAL_PLATFORMS, type LeadCaptureMode, type LeadPilotZone, type SocialPlatform } from 'src/modules/lv-core/constants/lead-taxonomy';
 
 // Reads the fields a capture request carries into the one CaptureInput the
 // draft builder understands. Anything not a string is dropped; identity
@@ -63,7 +63,7 @@ export const readCaptureInput = (body: CaptureFieldsInput): { ok: true; method: 
   const parsedPilotZone = normalizePilotZoneInput(fields.pilotZone);
 
   if (!parsedPilotZone.valid) {
-    return { ok: false, error: 'pilotZone must be one of: AMANORA_MALL, SEASONS_MALL, MAGARPATTA_CITY, HADAPSAR.' };
+    return { ok: false, error: `pilotZone must be one of: ${LEAD_PILOT_ZONES.join(', ')}.` };
   }
 
   const input: CaptureInput = {

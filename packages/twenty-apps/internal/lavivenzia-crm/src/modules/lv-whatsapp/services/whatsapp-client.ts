@@ -119,18 +119,57 @@ export const sendWhatsAppMessage = async ({
   }
 };
 
+export const buildConversationalIntakePrompt = ({
+  senderName,
+}: {
+  senderName?: string | null;
+} = {}): string => {
+  const greeting = senderName ? `Hi ${senderName}!` : 'Hello!';
+
+  return `${greeting} Welcome to La Vivenzia Experiences. To curate your perfect journey across Pune pilot hubs (Amanora Mall, Seasons Mall, Magarpatta City, Hadapsar, or Viman Nagar), could you share:\n1. Preferred zone or destination\n2. Number of guests\n3. Your vibe/cravings (e.g. Craft Beer, Rooftop Dining, Gaming, Luxury Spa)?`;
+};
+
 export const buildAcknowledgmentText = ({
   senderName,
   zoneLabel,
   guestCount,
   cravings,
+  isTripConfirmation,
+  bookingReference,
+  tripTitle,
+  tripRegion,
+  isLocationInquiry,
+  conversationalPrompt,
 }: {
   senderName?: string | null;
   zoneLabel?: string | null;
   guestCount?: number | null;
   cravings?: string[];
+  isTripConfirmation?: boolean;
+  bookingReference?: string | null;
+  tripTitle?: string | null;
+  tripRegion?: string | null;
+  isLocationInquiry?: boolean;
+  conversationalPrompt?: boolean;
 }): string => {
   const greeting = senderName ? `Hi ${senderName}!` : 'Hello!';
+
+  if (isTripConfirmation) {
+    const title = tripTitle || 'Curated Trip';
+    const ref = bookingReference ? ` (Booking Ref: ${bookingReference})` : '';
+    const party = guestCount ? ` for your party of ${guestCount}` : '';
+    const area = tripRegion || zoneLabel || 'Pune';
+
+    return `🛎️ *La Vivenzia Trip Concierge Activated!*\n\n${greeting} Your Trip Butler service for ${title}${ref} is now live. We have activated live journey updates, route guidance, and dynamic recommendations${party} in ${area}.\n\nNeed recommendations for dining, rooftop lounges, craft beer, spas, or gaming along your route? Just reply here anytime!`;
+  }
+
+  if (isLocationInquiry && zoneLabel) {
+    const cravingStr =
+      cravings && cravings.length > 0 ? cravings.join(', ') : 'Dining & Nightlife';
+
+    return `📍 *Live Location Recommendations — ${zoneLabel}*\n\n${greeting} Here are your live curated recommendations in ${zoneLabel} for ${cravingStr}:\n• Top Pick: Premium Experience & Hospitality Hubs\n• Curated Vibe: Rooftop dining, artisanal breweries, and luxury wellness\n• Route Butler: Seamless transit and priority reservations active.\n\nReply with what you'd like to book next!`;
+  }
+
   const details: string[] = [];
 
   if (zoneLabel) {
@@ -148,5 +187,11 @@ export const buildAcknowledgmentText = ({
   const summary =
     details.length > 0 ? ` for an experience ${details.join(' ')}` : '';
 
-  return `${greeting} Thank you for reaching out to La Vivenzia. We have received your inquiry${summary}. Our Experience team is reviewing your request and will get back to you shortly!`;
+  let message = `${greeting} Thank you for reaching out to La Vivenzia. We have received your inquiry${summary}. Our Experience team is reviewing your request and will get back to you shortly!`;
+
+  if (conversationalPrompt) {
+    message += `\n\nTo help us tailor your experience across Pune (Amanora Mall, Seasons Mall, Magarpatta City, Hadapsar, or Viman Nagar), feel free to share your preferred vibe (Craft Beer, Rooftop Dining, Gaming, Spa) or party size!`;
+  }
+
+  return message;
 };

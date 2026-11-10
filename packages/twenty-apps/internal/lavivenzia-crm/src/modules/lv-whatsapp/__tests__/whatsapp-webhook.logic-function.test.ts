@@ -331,7 +331,7 @@ describe('whatsapp-webhook.logic-function', () => {
       expect(body.results).toEqual([]);
     });
 
-    it('handles duplicate / replayed messages idempotently', async () => {
+    it('handles duplicate / replayed messages idempotently without sending duplicate acknowledgment', async () => {
       process.env.WHATSAPP_APP_SECRET = secret;
 
       const webhookData: MetaWhatsAppWebhookPayload = {
@@ -360,17 +360,19 @@ describe('whatsapp-webhook.logic-function', () => {
         .update(rawBody, 'utf8')
         .digest('hex')}`;
 
-      vi.spyOn(createLeadService, 'createWhatsAppLead').mockResolvedValueOnce({
-        ok: true,
-        leadId: 'existing-lead-id',
-        lvLeadId: 'LV-000042',
-        replayed: true,
-      });
+      const createLeadSpy = vi
+        .spyOn(createLeadService, 'createWhatsAppLead')
+        .mockResolvedValueOnce({
+          ok: true,
+          leadId: 'existing-lead-id',
+          lvLeadId: 'LV-000042',
+          replayed: true,
+        });
 
-      vi.spyOn(whatsAppClientService, 'sendWhatsAppMessage').mockResolvedValueOnce({
-        ok: true,
-        messageId: 'wamid.ACK_REPLAY',
-      });
+      const sendMessageSpy = vi.spyOn(
+        whatsAppClientService,
+        'sendWhatsAppMessage',
+      );
 
       const payload = buildWhatsAppRoutePayload({
         method: 'POST',
@@ -388,10 +390,113 @@ describe('whatsapp-webhook.logic-function', () => {
       expect(body.results[0]).toMatchObject({
         wamid: 'wamid.DUPLICATE123',
         leadId: 'existing-lead-id',
+        lvLeadId: 'LV-000042',
         leadOk: true,
         replayed: true,
+        ackSent: false,
+      });
+      expect(createLeadSpy).toHaveBeenCalledTimes(1);
+      expect(sendMessageSpy).not.toHaveBeenCalled();
+    });
+
+    it('in multi-message batch, sends acknowledgment for new message but suppresses duplicate replay', async () => {
+      process.env.WHATSAPP_APP_SECRET = secret;
+
+      const webhookData: MetaWhatsAppWebhookPayload = {
+        entry: [
+          {
+            changes: [
+              {
+                value: {
+                  messages: [
+                    {
+                      id: 'wamid.BATCH_DUP_01',
+                      from: '919876543210',
+                      type: 'text',
+                      text: { body: 'Prior inquiry repeated' },
+                    },
+                    {
+                      id: 'wamid.BATCH_NEW_02',
+                      from: '919811223344',
+                      type: 'text',
+                      text: { body: 'Fresh inquiry for Viman Nagar with rooftop dining' },
+                    },
+                  ],
+                },
+              },
+            ],
+          },
+        ],
+      };
+
+      const rawBody = JSON.stringify(webhookData);
+      const signature = `sha256=${createHmac('sha256', secret)
+        .update(rawBody, 'utf8')
+        .digest('hex')}`;
+
+      vi.spyOn(createLeadService, 'createWhatsAppLead')
+        .mockResolvedValueOnce({
+          ok: true,
+          leadId: 'existing-lead-01',
+          lvLeadId: 'LV-000010',
+          replayed: true,
+        })
+        .mockResolvedValueOnce({
+          ok: true,
+          leadId: 'new-lead-02',
+          lvLeadId: 'LV-000011',
+          replayed: false,
+        });
+
+      const sendMessageSpy = vi
+        .spyOn(whatsAppClientService, 'sendWhatsAppMessage')
+        .mockResolvedValueOnce({
+          ok: true,
+          messageId: 'wamid.OUTBOUND_NEW_02',
+        });
+
+      const payload = buildWhatsAppRoutePayload({
+        method: 'POST',
+        headers: { 'x-hub-signature-256': signature },
+        rawBody,
+        body: webhookData,
+      });
+
+      const response = await whatsappWebhookHandler(payload);
+
+      expect(response.status).toBe(200);
+      const body = JSON.parse(response.body as string);
+
+      expect(body.success).toBe(true);
+      expect(body.processedCount).toBe(2);
+
+      // First message: replayed, ack suppressed
+      expect(body.results[0]).toMatchObject({
+        wamid: 'wamid.BATCH_DUP_01',
+        leadId: 'existing-lead-01',
+        lvLeadId: 'LV-000010',
+        leadOk: true,
+        replayed: true,
+        ackSent: false,
+      });
+
+      // Second message: fresh, ack sent
+      expect(body.results[1]).toMatchObject({
+        wamid: 'wamid.BATCH_NEW_02',
+        leadId: 'new-lead-02',
+        lvLeadId: 'LV-000011',
+        leadOk: true,
+        replayed: false,
         ackSent: true,
       });
+
+      // Outbound message was dispatched only once (for the new message)
+      expect(sendMessageSpy).toHaveBeenCalledTimes(1);
+      expect(sendMessageSpy).toHaveBeenCalledWith(
+        expect.objectContaining({
+          to: '919811223344',
+        }),
+      );
     });
 
     it('records CRM failure without falsely claiming lead persistence succeeded', async () => {
@@ -428,10 +533,10 @@ describe('whatsapp-webhook.logic-function', () => {
         error: 'Database connection failed',
       });
 
-      vi.spyOn(whatsAppClientService, 'sendWhatsAppMessage').mockResolvedValueOnce({
-        ok: true,
-        messageId: 'wamid.ACK123',
-      });
+      const sendMessageSpy = vi.spyOn(
+        whatsAppClientService,
+        'sendWhatsAppMessage',
+      );
 
       const payload = buildWhatsAppRoutePayload({
         method: 'POST',
@@ -448,8 +553,10 @@ describe('whatsapp-webhook.logic-function', () => {
       expect(body.success).toBe(true);
       expect(body.results[0].leadId).toBeUndefined();
       expect(body.results[0].leadOk).toBe(false);
+      expect(body.results[0].ackSent).toBe(false);
       expect(body.results[0].error).toBe('Database connection failed');
       expect(body.results[0].wamid).toBe('wamid.CRMFAIL123');
+      expect(sendMessageSpy).not.toHaveBeenCalled();
     });
 
     it('handles acknowledgment failure safely while preserving successful lead creation', async () => {
@@ -513,6 +620,106 @@ describe('whatsapp-webhook.logic-function', () => {
         ackSent: false,
         error: 'Rate limit exceeded on WhatsApp Cloud API',
       });
+    });
+
+    it('processes curated trip confirmation from TripArchitectView and dispatches butler activation', async () => {
+      process.env.WHATSAPP_APP_SECRET = secret;
+
+      const tripText = [
+        '*La Vivenzia Curated Trip Concierge* 🛎️',
+        '',
+        'Trip: Hadapsar Luxury Dine & Craft Beer',
+        'Reference: LV-BOOK-2026-09',
+        'Party Size: 4 travellers',
+        'Region: Hadapsar, Pune',
+        '',
+        "Hi Butler! I've confirmed my trip. Please activate live concierge updates, route guidance, and dynamic recommendations for my group.",
+      ].join('\n');
+
+      const webhookData: MetaWhatsAppWebhookPayload = {
+        entry: [
+          {
+            changes: [
+              {
+                value: {
+                  messaging_product: 'whatsapp',
+                  contacts: [{ profile: { name: 'Kavita Joshi' }, wa_id: '919833445566' }],
+                  messages: [
+                    {
+                      id: 'wamid.TRIP_WEBHOOK_01',
+                      from: '919833445566',
+                      type: 'text',
+                      text: { body: tripText },
+                    },
+                  ],
+                },
+              },
+            ],
+          },
+        ],
+      };
+
+      const rawBody = JSON.stringify(webhookData);
+      const signature = `sha256=${createHmac('sha256', secret)
+        .update(rawBody, 'utf8')
+        .digest('hex')}`;
+
+      const createLeadSpy = vi
+        .spyOn(createLeadService, 'createWhatsAppLead')
+        .mockResolvedValueOnce({
+          ok: true,
+          leadId: 'lead-trip-404',
+          lvLeadId: 'LV-000108',
+          personId: 'person-kavita-88',
+          replayed: false,
+        });
+
+      const sendMessageSpy = vi
+        .spyOn(whatsAppClientService, 'sendWhatsAppMessage')
+        .mockResolvedValueOnce({
+          ok: true,
+          messageId: 'wamid.ACK_BUTLER_01',
+        });
+
+      const payload = buildWhatsAppRoutePayload({
+        method: 'POST',
+        headers: { 'x-hub-signature-256': signature },
+        rawBody,
+        body: webhookData,
+      });
+
+      const response = await whatsappWebhookHandler(payload);
+
+      expect(response.status).toBe(200);
+      const body = JSON.parse(response.body as string);
+
+      expect(body.success).toBe(true);
+      expect(body.results[0]).toMatchObject({
+        wamid: 'wamid.TRIP_WEBHOOK_01',
+        leadId: 'lead-trip-404',
+        personId: 'person-kavita-88',
+        leadOk: true,
+        ackSent: true,
+      });
+
+      expect(createLeadSpy).toHaveBeenCalledWith(
+        expect.objectContaining({
+          parsedMessage: expect.objectContaining({
+            isTripConfirmation: true,
+            tripTitle: 'Hadapsar Luxury Dine & Craft Beer',
+            bookingReference: 'LV-BOOK-2026-09',
+            guestCount: 4,
+            zone: 'HADAPSAR',
+          }),
+        }),
+      );
+
+      expect(sendMessageSpy).toHaveBeenCalledWith(
+        expect.objectContaining({
+          to: '919833445566',
+          text: expect.stringContaining('La Vivenzia Trip Concierge Activated!'),
+        }),
+      );
     });
   });
 

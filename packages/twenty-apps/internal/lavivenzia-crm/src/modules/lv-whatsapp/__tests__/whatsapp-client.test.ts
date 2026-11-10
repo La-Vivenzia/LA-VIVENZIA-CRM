@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import {
   buildAcknowledgmentText,
+  buildConversationalIntakePrompt,
   sendWhatsAppMessage,
 } from '../services/whatsapp-client';
 
@@ -40,6 +41,53 @@ describe('whatsapp-client', () => {
       expect(text).toContain('Hello!');
       expect(text).toContain('Thank you for reaching out to La Vivenzia');
       expect(text).toContain('Our Experience team is reviewing your request');
+    });
+
+    it('creates a Curated Trip Butler activation acknowledgment for trip confirmations', () => {
+      const text = buildAcknowledgmentText({
+        senderName: 'Ananya',
+        isTripConfirmation: true,
+        tripTitle: 'East Pune Heritage & Craft Beer Trail',
+        bookingReference: 'LV-CONFIRM-8821',
+        guestCount: 6,
+        tripRegion: 'Hadapsar, Pune',
+      });
+
+      expect(text).toContain('La Vivenzia Trip Concierge Activated!');
+      expect(text).toContain('Hi Ananya!');
+      expect(text).toContain('East Pune Heritage & Craft Beer Trail');
+      expect(text).toContain('LV-CONFIRM-8821');
+      expect(text).toContain('for your party of 6');
+      expect(text).toContain('Hadapsar, Pune');
+    });
+
+    it('generates live location-aware recommendation alerts for inquiries in a zone', () => {
+      const text = buildAcknowledgmentText({
+        senderName: 'Karan',
+        zoneLabel: 'Viman Nagar',
+        isLocationInquiry: true,
+        cravings: ['Rooftop Dining', 'Beer'],
+      });
+
+      expect(text).toContain('Live Location Recommendations — Viman Nagar');
+      expect(text).toContain('Hi Karan!');
+      expect(text).toContain('Rooftop Dining, Beer');
+      expect(text).toContain('Route Butler: Seamless transit and priority reservations active');
+    });
+
+    it('generates conversational intake prompt when requested', () => {
+      const text = buildAcknowledgmentText({
+        senderName: 'Suresh',
+        conversationalPrompt: true,
+      });
+
+      expect(text).toContain('Hi Suresh!');
+      expect(text).toContain('feel free to share your preferred vibe');
+      expect(text).toContain('Craft Beer, Rooftop Dining, Gaming, Spa');
+
+      const standalone = buildConversationalIntakePrompt({ senderName: 'Priya' });
+      expect(standalone).toContain('Hi Priya!');
+      expect(standalone).toContain('Amanora Mall, Seasons Mall, Magarpatta City, Hadapsar, or Viman Nagar');
     });
   });
 

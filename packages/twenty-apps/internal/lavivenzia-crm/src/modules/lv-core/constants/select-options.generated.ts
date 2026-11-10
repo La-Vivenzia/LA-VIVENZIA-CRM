@@ -304,6 +304,13 @@ export const LEAD_PILOT_ZONE_OPTIONS: SelectOption[] = [
     position: 3,
     color: 'amber',
   },
+  {
+    id: '83164381-52b6-5788-8365-52ff6d853b8a',
+    value: 'VIMAN_NAGAR',
+    label: "Viman Nagar",
+    position: 4,
+    color: 'blue',
+  },
 ];
 
 export const LEAD_SUBCATEGORY_OPTIONS: SelectOption[] = [

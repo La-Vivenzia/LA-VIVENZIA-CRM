@@ -6,6 +6,7 @@ import {
   findLeadByCaptureKey,
   leadCreateData,
 } from 'src/modules/lv-capture/services/capture-service';
+import { readCaptureInput } from 'src/modules/lv-capture/services/capture-request';
 import { type ParsedWhatsAppMessage } from 'src/modules/lv-whatsapp/utils/parse-whatsapp-message';
 import { writeAuditEvent } from 'src/modules/lv-governance/services/audit-log';
 import { describeError } from 'src/modules/lv-core/utils/describe-error';
@@ -15,6 +16,7 @@ export type CreateWhatsAppLeadResult =
       ok: true;
       leadId: string;
       lvLeadId: string | null;
+      personId?: string | null;
       replayed: boolean;
     }
   | {
@@ -26,10 +28,44 @@ export type CreateWhatsAppLeadResult =
 export const formatWhatsAppLeadNotes = (
   parsed: ParsedWhatsAppMessage,
 ): string => {
+  if (parsed.isTripConfirmation) {
+    const lines: string[] = ['Inbound Curated Trip Confirmation (Trip Butler):'];
+
+    if (parsed.tripTitle) {
+      lines.push(`• Trip: ${parsed.tripTitle}`);
+    }
+
+    if (parsed.bookingReference) {
+      lines.push(`• Booking Reference: ${parsed.bookingReference}`);
+    }
+
+    if (parsed.guestCount) {
+      lines.push(`• Party size: ${parsed.guestCount}`);
+    }
+
+    if (parsed.tripRegion) {
+      lines.push(`• Region: ${parsed.tripRegion}`);
+    }
+
+    if (parsed.zoneLabel) {
+      lines.push(`• Pilot Zone: ${parsed.zoneLabel}`);
+    }
+
+    lines.push('');
+    lines.push('Raw message:');
+    lines.push(parsed.rawText);
+
+    return lines.join('\n');
+  }
+
   const lines: string[] = ['Inbound WhatsApp Inquiry:'];
 
   if (parsed.zoneLabel) {
     lines.push(`• Zone: ${parsed.zoneLabel}`);
+  }
+
+  if (parsed.destinationCorridor) {
+    lines.push(`• Corridor: ${parsed.destinationCorridor}`);
   }
 
   if (parsed.guestCount) {
@@ -79,19 +115,38 @@ export const createWhatsAppLead = async ({
   const leadName =
     parsedMessage.senderName || `WhatsApp Lead (${parsedMessage.fromPhone})`;
 
-  const built = draftFor({
-    captureMode: 'API',
-    source: 'WHATSAPP',
-    name: leadName,
-    phone: parsedMessage.fromPhone,
-    pilotZone: parsedMessage.zone,
-    location: parsedMessage.zoneLabel
-      ? `${parsedMessage.zoneLabel}, Pune`
-      : 'Pune',
-    rawInput: parsedMessage.rawText,
-    priority: 'MEDIUM',
-    isHumanConfirmed: true,
+  const notes = formatWhatsAppLeadNotes(parsedMessage);
+  const location = parsedMessage.zoneLabel
+    ? `${parsedMessage.zoneLabel}, Pune`
+    : (parsedMessage.destination || 'Pune');
+
+  // Integrate through canonical readCaptureInput validation pipeline
+  const captureParsed = readCaptureInput({
+    method: 'API',
+    fields: {
+      name: leadName,
+      phone: parsedMessage.fromPhone,
+      pilotZone: parsedMessage.zone,
+      location,
+      rawInput: parsedMessage.rawText,
+      notes,
+      source: 'WHATSAPP',
+      category: parsedMessage.isTripConfirmation ? 'EXPERIENCE' : undefined,
+      subcategory: parsedMessage.isTripConfirmation ? 'CURATOR' : undefined,
+      priority: parsedMessage.isTripConfirmation ? 'HIGH' : 'MEDIUM',
+      isHumanConfirmed: true,
+    },
   });
+
+  if (!captureParsed.ok) {
+    return {
+      ok: false,
+      error: 'Failed to construct lead draft',
+      detail: captureParsed.error,
+    };
+  }
+
+  const built = draftFor(captureParsed.input);
 
   if (!built.ok) {
     return {
@@ -213,6 +268,59 @@ export const createWhatsAppLead = async ({
     console.warn('[lv-whatsapp] capture note creation failed:', describeError(noteError));
   }
 
+  // Find or create Person record in Twenty CRM
+  let personId: string | null = null;
+
+  try {
+    const existingPerson = (await application.query({
+      people: {
+        __args: {
+          first: 1,
+          filter: {
+            phones: {
+              primaryPhoneNumber: {
+                ilike: parsedMessage.fromPhone.replace(/[%_]/g, ''),
+              },
+            },
+          },
+        },
+        edges: { node: { id: true } },
+      },
+    })) as { people?: { edges?: { node: { id: string } }[] } };
+
+    const person = existingPerson.people?.edges?.[0]?.node;
+
+    if (person) {
+      personId = person.id;
+    } else {
+      const [firstName, ...rest] = (
+        parsedMessage.senderName || 'WhatsApp Contact'
+      ).split(/\s+/);
+
+      const createdPerson = (await application.mutation({
+        createPerson: {
+          __args: {
+            data: {
+              name: { firstName: firstName ?? '', lastName: rest.join(' ') },
+              phones: {
+                primaryPhoneNumber: parsedMessage.fromPhone,
+                primaryPhoneCountryCode: '',
+                primaryPhoneCallingCode: '',
+                additionalPhones: null,
+              },
+            },
+          },
+          id: true,
+        },
+      })) as { createPerson?: { id: string } };
+
+      personId = createdPerson.createPerson?.id ?? null;
+    }
+  } catch {
+    // Non-fatal if Person integration is unavailable in this environment
+    personId = null;
+  }
+
   // Record audit trail event
   await writeAuditEvent(application, {
     action: 'LEAD_CREATED',
@@ -228,9 +336,14 @@ export const createWhatsAppLead = async ({
       wamid: parsedMessage.wamid,
       fromPhone: parsedMessage.fromPhone,
       zone: parsedMessage.zone,
+      destination: parsedMessage.destination,
+      corridor: parsedMessage.destinationCorridor,
       guestCount: parsedMessage.guestCount,
       budget: parsedMessage.budget,
       cravings: parsedMessage.cravings,
+      isTripConfirmation: parsedMessage.isTripConfirmation,
+      bookingReference: parsedMessage.bookingReference,
+      personId,
     },
   });
 
@@ -238,6 +351,7 @@ export const createWhatsAppLead = async ({
     ok: true,
     leadId,
     lvLeadId: null,
+    personId,
     replayed: false,
   };
 };

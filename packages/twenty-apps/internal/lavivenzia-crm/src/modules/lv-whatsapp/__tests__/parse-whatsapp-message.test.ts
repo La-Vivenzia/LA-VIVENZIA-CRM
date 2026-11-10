@@ -3,7 +3,10 @@ import { describe, expect, it } from 'vitest';
 import {
   parseBudget,
   parseCravings,
+  parseDestinationCorridor,
   parseGuestCount,
+  parseLocationInquiry,
+  parseTripConfirmation,
   parseWhatsAppMessage,
   parseZone,
   type MetaWhatsAppWebhookPayload,
@@ -41,6 +44,28 @@ describe('parseWhatsAppMessage & extractors', () => {
       expect(parseZone('Magarpatta near cybercity')).toEqual({
         zone: 'MAGARPATTA_CITY',
         label: 'Magarpatta City',
+      });
+    });
+
+    it('detects Hadapsar', () => {
+      expect(parseZone('Any recommendations in Hadapsar?')).toEqual({
+        zone: 'HADAPSAR',
+        label: 'Hadapsar',
+      });
+      expect(parseZone('Hadapsar Pune')).toEqual({
+        zone: 'HADAPSAR',
+        label: 'Hadapsar',
+      });
+    });
+
+    it('detects Viman Nagar', () => {
+      expect(parseZone('Looking for venues in Viman Nagar')).toEqual({
+        zone: 'VIMAN_NAGAR',
+        label: 'Viman Nagar',
+      });
+      expect(parseZone('viman area spots')).toEqual({
+        zone: 'VIMAN_NAGAR',
+        label: 'Viman Nagar',
       });
     });
 
@@ -146,6 +171,22 @@ describe('parseWhatsAppMessage & extractors', () => {
     it('detects Spa', () => {
       expect(parseCravings('Relaxing massage and spa')).toContain('Spa');
       expect(parseCravings('wellness sauna therapy')).toContain('Spa');
+    });
+
+    it('detects Beer and Breweries', () => {
+      expect(parseCravings('Looking for craft beer and microbrewery')).toContain(
+        'Beer',
+      );
+      expect(parseCravings('draught beers in Hadapsar')).toContain('Beer');
+    });
+
+    it('detects Rooftop Dining', () => {
+      expect(parseCravings('Best rooftop restaurant in Viman Nagar')).toContain(
+        'Rooftop Dining',
+      );
+      expect(parseCravings('open air sky dining with view')).toContain(
+        'Rooftop Dining',
+      );
     });
 
     it('detects multiple cravings in a single message', () => {
@@ -289,6 +330,113 @@ describe('parseWhatsAppMessage & extractors', () => {
       expect(result).toHaveLength(1);
       expect(result[0].zone).toBe('SEASONS_MALL');
       expect(result[0].guestCount).toBe(3);
+    });
+
+    it('parses TripArchitectView trip confirmation deep-link payload', () => {
+      const tripMessage = [
+        '*La Vivenzia Curated Trip Concierge* 🛎️',
+        '',
+        'Trip: Pune Sunset & Craft Brewery Trail',
+        'Reference: LV-TRIP-9901',
+        'Party Size: 5 travellers',
+        'Region: Eastern Pune',
+        '',
+        "Hi Butler! I've confirmed my trip. Please activate live concierge updates, route guidance, and dynamic recommendations for my group.",
+      ].join('\n');
+
+      const payload: MetaWhatsAppWebhookPayload = {
+        entry: [
+          {
+            changes: [
+              {
+                value: {
+                  messaging_product: 'whatsapp',
+                  contacts: [{ profile: { name: 'Vikram Malhotra' }, wa_id: '919988776655' }],
+                  messages: [
+                    {
+                      id: 'wamid.TRIP_BUTLER_001',
+                      from: '919988776655',
+                      type: 'text',
+                      text: { body: tripMessage },
+                    },
+                  ],
+                },
+              },
+            ],
+          },
+        ],
+      };
+
+      const result = parseWhatsAppMessage(payload);
+
+      expect(result).toHaveLength(1);
+      const parsed = result[0];
+      expect(parsed.isTripConfirmation).toBe(true);
+      expect(parsed.tripTitle).toBe('Pune Sunset & Craft Brewery Trail');
+      expect(parsed.bookingReference).toBe('LV-TRIP-9901');
+      expect(parsed.guestCount).toBe(5);
+      expect(parsed.tripRegion).toBe('Eastern Pune');
+      expect(parsed.isLocationInquiry).toBe(true);
+    });
+  });
+
+  describe('parseDestinationCorridor', () => {
+    it('derives destination and pilot corridor from zone', () => {
+      const { destination, corridor } = parseDestinationCorridor(
+        'Planning an outing in Hadapsar',
+        'HADAPSAR',
+      );
+
+      expect(destination).toBe('Hadapsar, Pune');
+      expect(corridor).toBe('Pune East Pilot Corridor');
+    });
+
+    it('identifies Pune East corridor when explicitly mentioned in text', () => {
+      const { corridor } = parseDestinationCorridor(
+        'We are touring Eastern Pune',
+        null,
+      );
+
+      expect(corridor).toBe('Pune East Pilot Corridor');
+    });
+  });
+
+  describe('parseTripConfirmation', () => {
+    it('extracts trip title, booking reference, and party size accurately', () => {
+      const text = [
+        '*La Vivenzia Curated Trip Concierge* 🛎️',
+        'Trip: Viman Nagar Rooftop & Luxury Spa Escape',
+        'Reference: LV-BOOK-2026-X',
+        'Party Size: 4 travellers',
+        'Region: Viman Nagar, Pune',
+        "Hi Butler! I've confirmed my trip.",
+      ].join('\n');
+
+      const details = parseTripConfirmation(text);
+
+      expect(details.isTripConfirmation).toBe(true);
+      expect(details.tripTitle).toBe('Viman Nagar Rooftop & Luxury Spa Escape');
+      expect(details.bookingReference).toBe('LV-BOOK-2026-X');
+      expect(details.partySize).toBe(4);
+      expect(details.region).toBe('Viman Nagar, Pune');
+    });
+
+    it('returns isTripConfirmation false for standard non-trip inquiries', () => {
+      const text = 'Hi, what are the best clubs in Amanora for 2 people?';
+      const details = parseTripConfirmation(text);
+
+      expect(details.isTripConfirmation).toBe(false);
+      expect(details.tripTitle).toBeNull();
+      expect(details.bookingReference).toBeNull();
+    });
+  });
+
+  describe('parseLocationInquiry', () => {
+    it('detects recommendation and route guidance inquiries', () => {
+      expect(parseLocationInquiry('Can you recommend places nearby?')).toBe(true);
+      expect(parseLocationInquiry('Where to go near Amanora?')).toBe(true);
+      expect(parseLocationInquiry('Send route guidance and live updates')).toBe(true);
+      expect(parseLocationInquiry('Just checking in, hello!')).toBe(false);
     });
   });
 });

@@ -1,9 +1,17 @@
-export type WhatsAppCraving = 'Nightlife' | 'Dining' | 'Gaming' | 'Spa';
+export type WhatsAppCraving =
+  | 'Nightlife'
+  | 'Dining'
+  | 'Gaming'
+  | 'Spa'
+  | 'Beer'
+  | 'Rooftop Dining';
 
 export type WhatsAppPilotZone =
   | 'AMANORA_MALL'
   | 'SEASONS_MALL'
-  | 'MAGARPATTA_CITY';
+  | 'MAGARPATTA_CITY'
+  | 'HADAPSAR'
+  | 'VIMAN_NAGAR';
 
 export type ParsedWhatsAppMessage = {
   wamid: string;
@@ -13,10 +21,17 @@ export type ParsedWhatsAppMessage = {
   rawText: string;
   zone: WhatsAppPilotZone | null;
   zoneLabel: string | null;
+  destination?: string | null;
+  destinationCorridor?: string | null;
   guestCount: number | null;
   budget: number | null;
   budgetFormatted: string | null;
   cravings: WhatsAppCraving[];
+  isTripConfirmation?: boolean;
+  bookingReference?: string | null;
+  tripTitle?: string | null;
+  tripRegion?: string | null;
+  isLocationInquiry?: boolean;
 };
 
 export type MetaWhatsAppWebhookPayload = {
@@ -79,6 +94,16 @@ const ZONE_MATCHERS: Array<{
     label: 'Magarpatta City',
     regex: /\bmagarpatta(?:\s+city)?\b/i,
   },
+  {
+    zone: 'HADAPSAR',
+    label: 'Hadapsar',
+    regex: /\bhadapsar\b/i,
+  },
+  {
+    zone: 'VIMAN_NAGAR',
+    label: 'Viman Nagar',
+    regex: /\bviman(?:\s+nagar)?\b/i,
+  },
 ];
 
 const CRAVING_MATCHERS: Array<{
@@ -86,20 +111,28 @@ const CRAVING_MATCHERS: Array<{
   regex: RegExp;
 }> = [
   {
-    craving: 'Nightlife',
-    regex: /\b(nightlife|clubs?|clubbing|part(?:y|ies)|drinks?|pubs?|lounges?|bars?)\b/i,
-  },
-  {
-    craving: 'Dining',
-    regex: /\b(dining|dinner|lunch|foods?|restaurants?|cuisines?|eats?|eating|brunch)\b/i,
+    craving: 'Beer',
+    regex: /\b(beer|beers|brewery|breweries|craft\s*beer|microbrewery|draught|ale|ipa)\b/i,
   },
   {
     craving: 'Gaming',
     regex: /\b(gaming|games?|arcades?|bowling|vr|laser\s*tag|playzone)\b/i,
   },
   {
+    craving: 'Rooftop Dining',
+    regex: /\b(rooftop(?:\s+dining|\s+restaurant|\s+lounge|\s+bar)?|open\s*air\s*dining|sky\s*dining|terrace\s*dining)\b/i,
+  },
+  {
     craving: 'Spa',
     regex: /\b(spas?|massages?|wellness|relax|relaxation|saunas?|therap(?:y|ies))\b/i,
+  },
+  {
+    craving: 'Nightlife',
+    regex: /\b(nightlife|clubs?|clubbing|part(?:y|ies)|drinks?|pubs?|lounges?|bars?)\b/i,
+  },
+  {
+    craving: 'Dining',
+    regex: /\b(dining|dinner|lunch|foods?|restaurants?|cuisines?|eats?|eating|brunch)\b/i,
   },
 ];
 
@@ -218,6 +251,75 @@ export const parseCravings = (text: string): WhatsAppCraving[] => {
   return result;
 };
 
+export const parseDestinationCorridor = (
+  text: string,
+  zone: WhatsAppPilotZone | null,
+): { destination: string | null; corridor: string | null } => {
+  const hasPune = /\bpune\b/i.test(text);
+  const hasEastPune = /\b(?:east(?:ern)?\s+pune|pune\s+east)\b/i.test(text);
+
+  let destination: string | null = hasPune ? 'Pune' : null;
+  let corridor: string | null = hasEastPune ? 'Pune East Pilot Corridor' : null;
+
+  if (zone) {
+    const matched = ZONE_MATCHERS.find((m) => m.zone === zone);
+    const label = matched?.label || zone;
+    destination = destination ? `${label}, Pune` : `${label}, Pune`;
+    corridor = corridor || 'Pune East Pilot Corridor';
+  }
+
+  return { destination, corridor };
+};
+
+export type TripConfirmationDetails = {
+  isTripConfirmation: boolean;
+  tripTitle: string | null;
+  bookingReference: string | null;
+  partySize: number | null;
+  region: string | null;
+};
+
+export const parseTripConfirmation = (
+  text: string,
+): TripConfirmationDetails => {
+  const isTripConciergeHeader = /La Vivenzia Curated Trip Concierge/i.test(text);
+  const isTripButlerActivation =
+    /activate live concierge updates|confirmed my trip/i.test(text);
+
+  if (
+    !isTripConciergeHeader &&
+    !isTripButlerActivation &&
+    !/Reference:\s*LV-/i.test(text)
+  ) {
+    return {
+      isTripConfirmation: false,
+      tripTitle: null,
+      bookingReference: null,
+      partySize: null,
+      region: null,
+    };
+  }
+
+  const tripMatch = text.match(/Trip:\s*([^\n\r]+)/i);
+  const refMatch = text.match(/Reference:\s*([A-Za-z0-9-]+)/i);
+  const partyMatch = text.match(/Party Size:\s*(\d+)/i);
+  const regionMatch = text.match(/Region:\s*([^\n\r]+)/i);
+
+  return {
+    isTripConfirmation: true,
+    tripTitle: tripMatch ? tripMatch[1].trim() : null,
+    bookingReference: refMatch ? refMatch[1].trim() : null,
+    partySize: partyMatch ? parseInt(partyMatch[1], 10) : null,
+    region: regionMatch ? regionMatch[1].trim() : null,
+  };
+};
+
+export const parseLocationInquiry = (text: string): boolean => {
+  return /\b(recommend|recommendations?|where to go|nearby|near me|live updates?|alert|alerts?|butler updates?|route guidance)\b/i.test(
+    text,
+  );
+};
+
 export const parseWhatsAppMessage = (
   payload: MetaWhatsAppWebhookPayload,
 ): ParsedWhatsAppMessage[] => {
@@ -261,6 +363,15 @@ export const parseWhatsAppMessage = (
         const guestCount = parseGuestCount(rawText);
         const { amount: budget, formatted: budgetFormatted } = parseBudget(rawText);
         const cravings = parseCravings(rawText);
+        const { destination, corridor: destinationCorridor } =
+          parseDestinationCorridor(rawText, zone);
+        const tripDetails = parseTripConfirmation(rawText);
+        const isLocationInquiry = parseLocationInquiry(rawText);
+
+        const effectiveGuestCount =
+          tripDetails.isTripConfirmation && tripDetails.partySize
+            ? tripDetails.partySize
+            : guestCount;
 
         parsedMessages.push({
           wamid: msg.id,
@@ -270,10 +381,17 @@ export const parseWhatsAppMessage = (
           rawText,
           zone,
           zoneLabel,
-          guestCount,
+          destination,
+          destinationCorridor,
+          guestCount: effectiveGuestCount,
           budget,
           budgetFormatted,
           cravings,
+          isTripConfirmation: tripDetails.isTripConfirmation,
+          bookingReference: tripDetails.bookingReference,
+          tripTitle: tripDetails.tripTitle,
+          tripRegion: tripDetails.region,
+          isLocationInquiry,
         });
       }
     }

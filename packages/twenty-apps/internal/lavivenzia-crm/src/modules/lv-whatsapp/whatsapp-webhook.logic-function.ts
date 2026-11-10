@@ -106,6 +106,8 @@ export const whatsappWebhookHandler = async (
     const processingResults: Array<{
       wamid: string;
       leadId?: string;
+      lvLeadId?: string | null;
+      personId?: string | null;
       leadOk: boolean;
       replayed?: boolean;
       ackSent: boolean;
@@ -116,12 +118,43 @@ export const whatsappWebhookHandler = async (
       // 1. Create or retrieve lead in CRM
       const leadOutcome = await createWhatsAppLead({ parsedMessage });
 
+      if (!leadOutcome.ok) {
+        processingResults.push({
+          wamid: parsedMessage.wamid,
+          leadId: undefined,
+          leadOk: false,
+          replayed: undefined,
+          ackSent: false,
+          error: leadOutcome.error,
+        });
+        continue;
+      }
+
+      // If duplicate / replayed message, preserve existing lead and do not send duplicate acknowledgment
+      if (leadOutcome.replayed) {
+        processingResults.push({
+          wamid: parsedMessage.wamid,
+          leadId: leadOutcome.leadId,
+          lvLeadId: leadOutcome.lvLeadId,
+          personId: leadOutcome.personId,
+          leadOk: true,
+          replayed: true,
+          ackSent: false,
+        });
+        continue;
+      }
+
       // 2. Send acknowledgment back to user via WhatsApp Cloud API
       const ackText = buildAcknowledgmentText({
         senderName: parsedMessage.senderName,
         zoneLabel: parsedMessage.zoneLabel,
         guestCount: parsedMessage.guestCount,
         cravings: parsedMessage.cravings,
+        isTripConfirmation: parsedMessage.isTripConfirmation,
+        bookingReference: parsedMessage.bookingReference,
+        tripTitle: parsedMessage.tripTitle,
+        tripRegion: parsedMessage.tripRegion,
+        isLocationInquiry: parsedMessage.isLocationInquiry,
       });
 
       const ackOutcome = await sendWhatsAppMessage({
@@ -131,11 +164,13 @@ export const whatsappWebhookHandler = async (
 
       processingResults.push({
         wamid: parsedMessage.wamid,
-        leadId: leadOutcome.ok ? leadOutcome.leadId : undefined,
-        leadOk: leadOutcome.ok,
-        replayed: leadOutcome.ok ? leadOutcome.replayed : undefined,
+        leadId: leadOutcome.leadId,
+        lvLeadId: leadOutcome.lvLeadId,
+        personId: leadOutcome.personId,
+        leadOk: true,
+        replayed: leadOutcome.replayed,
         ackSent: ackOutcome.ok,
-        error: leadOutcome.ok ? (ackOutcome.ok ? undefined : ackOutcome.error) : leadOutcome.error,
+        error: ackOutcome.ok ? undefined : ackOutcome.error,
       });
     }
 

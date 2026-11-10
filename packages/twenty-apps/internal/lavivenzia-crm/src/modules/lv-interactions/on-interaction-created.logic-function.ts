@@ -154,7 +154,7 @@ export const handler = async (
           leadId: record.leadId,
           leadName,
           interactionId: record.id,
-          channelLabel: INTERACTION_CHANNEL_LABELS[channel],
+          channelLabel: INTERACTION_CHANNEL_LABELS[channel as keyof typeof INTERACTION_CHANNEL_LABELS],
           ownerWorkspaceMemberId: leadRow.ownerId,
           priority: priorityOrDefault(leadRow.priority),
         }),

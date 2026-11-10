@@ -59,6 +59,19 @@ export type MetaWhatsAppWebhookPayload = {
           text?: {
             body?: string;
           };
+          interactive?: {
+            button_reply?: {
+              id?: string;
+              title?: string;
+            };
+            list_reply?: {
+              id?: string;
+              title?: string;
+            };
+          };
+          button?: {
+            text?: string;
+          };
           image?: {
             caption?: string;
           };
@@ -128,7 +141,8 @@ const CRAVING_MATCHERS: Array<{
   },
   {
     craving: 'Nightlife',
-    regex: /\b(nightlife|clubs?|clubbing|part(?:y|ies)|drinks?|pubs?|lounges?|bars?)\b/i,
+    // Avoid matching 'party of 4' or 'parties of 5' as nightlife
+    regex: /\b(nightlife|clubs?|clubbing|part(?:y|ies)(?!\s+of\b)|drinks?|pubs?|lounges?|bars?)\b/i,
   },
   {
     craving: 'Dining',
@@ -150,10 +164,12 @@ export const parseZone = (
 
 export const parseGuestCount = (text: string): number | null => {
   // Patterns like: "4 guests", "party of 5", "for 6 people", "2 pax", "table for 3"
+  // Negative lookahead prevents matching "for 2 nights", "for 3 days", "for 5 hours"
   const patterns = [
     /\b(\d{1,3})\s*(?:guests?|people|pax|persons?|adults?|members?)\b/i,
     /\b(?:party\s+of|table\s+for|group\s+of)\s*(\d{1,3})\b/i,
-    /\b(?:for)\s+(\d{1,3})\s*(?:guests?|people|pax|persons?)?\b/i,
+    /\b(?:for)\s+(\d{1,3})\s*(?:guests?|people|pax|persons?|of\s+us)\b/i,
+    /\b(?:for)\s+(\d{1,3})\b(?!\s*(?:nights?|days?|hours?|hrs?|am|pm|weeks?|mins?|minutes?))/i,
   ];
 
   for (const pattern of patterns) {
@@ -177,7 +193,7 @@ export const parseBudget = (
   // Match currency prefix (₹, rs, inr) or keyword "budget"
   // Handles values like "₹5,000", "5000 inr", "budget 10k", "approx 2 lakhs"
   const budgetPattern =
-    /(?:(?:budget|cost|price|max|approx|around)\s*(?:is|of|:)?\s*)?(?:(?:rs\.?|inr|₹)\s*)?([\d,]+(?:\.\d+)?)\s*(k|lac|lakhs?|l)?\s*(?:rs\.?|inr|₹|rupees)?\b/gi;
+    /(?:(?:budget|cost|price|max|approx|around|spend)\s*(?:is|of|:)?\s*)?(?:(?:rs\.?|inr|₹)\s*)?([\d,]+(?:\.\d+)?)\s*(k|lac|lakhs?|l)?\s*(?:rs\.?|inr|₹|rupees)?\b/gi;
 
   let bestAmount: number | null = null;
   let match: RegExpExecArray | null;
@@ -211,21 +227,27 @@ export const parseBudget = (
 
     const calculated = baseVal * multiplier;
 
-    // Filter out unlikely small numbers that might have been guest counts or dates
-    // If text specifically had currency symbol or "budget", trust lower numbers >= 100
     const matchedSegment = match[0].toLowerCase();
     const hasCurrencyOrBudgetKeyword =
       matchedSegment.includes('rs') ||
       matchedSegment.includes('inr') ||
       matchedSegment.includes('₹') ||
       matchedSegment.includes('budget') ||
+      matchedSegment.includes('cost') ||
+      matchedSegment.includes('price') ||
+      matchedSegment.includes('spend') ||
       multiplier > 1;
 
+    // Reject standalone years (e.g. 2024, 2025, 2026) without currency or budget indicator
+    if (!hasCurrencyOrBudgetKeyword && calculated >= 2000 && calculated <= 2030) {
+      continue;
+    }
+
+    // Require currency indicator or budget keyword to trust amounts
     if (hasCurrencyOrBudgetKeyword && calculated >= 100) {
       bestAmount = calculated;
       break;
-    } else if (calculated >= 500 && !bestAmount) {
-      // Unlabeled amount >= 500
+    } else if (calculated >= 500 && !bestAmount && hasCurrencyOrBudgetKeyword) {
       bestAmount = calculated;
     }
   }
@@ -345,18 +367,27 @@ export const parseWhatsAppMessage = (
           continue;
         }
 
-        // Ignore reaction events or messages without text content
+        // Ignore reaction events
         if (msg.type === 'reaction') {
           continue;
         }
 
-        const rawText = (msg.text?.body ?? msg.image?.caption ?? '').trim();
+        // Support text, button clicks, interactive list/replies, and image captions
+        const rawText = (
+          msg.text?.body ??
+          msg.interactive?.button_reply?.title ??
+          msg.interactive?.list_reply?.title ??
+          msg.button?.text ??
+          msg.image?.caption ??
+          ''
+        ).trim();
 
         if (!rawText) {
           continue;
         }
 
-        const contact = contacts.find((c) => c.wa_id === msg.from) ?? contacts[0];
+        // Find contact strictly matching this sender wa_id
+        const contact = contacts.find((c) => c.wa_id === msg.from) ?? (contacts.length === 1 ? contacts[0] : undefined);
         const senderName = contact?.profile?.name?.trim() || null;
 
         const { zone, label: zoneLabel } = parseZone(rawText);

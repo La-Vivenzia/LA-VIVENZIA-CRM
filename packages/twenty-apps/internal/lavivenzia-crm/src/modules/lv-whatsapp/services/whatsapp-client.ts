@@ -83,6 +83,7 @@ export const sendWhatsAppMessage = async ({
         'Content-Type': 'application/json',
       },
       body: JSON.stringify(payload),
+      signal: AbortSignal.timeout(10000),
     });
 
     const data = (await response.json().catch(() => ({}))) as {

@@ -35,22 +35,30 @@ export const verifyWhatsAppSignature = ({
   const prefix = 'sha256=';
   const trimmed = signatureHeader.trim();
 
-  if (!trimmed.startsWith(prefix)) {
+  if (!trimmed.toLowerCase().startsWith(prefix)) {
     return { valid: false, reason: 'INVALID_SIGNATURE_FORMAT' };
   }
 
-  const providedHex = trimmed.slice(prefix.length).trim();
-  const expectedHex = createHmac('sha256', secret)
-    .update(rawBody, 'utf8')
-    .digest('hex');
+  const providedHex = trimmed.slice(prefix.length).trim().toLowerCase();
+  const trimmedSecret = secret.trim();
 
-  // Must have equal byte length for timingSafeEqual
+  const expectedHex = createHmac('sha256', trimmedSecret)
+    .update(rawBody, 'utf8')
+    .digest('hex')
+    .toLowerCase();
+
+  // Must have equal byte length for timingSafeEqual (64 hex chars = 32 bytes)
   if (providedHex.length !== expectedHex.length) {
     return { valid: false, reason: 'INVALID_SIGNATURE' };
   }
 
-  const providedBuffer = Buffer.from(providedHex, 'utf8');
-  const expectedBuffer = Buffer.from(expectedHex, 'utf8');
+  // Compare the actual binary byte digests
+  const providedBuffer = Buffer.from(providedHex, 'hex');
+  const expectedBuffer = Buffer.from(expectedHex, 'hex');
+
+  if (providedBuffer.length !== expectedBuffer.length) {
+    return { valid: false, reason: 'INVALID_SIGNATURE' };
+  }
 
   const isValid = timingSafeEqual(providedBuffer, expectedBuffer);
 

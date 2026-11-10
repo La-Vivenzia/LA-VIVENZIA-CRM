@@ -1,3 +1,4 @@
+import { timingSafeEqual } from 'node:crypto';
 import { defineLogicFunction, type RoutePayload } from 'twenty-sdk/define';
 import { Response } from 'twenty-sdk/logic-function';
 
@@ -37,7 +38,16 @@ export const whatsappWebhookHandler = async (
       });
     }
 
-    if (mode === 'subscribe' && verifyToken && verifyToken === expectedToken) {
+    const trimmedExpected = expectedToken.trim();
+    const isTokenValid =
+      typeof verifyToken === 'string' &&
+      verifyToken.length === trimmedExpected.length &&
+      timingSafeEqual(
+        Buffer.from(verifyToken, 'utf8'),
+        Buffer.from(trimmedExpected, 'utf8'),
+      );
+
+    if (mode === 'subscribe' && isTokenValid) {
       return new Response(challenge ?? '', {
         status: 200,
         headers: { 'content-type': 'text/plain' },
@@ -81,7 +91,6 @@ export const whatsappWebhookHandler = async (
       return new Response(
         JSON.stringify({
           error: 'Invalid signature',
-          reason: signatureCheck.reason,
         }),
         {
           status: 401,
@@ -90,14 +99,36 @@ export const whatsappWebhookHandler = async (
       );
     }
 
-    // Parse the webhook payload
+    // Parse the verified rawBody directly to ensure data integrity
     let payload = routePayload.body;
 
-    if (!payload && routePayload.rawBody) {
+    if (routePayload.rawBody) {
       try {
         payload = JSON.parse(routePayload.rawBody) as MetaWhatsAppWebhookPayload;
       } catch {
-        payload = {};
+        payload = routePayload.body ?? {};
+      }
+    }
+
+    // Check target phone number ID if configured in environment
+    const configuredPhoneNumberId = process.env.WHATSAPP_PHONE_NUMBER_ID?.trim();
+    if (configuredPhoneNumberId && payload?.entry) {
+      for (const entry of payload.entry) {
+        for (const change of entry.changes ?? []) {
+          const incomingPhoneNumberId = change.value?.metadata?.phone_number_id;
+          if (
+            incomingPhoneNumberId &&
+            incomingPhoneNumberId !== configuredPhoneNumberId
+          ) {
+            console.warn(
+              `[lv-whatsapp] Dropping event for unknown phone_number_id: ${incomingPhoneNumberId}`,
+            );
+            return new Response(JSON.stringify({ success: true, ignored: true }), {
+              status: 200,
+              headers: { 'content-type': 'application/json' },
+            });
+          }
+        }
       }
     }
 

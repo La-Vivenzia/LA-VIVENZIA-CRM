@@ -134,7 +134,7 @@ export const createWhatsAppLead = async ({
       category: parsedMessage.isTripConfirmation ? 'EXPERIENCE' : undefined,
       subcategory: parsedMessage.isTripConfirmation ? 'CURATOR' : undefined,
       priority: parsedMessage.isTripConfirmation ? 'HIGH' : 'MEDIUM',
-      isHumanConfirmed: true,
+      isHumanConfirmed: false,
     },
   });
 
@@ -158,6 +158,7 @@ export const createWhatsAppLead = async ({
 
   const draft = built.draft;
 
+  // Inbound webhook is automated: verification must be UNCONFIRMED until reviewed by a person
   const provenance: CaptureProvenance = {
     method: 'API',
     platform: 'WHATSAPP',
@@ -175,7 +176,7 @@ export const createWhatsAppLead = async ({
       status: 'NOT_RUN',
       runId: null,
     },
-    verification: 'CONFIRMED_BY_PERSON',
+    verification: 'UNCONFIRMED',
     duplicateDecision: {
       decision: 'NONE',
       candidateLeadIds: [],
@@ -189,17 +190,22 @@ export const createWhatsAppLead = async ({
   });
 
   let leadId: string | null = null;
+  let lvLeadId: string | null = null;
 
   try {
     const created = await application.mutation({
       createLvLead: {
         __args: { data: payload },
         id: true,
+        lvLeadId: true,
       },
     });
 
-    leadId =
-      (created as { createLvLead?: { id?: string } })?.createLvLead?.id ?? null;
+    const leadRecord = (created as { createLvLead?: { id?: string; lvLeadId?: string | null } })
+      ?.createLvLead;
+
+    leadId = leadRecord?.id ?? null;
+    lvLeadId = leadRecord?.lvLeadId ?? null;
   } catch (error) {
     const message = describeError(error);
 
@@ -272,6 +278,11 @@ export const createWhatsAppLead = async ({
   let personId: string | null = null;
 
   try {
+    const cleanPhone = parsedMessage.fromPhone.replace(/\D/g, '');
+    const isIndia = cleanPhone.length === 12 && cleanPhone.startsWith('91') || cleanPhone.length === 10;
+    const countryCode = isIndia ? 'IN' : '';
+    const callingCode = isIndia ? '+91' : '';
+
     const existingPerson = (await application.query({
       people: {
         __args: {
@@ -304,8 +315,8 @@ export const createWhatsAppLead = async ({
               name: { firstName: firstName ?? '', lastName: rest.join(' ') },
               phones: {
                 primaryPhoneNumber: parsedMessage.fromPhone,
-                primaryPhoneCountryCode: '',
-                primaryPhoneCallingCode: '',
+                primaryPhoneCountryCode: countryCode,
+                primaryPhoneCallingCode: callingCode,
                 additionalPhones: null,
               },
             },
@@ -316,8 +327,8 @@ export const createWhatsAppLead = async ({
 
       personId = createdPerson.createPerson?.id ?? null;
     }
-  } catch {
-    // Non-fatal if Person integration is unavailable in this environment
+  } catch (err) {
+    console.warn('[lv-whatsapp] Person lookup/creation failed:', describeError(err));
     personId = null;
   }
 
@@ -350,7 +361,7 @@ export const createWhatsAppLead = async ({
   return {
     ok: true,
     leadId,
-    lvLeadId: null,
+    lvLeadId,
     personId,
     replayed: false,
   };
